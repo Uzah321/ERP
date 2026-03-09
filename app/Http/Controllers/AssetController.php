@@ -12,23 +12,49 @@ use Illuminate\Support\Facades\Auth;
 
 class AssetController extends Controller
 {
-    public function index()
+        public function index(\Illuminate\Http\Request $request)
     {
         $user = Auth::user();
         $department = $user->department;
-        
+
         // Fetch arrays for our dropdowns
         $categories = Category::all();
         $locations = Location::all();
-        
-        // Fetch assets with their relations
-        $assets = Asset::with(['category', 'location'])
-            ->where('department_id', $user->department_id)
-            ->latest()
-            ->get();
+
+        $query = Asset::with(['category', 'location']);
+
+        // Check if admin wants to view all, or if searching specific
+        if ($user->role !== 'admin') {
+            $query->where('department_id', $user->department_id);
+        } else {
+            if ($request->filled('department_id')) {
+                $query->where('department_id', $request->department_id);
+            }
+        }
+
+        // Apply filters
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'ilike', "%$search%")
+                  ->orWhere('barcode', 'ilike', "%$search%")
+                  ->orWhere('serial_number', 'ilike', "%$search%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('condition')) {
+            $query->where('condition', $request->condition);
+        }
+
+        $assets = $query->latest()->get();
 
         return Inertia::render('Dashboard', [
             'assets' => $assets,
+            'filters' => $request->only(['search', 'status', 'condition', 'department_id']),
             'all_departments' => Department::all(),
             'department' => $department,
             'categories' => $categories,
@@ -70,4 +96,5 @@ class AssetController extends Controller
         return redirect()->route('dashboard');
     }
 }
+
 

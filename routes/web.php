@@ -6,6 +6,7 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AssetLifecycleController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AssetController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,8 @@ Route::get('/dashboard', [AssetController::class, 'index'])->middleware(['auth',
 Route::post('/assets', [AssetController::class, 'store'])->middleware(['auth', 'verified'])->name('assets.store');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+
     Route::get('/transfers', [TransferRequestController::class, 'index'])->name('transfers.index');
     Route::post('/assets/{asset}/transfer', [TransferRequestController::class, 'store'])->name('transfers.store');
     Route::patch('/transfers/{transferRequest}', [TransferRequestController::class, 'update'])->name('transfers.update');
@@ -46,6 +49,7 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
 
 
 
