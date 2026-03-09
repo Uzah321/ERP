@@ -132,24 +132,24 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                 <table className="w-full text-left border-collapse text-sm">
                                     <thead>
                                         <tr className="border-b bg-gray-50">
-                                            <th className="py-3 px-2">Barcode</th>
-                                            <th className="py-3 px-2">Name</th>
-                                            <th className="py-3 px-2">Category</th>
-                                            <th className="py-3 px-2">Location</th>
-                                            <th className="py-3 px-2">Condition</th>
-                                            <th className="py-3 px-2">Status</th>
-                                            <th className="py-3 px-2 text-right">Actions</th>
+                                            <th className="py-1 px-2 border border-gray-300">Barcode</th>
+                                            <th className="py-1 px-2 border border-gray-300">Name</th>
+                                            <th className="py-1 px-2 border border-gray-300">Category</th>
+                                            <th className="py-1 px-2 border border-gray-300">Location</th>
+                                            <th className="py-1 px-2 border border-gray-300">Condition</th>
+                                            <th className="py-1 px-2 border border-gray-300">Status</th>
+                                            <th className="py-1 px-2 border border-gray-300 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {assets.map((asset) => (
-                                            <tr key={asset.id} className="border-b border-gray-100 hover:bg-indigo-50/30 transition-colors duration-150">
+                                            <tr key={asset.id} className="border-b border-gray-300 even:bg-[#f9f9f9] hover:bg-blue-50 transition-none">
                                                 <td className="py-3 px-2 font-mono font-bold text-indigo-600">{asset.barcode}</td>
                                                 <td className="py-3 px-2 font-semibold">{asset.name}</td>
                                                 <td className="py-3 px-2 text-gray-600">{asset.category?.name}</td>
                                                 <td className="py-3 px-2 text-gray-600">{asset.location?.name}</td>
-                                                <td className="py-3 px-2">{asset.condition}</td>
-                                                <td className="py-3 px-2">
+                                                <td className="py-1 px-2 border border-gray-300">{asset.condition}</td>
+                                                <td className="py-1 px-2 border border-gray-300">
     <span className={"px-2 py-1 text-xs rounded-full font-semibold " + 
         (asset.status === 'Active' ? 'bg-green-100 text-green-800' : 
          asset.status === 'Under Maintenance' ? 'bg-yellow-100 text-yellow-800' : 
@@ -159,7 +159,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
         {asset.status}
     </span>
 </td>
-<td className="py-3 px-2 text-right">
+<td className="py-1 px-2 border border-gray-300 text-right">
     <div className="flex justify-end gap-2 items-center flex-wrap">
         {['Pending', 'Active'].includes(asset.status) && (
             <button onClick={() => setTransferringAsset(asset)} className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs rounded border border-indigo-200 shadow-sm transition">Transfer</button>
@@ -233,6 +233,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
         </AuthenticatedLayout>
     );
 }
+
 
 
 
