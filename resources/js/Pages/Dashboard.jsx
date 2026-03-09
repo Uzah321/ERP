@@ -37,10 +37,15 @@ export default function Dashboard({ auth, assets, department, categories, locati
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    {department ? department.name + ' Asset Registry' : 'Dashboard'}
-                </h2>
-            }
+    <div className="flex items-center gap-3">
+        <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+        <h2 className="font-bold text-2xl text-gray-800 leading-tight tracking-tight">
+            {department ? department.name : 'Simbisa'} <span className="text-indigo-600 font-medium text-lg ml-1">| Asset Registry</span>
+        </h2>
+    </div>
+}
         >
             <Head title="Dashboard" />
 
@@ -131,49 +136,65 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                             <th className="py-3 px-2">Location</th>
                                             <th className="py-3 px-2">Condition</th>
                                             <th className="py-3 px-2">Status</th>
+                                            <th className="py-3 px-2 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {assets.map((asset) => (
-                                            <tr key={asset.id} className="border-b hover:bg-gray-50">
+                                            <tr key={asset.id} className="border-b border-gray-100 hover:bg-indigo-50/30 transition-colors duration-150">
                                                 <td className="py-3 px-2 font-mono font-bold text-indigo-600">{asset.barcode}</td>
                                                 <td className="py-3 px-2 font-semibold">{asset.name}</td>
                                                 <td className="py-3 px-2 text-gray-600">{asset.category?.name}</td>
                                                 <td className="py-3 px-2 text-gray-600">{asset.location?.name}</td>
                                                 <td className="py-3 px-2">{asset.condition}</td>
                                                 <td className="py-3 px-2">
-                                                    <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                                                        {asset.status}
-                                                    </span>
-                                                                                                        {asset.status !== 'Under Maintenance' && (
-                                                        <button onClick={() => setTransferringAsset(asset)} className="ml-3 text-xs text-indigo-600 hover:text-indigo-900 underline">Transfer</button>
-                                                    )}
-                                                    {asset.status !== 'Under Maintenance' ? (
-                                                        <button onClick={() => setMaintainingAsset(asset)} className="ml-3 text-xs text-yellow-600 hover:text-yellow-900 underline">Repair</button>
-                                                    ) : (
-                                                        <button onClick={() => setCompletingMaintenanceAsset(asset)} className="ml-3 text-xs text-green-600 hover:text-green-900 underline">Complete Repair</button>
-                                                    )}
-                                                    {asset.status === 'Active' && (
-                                                        <button onClick={() => router.post(route('assets.decommission', asset.id))} className="ml-3 text-xs text-orange-600 hover:text-orange-900 underline">Decommission</button>
-                                                    )}
-                                                    {asset.status === 'Decommissioned' && (
-                                                        <>
-                                                            <button onClick={() => {
-                                                                const method = prompt('Disposal Method? (Sold, Donated, Trashed, Recycled)');
-                                                                const reason = prompt('Reason for disposal?');
-                                                                if(method && reason) {
-                                                                    router.post(route('assets.dispose', asset.id), { method, reason, recovery_amount: 0 });
-                                                                }
-                                                            }} className="ml-3 text-xs text-red-600 hover:text-red-900 underline">Dispose</button>
-                                                            
-                                                            <button onClick={() => {
-                                                                if(confirm('Are you sure you want to Archive this asset? It will be removed from the active lists.')) {
-                                                                    router.post(route('assets.archive', asset.id));
-                                                                }
-                                                            }} className="ml-3 text-xs text-gray-500 hover:text-gray-800 underline">Archive</button>
-                                                        </>
-                                                    )}
-                                                </td>
+    <span className={"px-2 py-1 text-xs rounded-full font-semibold " + 
+        (asset.status === 'Active' ? 'bg-green-100 text-green-800' : 
+         asset.status === 'Under Maintenance' ? 'bg-yellow-100 text-yellow-800' : 
+         asset.status === 'Decommissioned' ? 'bg-orange-100 text-orange-800' : 
+         asset.status === 'Disposed' ? 'bg-red-100 text-red-800' : 
+         'bg-blue-100 text-blue-800')}>
+        {asset.status}
+    </span>
+</td>
+<td className="py-3 px-2 text-right">
+    <div className="flex justify-end gap-2 items-center flex-wrap">
+        {['Pending', 'Active'].includes(asset.status) && (
+            <button onClick={() => setTransferringAsset(asset)} className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs rounded border border-indigo-200 shadow-sm transition">Transfer</button>
+        )}
+        
+        {['Pending', 'Active'].includes(asset.status) && (
+            <button onClick={() => setMaintainingAsset(asset)} className="px-2 py-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 text-xs rounded border border-yellow-200 shadow-sm transition">Repair</button>
+        )}
+        
+        {asset.status === 'Under Maintenance' && (
+            <button onClick={() => setCompletingMaintenanceAsset(asset)} className="px-2 py-1 bg-green-50 hover:bg-green-100 text-green-700 text-xs rounded border border-green-200 shadow-sm transition">Finish Repair</button>
+        )}
+        
+        {['Pending', 'Active'].includes(asset.status) && (
+            <button onClick={() => { if(confirm('Decommission this asset moving it out of use?')) router.post(route('assets.decommission', asset.id)) }} className="px-2 py-1 bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs rounded border border-orange-200 shadow-sm transition">Decommission</button>
+        )}
+        
+        {asset.status === 'Decommissioned' && (
+            <>
+                <button onClick={() => {
+                    const method = prompt('Disposal Method? (Sold, Donated, Trashed, Recycled)');
+                    if(!method) return;
+                    const reason = prompt('Reason for disposal?');
+                    if(method && reason) {
+                        router.post(route('assets.dispose', asset.id), { method, reason, recovery_amount: 0 });
+                    }
+                }} className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 text-xs rounded border border-red-200 shadow-sm transition">Dispose</button>
+                
+                <button onClick={() => {
+                    if(confirm('Are you sure you want to Archive this asset? It will be removed from the active lists.')) {
+                        router.post(route('assets.archive', asset.id));
+                    }
+                }} className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded border border-gray-300 shadow-sm transition">Archive</button>
+            </>
+        )}
+    </div>
+</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -210,6 +231,11 @@ export default function Dashboard({ auth, assets, department, categories, locati
         </AuthenticatedLayout>
     );
 }
+
+
+
+
+
 
 
 
