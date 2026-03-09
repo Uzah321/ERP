@@ -5,6 +5,7 @@ use App\Http\Controllers\TransferRequestController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AssetLifecycleController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssetController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
     Route::post('/audit', [AuditController::class, 'store'])->name('audit.store');
 
+    Route::get('/reports/assets', [ReportController::class, 'generate'])->name('reports.assets');
+
     Route::post('/assets/{asset}/decommission', [AssetLifecycleController::class, 'decommission'])->name('assets.decommission');
     Route::post('/assets/{asset}/dispose', [AssetLifecycleController::class, 'dispose'])->name('assets.dispose');
     Route::post('/assets/{asset}/archive', [AssetLifecycleController::class, 'archive'])->name('assets.archive');
@@ -43,5 +46,6 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
 
 
