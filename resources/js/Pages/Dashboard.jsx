@@ -7,6 +7,7 @@ import { useState } from 'react';
 import TransferModal from '@/Components/TransferModal';
 import MaintenanceModal from '@/Components/MaintenanceModal';
 import MaintenanceCompleteModal from '@/Components/MaintenanceCompleteModal';
+import AssetRequestModal from '@/Components/AssetRequestModal';
 import InputError from '@/Components/InputError';
 
 import { router } from '@inertiajs/react';
@@ -15,6 +16,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
     const [transferringAsset, setTransferringAsset] = useState(null);
     const [maintainingAsset, setMaintainingAsset] = useState(null);
     const [completingMaintenanceAsset, setCompletingMaintenanceAsset] = useState(null);
+    const [showAssetRequestModal, setShowAssetRequestModal] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         serial_number: '',
@@ -23,7 +25,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
         purchase_cost: '',
         purchase_date: '',
         condition: 'New',
-        status: 'Pending',
+        status: 'Active',
         description: '',
     });
 
@@ -38,7 +40,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
         <AuthenticatedLayout
             header={
     <div className="flex items-center gap-3">
-        <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onClick={() => setShowAssetRequestModal(true)} className="ml-auto px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg shadow hover:bg-indigo-700">Request New Asset</button>`n        <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
         <h2 className="font-bold text-2xl text-gray-800 leading-tight tracking-tight">
@@ -231,6 +233,8 @@ export default function Dashboard({ auth, assets, department, categories, locati
         </AuthenticatedLayout>
     );
 }
+
+
 
 
 
