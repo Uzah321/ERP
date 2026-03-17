@@ -27,7 +27,7 @@ return new class extends Migration
             
             // State
             $table->string('condition')->default('New'); // New, Good, Fair, Poor
-            $table->string('status')->default('Pending'); // Pending, Registered, Deployed, Maintenance, Disposed
+            $table->string('status')->default('Purchased'); // Purchased, Registered, Deployed, Active Use, Maintenance, Audit, Decommissioned, Disposed, Archived
             $table->text('description')->nullable();
             
             $table->timestamps();

@@ -6,13 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Department extends Model
 {
-    protected $fillable = ['name']; // Security feature permitting mass-assignment
+    protected $fillable = ['name', 'manager_id'];
 
     public function users() {
         return $this->hasMany(User::class);
     }
-    
+
     public function assets() {
         return $this->hasMany(Asset::class);
+    }
+
+    public function manager() {
+        return $this->belongsTo(User::class, 'manager_id');
     }
 }

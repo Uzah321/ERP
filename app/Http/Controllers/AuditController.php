@@ -41,6 +41,6 @@ class AuditController extends Controller
             ->causedBy(Auth::user())
             ->log('Asset Audited & Verified Physically');
 
-        return redirect()->back()->with('success', 'Asset {->barcode} verified successfully!');
+        return redirect()->back()->with('success', "Asset {$asset->barcode} verified successfully!");
     }
 }

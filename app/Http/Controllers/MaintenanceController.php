@@ -7,20 +7,64 @@ use App\Models\MaintenanceRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use Carbon\Carbon;
+use Inertia\Inertia;
+
 class MaintenanceController extends Controller
 {
+    public function index()
+    {
+        $assets = Asset::withCount('maintenanceRecords')->get()->map(function($asset) {
+            
+            $startDate = $asset->purchase_date ? Carbon::parse($asset->purchase_date) : $asset->created_at;
+            $timeInUse = $startDate->diffForHumans(null, true);
+
+            return [
+                'id' => $asset->id,
+                'name' => $asset->name,
+                'barcode' => $asset->barcode,
+                'serial_number' => $asset->serial_number,
+                'status' => $asset->status,
+                'condition' => $asset->condition,
+                'repair_count' => $asset->maintenance_records_count,
+                'time_in_use' => $timeInUse,
+            ];
+        });
+
+        return Inertia::render('Maintenance/Index', [
+            'assets' => $assets
+        ]);
+    }
+
+    public function show(Asset $asset)
+    {
+        $records = MaintenanceRecord::where('asset_id', $asset->id)
+            ->with('user')
+            ->latest()
+            ->get();
+
+        return Inertia::render('Maintenance/History', [
+            'asset' => $asset->only('id', 'name', 'barcode', 'serial_number', 'status'),
+            'records' => $records,
+        ]);
+    }
+
     public function store(Request $request, Asset $asset)
     {
         $request->validate([
             'issue_description' => 'required|string',
+            'maintenance_type' => 'required|in:Preventive,Corrective,Emergency',
             'vendor_name' => 'nullable|string',
+            'scheduled_date' => 'nullable|date',
         ]);
 
         MaintenanceRecord::create([
             'asset_id' => $asset->id,
             'user_id' => Auth::id(),
+            'maintenance_type' => $request->maintenance_type,
             'issue_description' => $request->issue_description,
             'vendor_name' => $request->vendor_name,
+            'scheduled_date' => $request->scheduled_date,
             'status' => 'in-progress',
             'start_date' => now(),
         ]);

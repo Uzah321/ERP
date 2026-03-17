@@ -23,22 +23,28 @@ class AssetController extends Controller
 
         $query = Asset::with(['category', 'location']);
 
-        // Check if admin wants to view all, or if searching specific
-        if ($user->role !== 'admin') {
-            $query->where('department_id', $user->department_id);
-        } else {
+        // Determine which department to show
+        $selectedDepartmentId = null;
+        if ($user->role === 'admin') {
+            // Admin must select a department to view its assets
             if ($request->filled('department_id')) {
-                $query->where('department_id', $request->department_id);
+                $selectedDepartmentId = (int) $request->department_id;
+                $query->where('department_id', $selectedDepartmentId);
             }
+            // If no department selected, admin sees no assets (must pick one)
+        } else {
+            // Non-admin: locked to their own department via global scope
+            $selectedDepartmentId = $user->department_id;
         }
 
         // Apply filters
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'ilike', "%$search%")
-                  ->orWhere('barcode', 'ilike', "%$search%")
-                  ->orWhere('serial_number', 'ilike', "%$search%");
+                // Changing ilike to like to support SQLite
+                $q->where('name', 'like', "%$search%")
+                  ->orWhere('barcode', 'like', "%$search%")
+                  ->orWhere('serial_number', 'like', "%$search%");
             });
         }
 
@@ -52,13 +58,17 @@ class AssetController extends Controller
 
         $assets = $query->latest()->get();
 
+        $vendorCategories = \App\Models\Vendor::select('product_category')->distinct()->pluck('product_category');
+
         return Inertia::render('Dashboard', [
             'assets' => $assets,
             'filters' => $request->only(['search', 'status', 'condition', 'department_id']),
             'all_departments' => Department::all(),
             'department' => $department,
+            'selected_department_id' => $selectedDepartmentId,
             'categories' => $categories,
-            'locations' => $locations
+            'locations' => $locations,
+            'vendor_categories' => $vendorCategories
         ]);
     }
 
@@ -76,8 +86,8 @@ class AssetController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        // Automatically Generate a Barcode: SB (Simbisa Brands) + Year + Random 5-digit number
-        $barcode = 'SB-' . date('Y') . '-' . strtoupper(substr(uniqid(), -5));
+        // Automatically Generate a Barcode: AL (AssetLinq) + Year + Random 5-digit number
+        $barcode = 'AL-' . date('Y') . '-' . strtoupper(substr(uniqid(), -5));
 
         Asset::create([
             'name' => $request->name,
@@ -91,6 +101,35 @@ class AssetController extends Controller
             'status' => $request->status,
             'description' => $request->description,
             'department_id' => Auth::user()->department_id,
+        ]);
+
+        return redirect()->route('dashboard');
+    }
+
+    public function update(Request $request, Asset $asset)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'serial_number' => 'nullable|string|max:255|unique:assets,serial_number,' . $asset->id,
+            'category_id' => 'required|exists:categories,id',
+            'location_id' => 'required|exists:locations,id',
+            'purchase_cost' => 'nullable|numeric',
+            'purchase_date' => 'nullable|date',
+            'condition' => 'required|string',
+            'status' => 'required|string',
+            'description' => 'nullable|string',
+        ]);
+
+        $asset->update([
+            'name' => $request->name,
+            'serial_number' => $request->serial_number,
+            'category_id' => $request->category_id,
+            'location_id' => $request->location_id,
+            'purchase_cost' => $request->purchase_cost,
+            'purchase_date' => $request->purchase_date,
+            'condition' => $request->condition,
+            'status' => $request->status,
+            'description' => $request->description,
         ]);
 
         return redirect()->route('dashboard');

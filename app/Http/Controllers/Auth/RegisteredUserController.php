@@ -22,7 +22,7 @@ class RegisteredUserController extends Controller
     public function create(): Response
     {
         $departments = Department::all();
-        
+
         return Inertia::render('Auth/Register', [
             'departments' => $departments
         ]);

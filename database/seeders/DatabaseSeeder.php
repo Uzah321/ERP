@@ -15,11 +15,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call([
+            DepartmentSeeder::class,
+            SystemSeeder::class,
+        ]);
+
+        User::factory()->create([
+            'name' => 'Admin User',
+            'email' => 'admin@assetlinq.com',
+            'password' => bcrypt('password'),
+            'department_id' => 1,
+            'role' => 'admin',
+        ]);
 
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'password' => bcrypt('password'),
+            'department_id' => 2,
+            'role' => 'user',
         ]);
     }
 }

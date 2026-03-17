@@ -7,7 +7,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import InputError from '@/Components/InputError';
 import { useForm } from '@inertiajs/react';
 
-export default function AssetRequestModal({ show, onClose, departments }) {
+export default function AssetRequestModal({ show, onClose, departments, vendorCategories }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         target_department_id: '',
         asset_category: '',
@@ -50,15 +50,18 @@ export default function AssetRequestModal({ show, onClose, departments }) {
 
                 <div className="mt-4">
                     <InputLabel htmlFor="asset_category" value="What type of asset do you need?" />
-                    <TextInput
+                    <select
                         id="asset_category"
-                        type="text"
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                         value={data.asset_category}
                         onChange={(e) => setData('asset_category', e.target.value)}
-                        placeholder="e.g., Laptop, Vehicle, Printer"
                         required
-                    />
+                    >
+                        <option value="">Select Asset Category...</option>
+                        {vendorCategories?.map((category, index) => (
+                            <option key={index} value={category}>{category}</option>
+                        ))}
+                    </select>
                     <InputError message={errors.asset_category} className="mt-2" />
                 </div>
 

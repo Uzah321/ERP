@@ -9,8 +9,6 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8b5cf6', '#ec4899', '#f43f5e'];
 
 export default function AdminDashboard({ auth, metrics, chart_data }) {
-    console.log(chart_data);
-
     return (
         <AuthenticatedLayout
             header={
@@ -38,7 +36,7 @@ export default function AdminDashboard({ auth, metrics, chart_data }) {
                         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-gray-500 uppercase">Total Value (USD)</p>
-                                <p className="text-3xl font-bold text-green-600 mt-1"></p>
+                                <p className="text-3xl font-bold text-green-600 mt-1">${Number(metrics.total_value || 0).toLocaleString()}</p>
                             </div>
                             <div className="p-3 bg-green-50 rounded-full">
                                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -66,7 +64,7 @@ export default function AdminDashboard({ auth, metrics, chart_data }) {
                                             label
                                         >
                                             {chart_data.status.map((entry, index) => (
-                                                <Cell key={cell-+index} fill={COLORS[index % COLORS.length]} />
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
                                         <Tooltip />

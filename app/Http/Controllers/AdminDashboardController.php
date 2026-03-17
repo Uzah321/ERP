@@ -12,10 +12,6 @@ class AdminDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        if ($request->user()->role !== 'admin') {
-            abort(403, 'Unauthorized access.');
-        }
-
         $totalAssets = Asset::withoutTrashed()->count();
         $totalValue = Asset::withoutTrashed()->sum('purchase_cost');
 

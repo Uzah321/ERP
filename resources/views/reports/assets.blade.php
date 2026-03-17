@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Simbisa Brands Asset Report</title>
+    <title>AssetLinq ERP - Asset Report</title>
     <style>
         body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; margin: 20px; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #ed1b24; padding-bottom: 20px; }
@@ -25,7 +25,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">SIMBISA BRANDS</div>
+        <div class="logo">ASSETLINQ ERP</div>
         <div class="subtitle">MASTER ASSET REGISTRY REPORT</div>
         <div class="subtitle">Generated: {{ \Carbon\Carbon::now()->format('Y-m-d H:i') }}</div>
     </div>
@@ -67,7 +67,7 @@
     </table>
     
     <div class="footer">
-        Confidential & Proprietary. Internal Simbisa Brands operations only.
+        Confidential & Proprietary. Internal AssetLinq ERP operations only.
     </div>
 </body>
 </html>

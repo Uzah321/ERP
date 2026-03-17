@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class MaintenanceRecord extends Model
 {
     protected $fillable = [
-        'asset_id', 'user_id', 'issue_description', 
+        'asset_id', 'user_id', 'maintenance_type', 'issue_description', 
         'vendor_name', 'cost', 'status', 
-        'start_date', 'end_date', 'notes'
+        'start_date', 'end_date', 'scheduled_date', 'notes'
     ];
 
     public function asset() { return $this->belongsTo(Asset::class); }

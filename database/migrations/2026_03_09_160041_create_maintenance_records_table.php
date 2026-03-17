@@ -13,6 +13,15 @@ return new class extends Migration
     {
         Schema::create('maintenance_records', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('asset_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->text('issue_description');
+            $table->string('vendor_name')->nullable();
+            $table->decimal('cost', 10, 2)->nullable();
+            $table->string('status')->default('in-progress');
+            $table->date('start_date');
+            $table->date('end_date')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }
