@@ -11,6 +11,8 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
     const { data, setData, post, processing, errors, reset } = useForm({
         target_department_id: '',
         asset_category: '',
+        asset_type: '',
+        for_whom: '',
         requirements: '',
     });
 
@@ -49,7 +51,7 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
                 </div>
 
                 <div className="mt-4">
-                    <InputLabel htmlFor="asset_category" value="What type of asset do you need?" />
+                    <InputLabel htmlFor="asset_category" value="Asset Category" />
                     <select
                         id="asset_category"
                         className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
@@ -63,6 +65,45 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
                         ))}
                     </select>
                     <InputError message={errors.asset_category} className="mt-2" />
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="asset_type" value="Asset Type" />
+                    <TextInput
+                        id="asset_type"
+                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        value={data.asset_type}
+                        onChange={(e) => setData('asset_type', e.target.value)}
+                        placeholder="Specify asset type (e.g. Laptop, Printer, etc.)"
+                        required
+                    />
+                    <InputError message={errors.asset_type} className="mt-2" />
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="asset_type" value="Asset Type (e.g. Laptop, Printer, etc.)" />
+                    <TextInput
+                        id="asset_type"
+                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        value={data.asset_type}
+                        onChange={(e) => setData('asset_type', e.target.value)}
+                        placeholder="Specify the exact asset type"
+                        required
+                    />
+                    <InputError message={errors.asset_type} className="mt-2" />
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="for_whom" value="Who is this asset for?" />
+                    <TextInput
+                        id="for_whom"
+                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        value={data.for_whom}
+                        onChange={(e) => setData('for_whom', e.target.value)}
+                        placeholder="Specify the person, team, or role"
+                        required
+                    />
+                    <InputError message={errors.for_whom} className="mt-2" />
                 </div>
 
                 <div className="mt-4">

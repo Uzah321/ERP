@@ -73,10 +73,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/allocations', [AssetAllocationController::class, 'index'])->name('admin.allocations.index');
         Route::post('/admin/allocations', [AssetAllocationController::class, 'store'])->name('admin.allocations.store');
         Route::patch('/admin/allocations/{allocation}/return', [AssetAllocationController::class, 'returnAsset'])->name('admin.allocations.return');
+
+        // IT Admin: View asset requests from other departments
+        Route::get('/admin/it-asset-requests', [AssetRequestController::class, 'itRequests'])->name('admin.it-asset-requests');
     });
 
     Route::get('/transfers', [TransferRequestController::class, 'index'])->name('transfers.index');
     Route::post('/assets/{asset}/transfer', [TransferRequestController::class, 'store'])->name('transfers.store');
+    Route::post('/assets/bulk-transfer', [TransferRequestController::class, 'bulkTransfer'])->name('assets.bulkTransfer');
     Route::patch('/transfers/{transferRequest}', [TransferRequestController::class, 'update'])->name('transfers.update');
 
     Route::get('/maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');

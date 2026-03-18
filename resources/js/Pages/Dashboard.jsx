@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import Modal from '@/Components/Modal';
+import InputLabel from '@/Components/InputLabel';
+import InputError from '@/Components/InputError';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CreateAssetModal from '@/Components/CreateAssetModal';
@@ -6,9 +9,14 @@ import EditAssetModal from '@/Components/EditAssetModal';
 import AssetRequestModal from '@/Components/AssetRequestModal';
 
 export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, selected_department_id }) {
+        const [bulkTransferData, setBulkTransferData] = useState({ target_department_id: '', reason: '' });
+        const [bulkTransferErrors, setBulkTransferErrors] = useState({});
+        const [bulkTransferProcessing, setBulkTransferProcessing] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showRequestModal, setShowRequestModal] = useState(false);
+    const [showTransferModal, setShowTransferModal] = useState(false);
     const [editingAsset, setEditingAsset] = useState(null);
+    const [selectedAssets, setSelectedAssets] = useState([]);
     const isAdmin = auth.user.role === 'admin';
 
     const handleDepartmentChange = (e) => {
@@ -26,8 +34,14 @@ export default function Dashboard({ auth, assets, department, categories, locati
                 {/* TOOLBAR */}
                 <div className="bg-white px-6 py-4 flex items-center justify-between shadow-sm z-10 shrink-0">
                     <div className="flex gap-3">
-                        <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-medium">
-                            <span className="text-white font-bold text-lg leading-none">+</span> New Asset
+                        {/* Transfer Button */}
+                        <button
+                            onClick={() => setShowTransferModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-sm font-medium disabled:opacity-50"
+                            disabled={selectedAssets.length === 0}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17l4-4m0 0l-4-4m4 4H7" /></svg>
+                            Transfer
                         </button>
                         <button onClick={() => setShowRequestModal(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-sm font-medium">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg> Request Order
@@ -35,6 +49,19 @@ export default function Dashboard({ auth, assets, department, categories, locati
                         <button onClick={() => router.reload({ only: ['assets'] })} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-sm font-medium">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                             Refresh
+                        </button>
+                        {/* Bulk Delete Button */}
+                        <button
+                            onClick={() => {
+                                if(selectedAssets.length > 0 && confirm(`Delete ${selectedAssets.length} selected assets?`)) {
+                                    router.post(route('assets.bulkDelete'), { asset_ids: selectedAssets });
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-sm font-medium disabled:opacity-50"
+                            disabled={selectedAssets.length === 0}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Delete
                         </button>
                     </div>
                     
@@ -74,6 +101,12 @@ export default function Dashboard({ auth, assets, department, categories, locati
                             <table className="w-full text-left whitespace-nowrap border-collapse">
                                 <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
+                                        <th className="px-5 py-3 border-b border-gray-200">
+                                            <input type="checkbox" id="selectAll" onChange={e => {
+                                                if (e.target.checked) setSelectedAssets(assets.map(a => a.id));
+                                                else setSelectedAssets([]);
+                                            }} checked={selectedAssets.length === assets.length && assets.length > 0} />
+                                        </th>
                                         <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Barcode</th>
                                         <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Serial Number</th>
                                         <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Asset Name</th>
@@ -98,6 +131,12 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                     ) : (
                                         assets.map((asset, index) => (
                                             <tr key={asset.id} onDoubleClick={() => setEditingAsset(asset)} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors bg-white">
+                                                <td className="px-5 py-3">
+                                                    <input type="checkbox" checked={selectedAssets.includes(asset.id)} onChange={e => {
+                                                        if (e.target.checked) setSelectedAssets([...selectedAssets, asset.id]);
+                                                        else setSelectedAssets(selectedAssets.filter(id => id !== asset.id));
+                                                    }} />
+                                                </td>
                                                 <td className="px-5 py-3 font-mono text-gray-600 text-xs">{asset.barcode}</td>
                                                 <td className="px-5 py-3 font-mono text-gray-500 text-xs">{asset.serial_number || '-'}</td>
                                                 <td className="px-5 py-3 font-medium text-gray-900">{asset.name}</td>
@@ -153,6 +192,89 @@ export default function Dashboard({ auth, assets, department, categories, locati
                     </div>
                 </div>
             </div>
+
+
+            {/* Bulk Transfer Modal */}
+            {showTransferModal && (
+                <Modal show={showTransferModal} onClose={() => setShowTransferModal(false)}>
+                    <form
+                        className="p-6"
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            setBulkTransferProcessing(true);
+                            setBulkTransferErrors({});
+                            router.post(
+                                route('assets.bulkTransfer'),
+                                {
+                                    asset_ids: selectedAssets,
+                                    target_department_id: bulkTransferData.target_department_id,
+                                    reason: bulkTransferData.reason,
+                                },
+                                {
+                                    onSuccess: () => {
+                                        setShowTransferModal(false);
+                                        setBulkTransferData({ target_department_id: '', reason: '' });
+                                        setBulkTransferErrors({});
+                                        setBulkTransferProcessing(false);
+                                        setSelectedAssets([]);
+                                    },
+                                    onError: (errors) => {
+                                        setBulkTransferErrors(errors);
+                                        setBulkTransferProcessing(false);
+                                    },
+                                }
+                            );
+                        }}
+                    >
+                        <h2 className="text-lg font-medium text-gray-900 mb-4">Transfer {selectedAssets.length} Assets</h2>
+                        <div className="mb-4">
+                            <InputLabel htmlFor="target_department_id" value="Target Department" />
+                            <select
+                                id="target_department_id"
+                                className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                value={bulkTransferData.target_department_id}
+                                onChange={e => setBulkTransferData({ ...bulkTransferData, target_department_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Select Department</option>
+                                {(all_departments || []).map(dept => (
+                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                ))}
+                            </select>
+                            <InputError message={bulkTransferErrors.target_department_id} className="mt-2" />
+                        </div>
+                        <div className="mb-4">
+                            <InputLabel htmlFor="reason" value="Reason for Transfer" />
+                            <textarea
+                                id="reason"
+                                className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                value={bulkTransferData.reason}
+                                onChange={e => setBulkTransferData({ ...bulkTransferData, reason: e.target.value })}
+                                required
+                                rows={3}
+                            />
+                            <InputError message={bulkTransferErrors.reason} className="mt-2" />
+                        </div>
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                                type="button"
+                                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                                onClick={() => setShowTransferModal(false)}
+                                disabled={bulkTransferProcessing}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-semibold disabled:opacity-50"
+                                disabled={bulkTransferProcessing}
+                            >
+                                {bulkTransferProcessing ? 'Transferring...' : 'Transfer'}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+            )}
 
             {showCreateModal && (
                 <CreateAssetModal 

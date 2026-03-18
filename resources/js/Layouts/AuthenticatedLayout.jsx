@@ -38,16 +38,16 @@ export default function AuthenticatedLayout({ user, header, children }) {
                         <Dropdown.Trigger>
                             <span className="flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer hover:bg-gray-100 transition-colors text-gray-700">
                                 <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                                    {(user?.name || "G").charAt(0).toUpperCase()}
+                                    {(user && user.name ? user.name.charAt(0) : "G").toUpperCase()}
                                 </div>
-                                <span>{user?.name || "Guest"}</span>
+                                <span>{user && user.name ? user.name : "Guest"}</span>
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                             </span>
                         </Dropdown.Trigger>
                         <Dropdown.Content>
                             <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs">
                                 <p className="text-gray-500">Signed in as</p>
-                                <p className="font-medium text-gray-900 truncate">{user?.email}</p>
+                                <p className="font-medium text-gray-900 truncate">{user && user.email ? user.email : "Guest"}</p>
                             </div>
                             <Dropdown.Link href={route('profile.edit')}>Profile</Dropdown.Link>
                             <Dropdown.Link href={route('logout')} method="post" as="button">Log Out</Dropdown.Link>

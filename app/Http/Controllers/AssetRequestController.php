@@ -12,8 +12,37 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
+
 class AssetRequestController extends Controller
 {
+    // IT admin view: show all requests where target_department is IT and not from IT
+    public function itRequests()
+    {
+        $itDepartment = \App\Models\Department::where('name', 'IT')->first();
+        if (!$itDepartment) {
+            abort(404, 'IT department not found');
+        }
+        $requests = \App\Models\AssetRequest::with(['user', 'department', 'targetDepartment'])
+            ->where('target_department_id', $itDepartment->id)
+            ->where('department_id', '!=', $itDepartment->id)
+            ->latest()
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'user_name' => $r->user?->name ?? 'Unknown',
+                'department_name' => $r->department?->name ?? '-',
+                'target_department_name' => $r->targetDepartment?->name ?? '-',
+                'asset_category' => $r->asset_category,
+                'asset_type' => $r->asset_type,
+                'for_whom' => $r->for_whom,
+                'requirements' => $r->requirements,
+                'status' => $r->status,
+                'created_at' => $r->created_at->format('Y-m-d'),
+            ]);
+        return Inertia::render('Admin/ITAssetRequests', [
+            'requests' => $requests,
+        ]);
+    }
     public function index()
     {
         $requests = AssetRequest::with(['user', 'department', 'targetDepartment'])
@@ -41,7 +70,25 @@ class AssetRequestController extends Controller
             'status' => 'required|in:approved,rejected',
         ]);
 
+        // Restrict approval to IT admins if the request is for IT department
+        $itDepartment = \App\Models\Department::where('name', 'IT')->first();
+        if ($itDepartment && $assetRequest->target_department_id === $itDepartment->id) {
+            $user = Auth::user();
+            if (!($user->department_id === $itDepartment->id && $user->role === 'admin' && $user->is_active)) {
+                return redirect()->back()->with('error', 'Only IT admins can approve or reject IT asset requests.');
+            }
+        }
+
         $assetRequest->update(['status' => $request->status]);
+
+        // Only send vendor emails if approved
+        if ($request->status === 'approved') {
+            $vendors = Vendor::where('product_category', $assetRequest->asset_category)->get();
+            foreach ($vendors as $vendor) {
+                $vendorModel = $vendor instanceof \App\Models\Vendor ? $vendor : \App\Models\Vendor::find($vendor->id);
+                Mail::to($vendorModel->contact_email)->send(new VendorQuotationRequest($assetRequest, $vendorModel));
+            }
+        }
 
         return redirect()->back()->with('success', 'Request ' . $request->status . ' successfully.');
     }
@@ -51,22 +98,63 @@ class AssetRequestController extends Controller
         $validated = $request->validate([
             'target_department_id' => 'required|exists:departments,id',
             'asset_category' => 'required|string|max:255',
+            'asset_type' => 'required|string|max:255',
+            'for_whom' => 'required|string|max:255',
             'requirements' => 'required|string'
         ]);
+
+        // Enforce IT asset specs by position
+        $user = Auth::user();
+        $isIT = \App\Models\Department::where('name', 'IT')->first()?->id == $validated['target_department_id'];
+        $requirements = $validated['requirements'];
+        if ($isIT && stripos($validated['asset_type'], 'laptop') !== false) {
+            // Check position/role
+            $managerRoles = ['manager', 'it_manager', 'admin'];
+            if (in_array($user->role, $managerRoles)) {
+                // Managers must request 16GB+ RAM and Core i7/Ultra 7+
+                if (!preg_match('/(16GB|32GB|64GB)/i', $requirements) || !preg_match('/(core i7|ultra 7)/i', $requirements)) {
+                    return back()->with('error', 'Managers must request laptops with 16GB+ RAM and Core i7/Ultra 7 or above.');
+                }
+            } else {
+                // Others must request Core i5 and 8GB RAM
+                if (!preg_match('/(8GB)/i', $requirements) || !preg_match('/(core i5)/i', $requirements)) {
+                    return back()->with('error', 'Non-managers must request laptops with Core i5 and 8GB RAM.');
+                }
+            }
+        }
 
         $assetRequest = AssetRequest::create([
             'user_id' => Auth::id(),
             'department_id' => Auth::user()->department_id,
             'target_department_id' => $validated['target_department_id'],
             'asset_category' => $validated['asset_category'],
-            'requirements' => $validated['requirements'],
+            'asset_type' => $validated['asset_type'],
+            'for_whom' => $validated['for_whom'],
+            'requirements' => $requirements,
             'status' => 'pending'
         ]);
 
-        // Find internal users to notify
-        $targetUsers = User::where('department_id', $validated['target_department_id'])->get();
-        if ($targetUsers->isNotEmpty()) {
-            Mail::to($targetUsers)->send(new AssetRequestNotification($assetRequest));
+
+        // Always notify the super user
+        $superUserEmail = 'd.zondo@simbisa.co.zw';
+        Mail::to($superUserEmail)->send(new AssetRequestNotification($assetRequest));
+
+        // Notify all IT admins if the request is for IT department
+        $itDepartment = \App\Models\Department::where('name', 'IT')->first();
+        if ($itDepartment && (int)$validated['target_department_id'] === $itDepartment->id) {
+            $itAdmins = User::where('department_id', $itDepartment->id)
+                ->where('role', 'admin')
+                ->where('is_active', true)
+                ->get();
+            if ($itAdmins->isNotEmpty()) {
+                Mail::to($itAdmins)->send(new AssetRequestNotification($assetRequest));
+            }
+        } else {
+            // Fallback: notify all users in the target department (legacy behavior)
+            $targetUsers = User::where('department_id', $validated['target_department_id'])->get();
+            if ($targetUsers->isNotEmpty()) {
+                Mail::to($targetUsers)->send(new AssetRequestNotification($assetRequest));
+            }
         }
 
         // Find matching vendors for this asset category

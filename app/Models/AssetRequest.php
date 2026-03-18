@@ -14,6 +14,8 @@ class AssetRequest extends Model
         'department_id',
         'target_department_id',
         'asset_category',
+        'asset_type',
+        'for_whom',
         'requirements',
         'status',
     ];

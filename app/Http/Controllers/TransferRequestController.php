@@ -85,4 +85,34 @@ class TransferRequestController extends Controller
 
         return redirect()->back()->with('success', 'Transfer request updated.');
     }
+    /**
+     * Bulk transfer assets to a new department.
+     */
+    public function bulkTransfer(Request $request)
+    {
+        $request->validate([
+            'asset_ids' => 'required|array',
+            'asset_ids.*' => 'exists:assets,id',
+            'target_department_id' => 'required|exists:departments,id',
+            'reason' => 'required|string',
+        ]);
+
+        $assets = Asset::whereIn('id', $request->asset_ids)->get();
+        foreach ($assets as $asset) {
+            TransferRequest::create([
+                'asset_id' => $asset->id,
+                'requested_by' => Auth::id(),
+                'target_department_id' => $request->target_department_id,
+                'reason' => $request->reason,
+                'status' => 'pending',
+            ]);
+
+            activity()
+                ->performedOn($asset)
+                ->causedBy(Auth::user())
+                ->log('Bulk Transfer Requested');
+        }
+
+        return redirect()->back()->with('success', 'Bulk transfer requests submitted successfully.');
+    }
 }

@@ -14,6 +14,8 @@ return new class extends Migration
             $table->foreignId('department_id')->constrained()->cascadeOnDelete();
             $table->foreignId('target_department_id')->constrained('departments')->cascadeOnDelete();
             $table->string('asset_category');
+            $table->string('asset_type')->nullable();
+            $table->string('for_whom')->nullable();
             $table->text('requirements');
             $table->string('status')->default('pending');
             $table->timestamps();
