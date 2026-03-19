@@ -95,25 +95,27 @@ class AssetRequestController extends Controller
 
     public function store(Request $request)
     {
+
         $validated = $request->validate([
             'target_department_id' => 'required|exists:departments,id',
             'asset_category' => 'required|string|max:255',
             'asset_type' => 'required|string|max:255',
             'for_whom' => 'required|string|max:255',
+            'position' => 'required|string',
             'requirements' => 'required|string'
         ]);
 
-        // Enforce IT asset specs by position
-        $user = Auth::user();
+        // Enforce IT asset specs by position (from dropdown)
         $isIT = \App\Models\Department::where('name', 'IT')->first()?->id == $validated['target_department_id'];
         $requirements = $validated['requirements'];
+        $position = strtolower($validated['position']);
         if ($isIT && stripos($validated['asset_type'], 'laptop') !== false) {
-            // Check position/role
-            $managerRoles = ['manager', 'it_manager', 'admin'];
-            if (in_array($user->role, $managerRoles)) {
-                // Managers must request 16GB+ RAM and Core i7/Ultra 7+
-                if (!preg_match('/(16GB|32GB|64GB)/i', $requirements) || !preg_match('/(core i7|ultra 7)/i', $requirements)) {
-                    return back()->with('error', 'Managers must request laptops with 16GB+ RAM and Core i7/Ultra 7 or above.');
+            if (in_array($position, ['manager', 'hod'])) {
+                // Managers/HODs must request 16GB+ RAM, 1TB+ storage, Core i7/Ultra 7+
+                if (!preg_match('/(16GB|32GB|64GB)/i', $requirements)
+                    || !preg_match('/(1TB|1TB|2TB|3TB|4TB|1024GB|2048GB|3072GB|4096GB)/i', $requirements)
+                    || !preg_match('/(core i7|ultra 7)/i', $requirements)) {
+                    return back()->with('error', 'Managers and HODs must request laptops with 16GB+ RAM, 1TB+ storage, and Core i7/Ultra 7 or above.');
                 }
             } else {
                 // Others must request Core i5 and 8GB RAM
@@ -130,6 +132,7 @@ class AssetRequestController extends Controller
             'asset_category' => $validated['asset_category'],
             'asset_type' => $validated['asset_type'],
             'for_whom' => $validated['for_whom'],
+            'position' => $validated['position'],
             'requirements' => $requirements,
             'status' => 'pending'
         ]);

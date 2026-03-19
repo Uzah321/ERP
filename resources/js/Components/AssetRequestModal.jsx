@@ -13,6 +13,7 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
         asset_category: '',
         asset_type: '',
         for_whom: '',
+        position: '',
         requirements: '',
     });
 
@@ -104,6 +105,23 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
                         required
                     />
                     <InputError message={errors.for_whom} className="mt-2" />
+                </div>
+                <div className="mt-4">
+                    <InputLabel htmlFor="position" value="Position of Person (for IT asset restrictions)" />
+                    <select
+                        id="position"
+                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        value={data.position}
+                        onChange={e => setData('position', e.target.value)}
+                        required
+                    >
+                        <option value="">Select Position...</option>
+                        <option value="manager">Manager</option>
+                        <option value="hod">Head of Department (HOD)</option>
+                        <option value="staff">Staff</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <InputError message={errors.position} className="mt-2" />
                 </div>
 
                 <div className="mt-4">
