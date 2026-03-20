@@ -12,9 +12,42 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
-
 class AssetRequestController extends Controller
 {
+    // Approve via email link
+    public function approveViaEmail(AssetRequest $assetRequest)
+    {
+        if ($assetRequest->status !== 'pending') {
+            return redirect()->route('dashboard')->with('error', 'Request already processed.');
+        }
+        $assetRequest->update(['status' => 'approved']);
+        // Notify requester
+        Mail::to($assetRequest->user->email)->send(new AssetRequestNotification($assetRequest));
+        // Send to vendors (reuse existing logic)
+        $vendors = Vendor::where('product_category', $assetRequest->asset_category)->get();
+        foreach ($vendors as $vendor) {
+            if (!($vendor instanceof Vendor)) {
+                $vendor = Vendor::find($vendor->id);
+            }
+            if ($vendor) {
+                Mail::to($vendor->contact_email)->send(new VendorQuotationRequest($assetRequest, $vendor));
+            }
+        }
+        return redirect()->route('dashboard')->with('success', 'Request approved and vendors notified.');
+    }
+
+    // Decline via email link
+    public function declineViaEmail(AssetRequest $assetRequest)
+    {
+        if ($assetRequest->status !== 'pending') {
+            return redirect()->route('dashboard')->with('error', 'Request already processed.');
+        }
+        $assetRequest->update(['status' => 'rejected']);
+        // Notify requester
+        Mail::to($assetRequest->user->email)->send(new AssetRequestNotification($assetRequest));
+        return redirect()->route('dashboard')->with('success', 'Request declined and requester notified.');
+    }
+
     // IT admin view: show all requests where target_department is IT and not from IT
     public function itRequests()
     {
@@ -43,6 +76,7 @@ class AssetRequestController extends Controller
             'requests' => $requests,
         ]);
     }
+
     public function index()
     {
         $requests = AssetRequest::with(['user', 'department', 'targetDepartment'])
@@ -85,8 +119,12 @@ class AssetRequestController extends Controller
         if ($request->status === 'approved') {
             $vendors = Vendor::where('product_category', $assetRequest->asset_category)->get();
             foreach ($vendors as $vendor) {
-                $vendorModel = $vendor instanceof \App\Models\Vendor ? $vendor : \App\Models\Vendor::find($vendor->id);
-                Mail::to($vendorModel->contact_email)->send(new VendorQuotationRequest($assetRequest, $vendorModel));
+                if (!($vendor instanceof Vendor)) {
+                    $vendor = Vendor::find($vendor->id);
+                }
+                if ($vendor) {
+                    Mail::to($vendor->contact_email)->send(new VendorQuotationRequest($assetRequest, $vendor));
+                }
             }
         }
 
@@ -95,7 +133,6 @@ class AssetRequestController extends Controller
 
     public function store(Request $request)
     {
-
         $validated = $request->validate([
             'target_department_id' => 'required|exists:departments,id',
             'asset_category' => 'required|string|max:255',
@@ -137,11 +174,6 @@ class AssetRequestController extends Controller
             'status' => 'pending'
         ]);
 
-
-        // Always notify the super user
-        $superUserEmail = 'd.zondo@simbisa.co.zw';
-        Mail::to($superUserEmail)->send(new AssetRequestNotification($assetRequest));
-
         // Notify all IT admins if the request is for IT department
         $itDepartment = \App\Models\Department::where('name', 'IT')->first();
         if ($itDepartment && (int)$validated['target_department_id'] === $itDepartment->id) {
@@ -160,13 +192,7 @@ class AssetRequestController extends Controller
             }
         }
 
-        // Find matching vendors for this asset category
-        $vendors = Vendor::where('product_category', $validated['asset_category'])->get();
-        foreach ($vendors as $vendor) {
-            Mail::to($vendor->contact_email)->send(new VendorQuotationRequest($assetRequest, $vendor));
-        }
-
-        return back()->with('success', 'Asset request submitted. Quotation requests have been sent to ' . $vendors->count() . ' vendor(s).');
+        return back()->with('success', 'Asset request submitted.');
     }
 }
 

@@ -34,6 +34,14 @@ export default function Dashboard({ auth, assets, department, categories, locati
                 {/* TOOLBAR */}
                 <div className="bg-white px-6 py-4 flex items-center justify-between shadow-sm z-10 shrink-0">
                     <div className="flex gap-3">
+                        {/* New Asset Button */}
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-medium"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                            + New Asset
+                        </button>
                         {/* Transfer Button */}
                         <button
                             onClick={() => setShowTransferModal(true)}

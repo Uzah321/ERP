@@ -17,6 +17,22 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
         requirements: '',
     });
 
+    // Autofill requirements based on position
+    const autofillSpecs = {
+        manager: '16GB+ RAM, 1TB+ storage, Core i7/Ultra 7 or above',
+        hod: '16GB+ RAM, 1TB+ storage, Core i7/Ultra 7 or above',
+        staff: '8GB RAM, Core i5',
+        other: 'Standard specs for role',
+    };
+
+    const handlePositionChange = (e) => {
+        const pos = e.target.value;
+        setData('position', pos);
+        if (pos && autofillSpecs[pos]) {
+            setData('requirements', autofillSpecs[pos]);
+        }
+    };
+
     const submit = (e) => {
         e.preventDefault();
         post(route('asset-requests.store'), {
@@ -112,7 +128,7 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
                         id="position"
                         className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                         value={data.position}
-                        onChange={e => setData('position', e.target.value)}
+                        onChange={handlePositionChange}
                         required
                     >
                         <option value="">Select Position...</option>

@@ -9,8 +9,13 @@ A new asset request has been submitted and assigned to your department for proce
 **Specific Requirements:**  
 {{ $assetRequest->requirements }}
 
-<x-mail::button :url="route('dashboard')">
-Review Request in Dashboard
+
+<x-mail::button :url="route('asset-requests.approve', $assetRequest->id)">
+Approve Request
+</x-mail::button>
+
+<x-mail::button :url="route('asset-requests.decline', $assetRequest->id)" color="red">
+Decline Request
 </x-mail::button>
 
 Thanks,<br>

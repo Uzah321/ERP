@@ -1,4 +1,13 @@
+
 <?php
+
+// Department management (non-admin, for demo)
+Route::middleware('auth')->group(function () {
+    Route::get('/departments', [App\Http\Controllers\DepartmentController::class, 'index'])->name('departments.index');
+    Route::post('/departments', [App\Http\Controllers\DepartmentController::class, 'store'])->name('departments.store');
+    Route::put('/departments/{department}', [App\Http\Controllers\DepartmentController::class, 'update'])->name('departments.update');
+    Route::delete('/departments/{department}', [App\Http\Controllers\DepartmentController::class, 'destroy'])->name('departments.destroy');
+});
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TransferRequestController;
@@ -22,6 +31,12 @@ use App\Http\Controllers\DepartmentController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+// Asset request approval/decline links for IT admin
+Route::middleware('auth')->group(function () {
+    Route::get('/asset-requests/{assetRequest}/approve', [App\Http\Controllers\AssetRequestController::class, 'approveViaEmail'])->name('asset-requests.approve');
+    Route::get('/asset-requests/{assetRequest}/decline', [App\Http\Controllers\AssetRequestController::class, 'declineViaEmail'])->name('asset-requests.decline');
+});
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

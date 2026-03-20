@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use App\Services\AssetRequestPDFService;
 use Illuminate\Queue\SerializesModels;
 
 class VendorQuotationRequest extends Mailable
@@ -40,7 +41,28 @@ class VendorQuotationRequest extends Mailable
 
     public function attachments(): array
     {
-        return [];
+        // Generate PDF with asset request details
+        $pdfData = [
+            'user_name' => $this->assetRequest->user?->name ?? '-',
+            'department_name' => $this->assetRequest->department?->name ?? '-',
+            'target_department_name' => $this->assetRequest->targetDepartment?->name ?? '-',
+            'asset_category' => $this->assetRequest->asset_category,
+            'asset_type' => $this->assetRequest->asset_type,
+            'for_whom' => $this->assetRequest->for_whom,
+            'position' => $this->assetRequest->position ?? '-',
+            'requirements' => $this->assetRequest->requirements,
+            'created_at' => $this->assetRequest->created_at?->format('Y-m-d') ?? '-',
+        ];
+        $pdf = AssetRequestPDFService::generate($pdfData);
+        $tmpPath = sys_get_temp_dir() . '/asset-request-' . uniqid() . '.pdf';
+        file_put_contents($tmpPath, $pdf);
+        return [
+            [
+                'path' => $tmpPath,
+                'as' => 'AssetRequestDetails.pdf',
+                'mime' => 'application/pdf',
+            ]
+        ];
     }
 }
 
