@@ -122,6 +122,8 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                         <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Location</th>
                                         <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Condition</th>
                                         <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Status</th>
+                                        <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Book Value</th>
+                                        <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs">Warranty</th>
                                         <th className="px-5 py-3 font-semibold text-gray-500 border-b border-gray-200 uppercase tracking-wider text-xs text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -174,6 +176,18 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                                     }`}>
                                                         {asset.status}
                                                     </span>
+                                                </td>
+                                                <td className="px-5 py-3 text-xs">
+                                                    {asset.book_value != null
+                                                        ? <span className="font-mono text-gray-700">${Number(asset.book_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                        : <span className="text-gray-300">—</span>
+                                                    }
+                                                </td>
+                                                <td className="px-5 py-3">
+                                                    {asset.warranty_status === 'active' && <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Active</span>}
+                                                    {asset.warranty_status === 'expiring_soon' && <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Expiring</span>}
+                                                    {asset.warranty_status === 'expired' && <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Expired</span>}
+                                                    {asset.warranty_status === 'none' && <span className="text-gray-300 text-xs">—</span>}
                                                 </td>
                                                 <td className="px-5 py-3 text-right">
                                                     <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>

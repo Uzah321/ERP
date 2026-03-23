@@ -34,6 +34,8 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\CapexController;
+use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\InvoiceController;
 
 // CAPEX approval links — no auth required (token-based, approver enters password on the page)
 Route::get('/capex/approve/{token}', [CapexController::class, 'showApprove'])->name('capex.approve.show');
@@ -112,6 +114,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
         Route::post('/admin/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
         Route::get('/admin/purchase-orders/{purchaseOrder}/pdf', [\App\Http\Controllers\PurchaseOrderController::class, 'downloadPdf'])->name('purchase-orders.pdf');
+
+        // Admin: Goods Receipts
+        Route::get('/admin/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods-receipts.index');
+        Route::post('/admin/goods-receipts', [GoodsReceiptController::class, 'store'])->name('goods-receipts.store');
+
+        // Admin: Invoices & Payments
+        Route::get('/admin/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::post('/admin/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
+        Route::patch('/admin/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
 
         // Admin: Position Specifications Management
         Route::get('/admin/position-specifications', [PositionSpecificationController::class, 'index'])->name('admin.position-specs.index');

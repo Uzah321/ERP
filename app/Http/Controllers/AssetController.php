@@ -84,6 +84,12 @@ class AssetController extends Controller
             'condition' => 'required|string',
             'status' => 'required|string',
             'description' => 'nullable|string',
+            'depreciation_method' => 'nullable|in:straight_line,reducing_balance',
+            'asset_life_years'    => 'nullable|integer|min:1|max:50',
+            'salvage_value'       => 'nullable|numeric|min:0',
+            'warranty_expiry_date'=> 'nullable|date',
+            'warranty_provider'   => 'nullable|string|max:255',
+            'warranty_notes'      => 'nullable|string|max:1000',
         ]);
 
         // Automatically Generate a Barcode: AL (AssetLinq) + Year + Random 5-digit number
@@ -101,6 +107,12 @@ class AssetController extends Controller
             'status' => $request->status,
             'description' => $request->description,
             'department_id' => Auth::user()->department_id,
+            'depreciation_method' => $request->depreciation_method ?? 'straight_line',
+            'asset_life_years'    => $request->asset_life_years,
+            'salvage_value'       => $request->salvage_value,
+            'warranty_expiry_date'=> $request->warranty_expiry_date,
+            'warranty_provider'   => $request->warranty_provider,
+            'warranty_notes'      => $request->warranty_notes,
         ]);
 
         return redirect()->route('dashboard');
@@ -118,6 +130,12 @@ class AssetController extends Controller
             'condition' => 'required|string',
             'status' => 'required|string',
             'description' => 'nullable|string',
+            'depreciation_method' => 'nullable|in:straight_line,reducing_balance',
+            'asset_life_years'    => 'nullable|integer|min:1|max:50',
+            'salvage_value'       => 'nullable|numeric|min:0',
+            'warranty_expiry_date'=> 'nullable|date',
+            'warranty_provider'   => 'nullable|string|max:255',
+            'warranty_notes'      => 'nullable|string|max:1000',
         ]);
 
         $asset->update([
@@ -130,6 +148,12 @@ class AssetController extends Controller
             'condition' => $request->condition,
             'status' => $request->status,
             'description' => $request->description,
+            'depreciation_method' => $request->depreciation_method ?? 'straight_line',
+            'asset_life_years'    => $request->asset_life_years,
+            'salvage_value'       => $request->salvage_value,
+            'warranty_expiry_date'=> $request->warranty_expiry_date,
+            'warranty_provider'   => $request->warranty_provider,
+            'warranty_notes'      => $request->warranty_notes,
         ]);
 
         return redirect()->route('dashboard');

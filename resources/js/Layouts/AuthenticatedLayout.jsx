@@ -138,6 +138,8 @@ export default function AuthenticatedLayout({ user, header, children }) {
                                         <Link href={route('asset-requests.index')} className={sideBarLink}>Asset Requests</Link>
                                         <Link href={route('admin.capex.index')} className={sideBarLink}>CAPEX Forms</Link>
                                         <Link href={route('purchase-orders.index')} className={sideBarLink}>Purchase Orders</Link>
+                                        <Link href={route('goods-receipts.index')} className={sideBarLink}>Goods Receipts</Link>
+                                        <Link href={route('invoices.index')} className={sideBarLink}>Invoices &amp; Payments</Link>
                                         <Link href={route('admin.position-specs.index')} className={sideBarLink}>Position Specifications</Link>
                                     </div>
                                 )}

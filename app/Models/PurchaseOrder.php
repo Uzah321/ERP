@@ -19,6 +19,8 @@ class PurchaseOrder extends Model
         'manager_name',
         'allocation',
         'authorised_by',
+        'delivery_status',
+        'invoice_status',
     ];
 
     protected $casts = [
@@ -39,5 +41,15 @@ class PurchaseOrder extends Model
     public function capexForm()
     {
         return $this->belongsTo(CapexForm::class);
+    }
+
+    public function goodsReceipts()
+    {
+        return $this->hasMany(GoodsReceipt::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

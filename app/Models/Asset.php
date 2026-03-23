@@ -24,11 +24,61 @@ class Asset extends Model
         });
     }
 
+    protected $appends = ['book_value', 'warranty_status'];
+
     protected $fillable = [
-        'name', 'serial_number', 'barcode', 'department_id', 'category_id', 
-        'location_id', 'assigned_to', 'purchase_cost', 'purchase_date', 
-        'order_number', 'condition', 'status', 'description', 'last_audited_at'
+        'name', 'serial_number', 'barcode', 'department_id', 'category_id',
+        'location_id', 'assigned_to', 'purchase_cost', 'purchase_date',
+        'order_number', 'condition', 'status', 'description', 'last_audited_at',
+        'depreciation_method', 'asset_life_years', 'salvage_value',
+        'warranty_expiry_date', 'warranty_provider', 'warranty_notes',
+        'goods_receipt_id',
     ];
+
+    protected $casts = [
+        'purchase_date'        => 'date',
+        'warranty_expiry_date' => 'date',
+        'purchase_cost'        => 'decimal:2',
+        'salvage_value'        => 'decimal:2',
+    ];
+
+    /**
+     * Computed book value using straight-line or reducing-balance depreciation.
+     */
+    public function getBookValueAttribute(): ?float
+    {
+        if (!$this->purchase_cost || !$this->purchase_date || !$this->asset_life_years) {
+            return null;
+        }
+        $cost     = (float) $this->purchase_cost;
+        $salvage  = (float) ($this->salvage_value ?? 0);
+        $life     = (int) $this->asset_life_years;
+        $years    = max(0, $this->purchase_date->diffInYears(now()));
+
+        if ($this->depreciation_method === 'reducing_balance') {
+            $rate  = 1 - pow(($salvage ?: 1) / $cost, 1 / $life);
+            $value = $cost * pow(1 - $rate, $years);
+        } else {
+            // Straight-line
+            $annual = ($cost - $salvage) / $life;
+            $value  = max($salvage, $cost - ($annual * $years));
+        }
+        return round($value, 2);
+    }
+
+    /**
+     * Warranty status: active | expiring_soon (≤30 days) | expired | none
+     */
+    public function getWarrantyStatusAttribute(): string
+    {
+        if (!$this->warranty_expiry_date) {
+            return 'none';
+        }
+        $days = now()->diffInDays($this->warranty_expiry_date, false);
+        if ($days < 0)  return 'expired';
+        if ($days <= 30) return 'expiring_soon';
+        return 'active';
+    }
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -59,5 +109,9 @@ class Asset extends Model
 
     public function allocations() {
         return $this->hasMany(AssetAllocation::class);
+    }
+
+    public function goodsReceipt() {
+        return $this->belongsTo(GoodsReceipt::class);
     }
 }
