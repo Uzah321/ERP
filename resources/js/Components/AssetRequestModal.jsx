@@ -26,9 +26,9 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
     const [availablePositions, setAvailablePositions] = useState([]);
 
     const fallbackSpecs = {
-        manager: { laptop: '32GB+ RAM, 1TB+ storage, Core i7 or better' },
-        hod: { laptop: '32GB+ RAM, 1TB+ storage, Core i7 or better' },
-        staff: { laptop: '16GB+ RAM, 500GB+ or 1TB+ storage, Core i5 or better' },
+        manager: { laptop: '32GB RAM, 1TB storage, Core i7' },
+        hod: { laptop: '32GB RAM, 1TB storage, Core i7' },
+        staff: { laptop: '16GB RAM, 500GB storage, Core i5' },
     };
     const fallbackPositions = [
         { value: 'manager', label: 'Manager' },

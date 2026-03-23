@@ -26,13 +26,19 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
 
     const selectCapex = (capex) => {
         setSelectedCapex(capex);
-        // Pre-fill items from the CAPEX items
+        // Auto-fill requisition number from the CAPEX reference
+        setForm(f => ({ ...f, requisition_no: capex.rtp_reference ?? '' }));
+        // Pre-fill items: description = asset_type + requirements (if any)
         if (capex.items?.length > 0) {
-            setItems(capex.items.map(i => ({
-                description: i.asset_type ?? i.description ?? '',
-                qty:         i.quantity ?? 1,
-                unit_price:  i.unit_price ?? '',
-            })));
+            setItems(capex.items.map(i => {
+                const type = i.asset_type ?? i.description ?? '';
+                const reqs = i.requirements ? ` — ${i.requirements}` : '';
+                return {
+                    description: type + reqs,
+                    qty:         i.quantity ?? 1,
+                    unit_price:  i.unit_price ?? '',
+                };
+            }));
         } else {
             setItems([{ description: '', qty: 1, unit_price: '' }]);
         }
@@ -163,7 +169,9 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
                                         <input type="text" value={form.vendor_vat_number} onChange={e => setForm(f => ({...f, vendor_vat_number: e.target.value}))} className={inputCls} placeholder="e.g. 220006604" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Requisition No.</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Requisition No. <span className="text-gray-400 font-normal text-xs">(auto-filled from CAPEX ref)</span>
+                                        </label>
                                         <input type="text" value={form.requisition_no} onChange={e => setForm(f => ({...f, requisition_no: e.target.value}))} className={inputCls} />
                                     </div>
                                 </div>
