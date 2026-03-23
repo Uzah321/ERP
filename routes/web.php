@@ -28,9 +28,16 @@ use App\Http\Controllers\AssetAllocationController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\PositionSpecificationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+use App\Http\Controllers\CapexController;
+
+// CAPEX approval links — no auth required (token-based, approver enters password on the page)
+Route::get('/capex/approve/{token}', [CapexController::class, 'showApprove'])->name('capex.approve.show');
+Route::post('/capex/approve/{token}', [CapexController::class, 'processApprove'])->name('capex.approve.process');
 
 // Asset request approval/decline links for IT admin
 Route::middleware('auth')->group(function () {
@@ -57,6 +64,9 @@ Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['
 Route::middleware('auth')->group(function () {
     Route::post('/asset-requests', [AssetRequestController::class, 'store'])->name('asset-requests.store');
 
+    // Fetch position specs for the asset request modal (all authenticated users)
+    Route::get('/api/position-specifications', [PositionSpecificationController::class, 'all'])->name('position-specs.all');
+
     // Admin-only routes
     Route::middleware('admin')->group(function () {
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
@@ -82,6 +92,7 @@ Route::middleware('auth')->group(function () {
 
         // Admin: Asset Requests Review
         Route::get('/asset-requests', [AssetRequestController::class, 'index'])->name('asset-requests.index');
+        Route::get('/asset-requests/export/csv', [AssetRequestController::class, 'exportCsv'])->name('asset-requests.export.csv');
         Route::patch('/asset-requests/{assetRequest}', [AssetRequestController::class, 'update'])->name('asset-requests.update');
 
         // Admin: Asset Allocations
@@ -91,6 +102,17 @@ Route::middleware('auth')->group(function () {
 
         // IT Admin: View asset requests from other departments
         Route::get('/admin/it-asset-requests', [AssetRequestController::class, 'itRequests'])->name('admin.it-asset-requests');
+
+        // Admin: CAPEX Forms
+        Route::get('/admin/capex', [CapexController::class, 'index'])->name('admin.capex.index');
+        Route::post('/admin/capex', [CapexController::class, 'store'])->name('capex.store');
+        Route::get('/admin/capex/{capexForm}/pdf', [CapexController::class, 'downloadPdf'])->name('capex.pdf');
+
+        // Admin: Position Specifications Management
+        Route::get('/admin/position-specifications', [PositionSpecificationController::class, 'index'])->name('admin.position-specs.index');
+        Route::post('/admin/position-specifications', [PositionSpecificationController::class, 'store'])->name('admin.position-specs.store');
+        Route::put('/admin/position-specifications/{positionSpecification}', [PositionSpecificationController::class, 'update'])->name('admin.position-specs.update');
+        Route::delete('/admin/position-specifications/{positionSpecification}', [PositionSpecificationController::class, 'destroy'])->name('admin.position-specs.destroy');
     });
 
     Route::get('/transfers', [TransferRequestController::class, 'index'])->name('transfers.index');

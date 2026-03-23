@@ -24,6 +24,7 @@ class UserManagementController extends Controller
                 'is_active' => $user->is_active ?? true,
                 'department_name' => $user->department?->name ?? 'Unassigned',
                 'department_id' => $user->department_id,
+                'approval_position' => $user->approval_position,
                 'created_at' => $user->created_at->format('Y-m-d'),
             ]);
 
@@ -43,6 +44,7 @@ class UserManagementController extends Controller
             'password' => ['required', Rules\Password::defaults()],
             'department_id' => 'required|exists:departments,id',
             'role' => 'required|in:admin,user',
+            'approval_position' => 'nullable|in:it_manager,finance_operations,it_head,finance_director',
         ]);
 
         User::create([
@@ -51,6 +53,7 @@ class UserManagementController extends Controller
             'password' => Hash::make($request->password),
             'department_id' => $request->department_id,
             'role' => $request->role,
+            'approval_position' => $request->approval_position ?: null,
         ]);
 
         return redirect()->back()->with('success', 'User created successfully.');
@@ -63,9 +66,13 @@ class UserManagementController extends Controller
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'department_id' => 'required|exists:departments,id',
             'role' => 'required|in:admin,user',
+            'approval_position' => 'nullable|in:it_manager,finance_operations,it_head,finance_director',
         ]);
 
-        $user->update($request->only(['name', 'email', 'department_id', 'role']));
+        $user->update(array_merge(
+            $request->only(['name', 'email', 'department_id', 'role']),
+            ['approval_position' => $request->approval_position ?: null]
+        ));
 
         return redirect()->back()->with('success', 'User updated successfully.');
     }

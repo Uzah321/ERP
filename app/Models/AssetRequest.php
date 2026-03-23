@@ -16,8 +16,14 @@ class AssetRequest extends Model
         'asset_category',
         'asset_type',
         'for_whom',
+        'position',
         'requirements',
+        'items',
         'status',
+    ];
+
+    protected $casts = [
+        'items' => 'array',
     ];
 
     public function user()

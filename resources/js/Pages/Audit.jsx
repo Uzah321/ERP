@@ -41,8 +41,8 @@ export default function Audit({ auth, recent_audits }) {
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 flex flex-col md:flex-row gap-6">
                     
                     <div className="w-full md:w-1/3 bg-white p-6 shadow-sm sm:rounded-lg h-fit">
-                        <h3 className="text-lg font-bold mb-4">Scan Barcode</h3>
-                        <p className="text-sm text-gray-600 mb-6">Use a barcode scanner or manually type the asset tag to verify physical presence.</p>
+                        <h3 className="text-lg font-bold mb-4">Scan Barcode / Serial Number</h3>
+                        <p className="text-sm text-gray-600 mb-6">Use a barcode scanner or manually type the asset barcode or serial number to verify physical presence.</p>
                         
                         {successMsg && (
                             <div className="mb-4 p-3 bg-green-100 text-green-700 rounded rounded-md text-sm font-bold">
@@ -52,7 +52,7 @@ export default function Audit({ auth, recent_audits }) {
 
                         <form onSubmit={submit}>
                             <div className="mb-4">
-                                <InputLabel htmlFor="barcode" value="Asset Barcode (e.g. SB-2026-XXXXX)" />
+                                <InputLabel htmlFor="barcode" value="Asset Barcode or Serial Number" />
                                 <TextInput
                                     id="barcode"
                                     type="text"
@@ -61,6 +61,7 @@ export default function Audit({ auth, recent_audits }) {
                                     onChange={(e) => setData('barcode', e.target.value)}
                                     ref={inputRef}
                                     autoComplete="off"
+                                    placeholder="Scan or type barcode / serial number"
                                 />
                                 <InputError message={errors.barcode} className="mt-2" />
                             </div>
@@ -77,6 +78,7 @@ export default function Audit({ auth, recent_audits }) {
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                                         <tr>
+                                            <th className="py-2 px-3">Serial Number</th>
                                             <th className="py-2 px-3">Barcode</th>
                                             <th className="py-2 px-3">Name</th>
                                             <th className="py-2 px-3">Location</th>
@@ -87,7 +89,8 @@ export default function Audit({ auth, recent_audits }) {
                                     <tbody>
                                         {recent_audits.map(asset => (
                                             <tr key={asset.id} className="border-b">
-                                                <td className="py-2 px-3 font-mono font-bold text-indigo-600">{asset.barcode}</td>
+                                                <td className="py-2 px-3 font-mono font-bold text-indigo-600">{asset.serial_number || '-'}</td>
+                                                <td className="py-2 px-3 font-mono text-gray-700">{asset.barcode}</td>
                                                 <td className="py-2 px-3">{asset.name}</td>
                                                 <td className="py-2 px-3">{asset.location?.name}</td>
                                                 <td className="py-2 px-3">

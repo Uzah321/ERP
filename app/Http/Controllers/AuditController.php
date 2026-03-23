@@ -22,10 +22,18 @@ class AuditController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'barcode' => 'required|string|exists:assets,barcode'
+            'barcode' => 'required|string'
         ]);
 
-        $asset = Asset::where('barcode', $request->barcode)->first();
+        $input = $request->barcode;
+
+        // Look up by serial number first, then by barcode
+        $asset = Asset::where('serial_number', $input)->first()
+              ?? Asset::where('barcode', $input)->first();
+
+        if (!$asset) {
+            return redirect()->back()->withErrors(['barcode' => 'No asset found matching this barcode or serial number.']);
+        }
         
         if ($asset->status == 'Disposed' || $asset->trashed()) {
             return redirect()->back()->withErrors(['barcode' => 'Cannot audit a disposed or archived asset.']);
@@ -41,6 +49,6 @@ class AuditController extends Controller
             ->causedBy(Auth::user())
             ->log('Asset Audited & Verified Physically');
 
-        return redirect()->back()->with('success', "Asset {$asset->barcode} verified successfully!");
+        return redirect()->back()->with('success', "Asset " . ($asset->serial_number ?: $asset->barcode) . " verified successfully!");
     }
 }

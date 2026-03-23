@@ -5,6 +5,8 @@ A new asset request has been submitted and assigned to your department for proce
 
 **Requested By:** {{ $assetRequest->user->name }} ({{ $assetRequest->department->name }})  
 **Asset Category Needed:** {{ $assetRequest->asset_category }}  
+**Asset Type:** {{ $assetRequest->asset_type ?? '-' }}  
+**Asset For:** {{ $assetRequest->for_whom ?? '-' }} ({{ ucfirst($assetRequest->position ?? '-') }})
 
 **Specific Requirements:**  
 {{ $assetRequest->requirements }}

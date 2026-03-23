@@ -88,6 +88,9 @@ class AssetRequestController extends Controller
                 'department_name' => $r->department?->name ?? '-',
                 'target_department_name' => $r->targetDepartment?->name ?? '-',
                 'asset_category' => $r->asset_category,
+                'asset_type' => $r->asset_type ?? '-',
+                'for_whom' => $r->for_whom ?? '-',
+                'position' => $r->position ?? '-',
                 'requirements' => $r->requirements,
                 'status' => $r->status,
                 'created_at' => $r->created_at->format('Y-m-d'),
@@ -96,6 +99,47 @@ class AssetRequestController extends Controller
         return Inertia::render('Admin/AssetRequests', [
             'requests' => $requests,
         ]);
+    }
+
+    public function exportCsv()
+    {
+        $requests = AssetRequest::with(['user', 'department', 'targetDepartment'])
+            ->latest()
+            ->get();
+
+        $filename = 'Asset_Requests_' . now()->format('Y-m-d') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function () use ($requests) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, [
+                'ID', 'Requested By', 'From Department', 'Target Department',
+                'Asset Category', 'Asset Type', 'For Whom', 'Position',
+                'Requirements', 'Status', 'Date',
+            ]);
+            foreach ($requests as $r) {
+                fputcsv($file, [
+                    $r->id,
+                    $r->user?->name ?? 'Unknown',
+                    $r->department?->name ?? '-',
+                    $r->targetDepartment?->name ?? '-',
+                    $r->asset_category,
+                    $r->asset_type ?? '-',
+                    $r->for_whom ?? '-',
+                    $r->position ?? '-',
+                    $r->requirements,
+                    $r->status,
+                    $r->created_at?->format('Y-m-d') ?? '-',
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function update(Request $request, AssetRequest $assetRequest)
@@ -135,43 +179,55 @@ class AssetRequestController extends Controller
     {
         $validated = $request->validate([
             'target_department_id' => 'required|exists:departments,id',
-            'asset_category' => 'required|string|max:255',
-            'asset_type' => 'required|string|max:255',
-            'for_whom' => 'required|string|max:255',
-            'position' => 'required|string',
-            'requirements' => 'required|string'
+            'asset_category'       => 'required|string|max:255',
+            'items'                => 'required|array|min:1',
+            'items.*.asset_type'   => 'required|string|max:255',
+            'items.*.for_whom'     => 'required|string|max:255',
+            'items.*.position'     => 'required|string|max:255',
+            'items.*.requirements' => 'required|string',
+            'items.*.quantity'     => 'required|integer|min:1',
         ]);
 
-        // Enforce IT asset specs by position (from dropdown)
+        // Per-item IT spec validation
         $isIT = \App\Models\Department::where('name', 'IT')->first()?->id == $validated['target_department_id'];
-        $requirements = $validated['requirements'];
-        $position = strtolower($validated['position']);
-        if ($isIT && stripos($validated['asset_type'], 'laptop') !== false) {
-            if (in_array($position, ['manager', 'hod'])) {
-                // Managers/HODs must request 16GB+ RAM, 1TB+ storage, Core i7/Ultra 7+
-                if (!preg_match('/(16GB|32GB|64GB)/i', $requirements)
-                    || !preg_match('/(1TB|1TB|2TB|3TB|4TB|1024GB|2048GB|3072GB|4096GB)/i', $requirements)
-                    || !preg_match('/(core i7|ultra 7)/i', $requirements)) {
-                    return back()->with('error', 'Managers and HODs must request laptops with 16GB+ RAM, 1TB+ storage, and Core i7/Ultra 7 or above.');
-                }
-            } else {
-                // Others must request Core i5 and 8GB RAM
-                if (!preg_match('/(8GB)/i', $requirements) || !preg_match('/(core i5)/i', $requirements)) {
-                    return back()->with('error', 'Non-managers must request laptops with Core i5 and 8GB RAM.');
+        if ($isIT) {
+            foreach ($validated['items'] as $i => $item) {
+                $position = strtolower($item['position']);
+                $requirements = $item['requirements'];
+                if (stripos($item['asset_type'], 'laptop') !== false) {
+                    if (in_array($position, ['manager', 'hod'])) {
+                        if (!preg_match('/(16GB|32GB|64GB)/i', $requirements)
+                            || !preg_match('/(1TB|2TB|3TB|4TB|1024GB|2048GB|3072GB|4096GB)/i', $requirements)
+                            || !preg_match('/(core i7|ultra 7)/i', $requirements)) {
+                            return back()->withErrors([
+                                "items.{$i}.requirements" => 'Managers and HODs must request laptops with 16GB+ RAM, 1TB+ storage, and Core i7/Ultra 7 or above.',
+                            ]);
+                        }
+                    } else {
+                        if (!preg_match('/(8GB)/i', $requirements) || !preg_match('/(core i5)/i', $requirements)) {
+                            return back()->withErrors([
+                                "items.{$i}.requirements" => 'Non-managers must request laptops with Core i5 and 8GB RAM.',
+                            ]);
+                        }
+                    }
                 }
             }
         }
 
+        // Use first item's fields for top-level columns (backward compatibility)
+        $firstItem = $validated['items'][0];
+
         $assetRequest = AssetRequest::create([
-            'user_id' => Auth::id(),
-            'department_id' => Auth::user()->department_id,
+            'user_id'              => Auth::id(),
+            'department_id'        => Auth::user()->department_id,
             'target_department_id' => $validated['target_department_id'],
-            'asset_category' => $validated['asset_category'],
-            'asset_type' => $validated['asset_type'],
-            'for_whom' => $validated['for_whom'],
-            'position' => $validated['position'],
-            'requirements' => $requirements,
-            'status' => 'pending'
+            'asset_category'       => $validated['asset_category'],
+            'asset_type'           => $firstItem['asset_type'],
+            'for_whom'             => $firstItem['for_whom'],
+            'position'             => $firstItem['position'],
+            'requirements'         => $firstItem['requirements'],
+            'items'                => $validated['items'],
+            'status'               => 'pending',
         ]);
 
         // Notify all IT admins if the request is for IT department
@@ -185,7 +241,6 @@ class AssetRequestController extends Controller
                 Mail::to($itAdmins)->send(new AssetRequestNotification($assetRequest));
             }
         } else {
-            // Fallback: notify all users in the target department (legacy behavior)
             $targetUsers = User::where('department_id', $validated['target_department_id'])->get();
             if ($targetUsers->isNotEmpty()) {
                 Mail::to($targetUsers)->send(new AssetRequestNotification($assetRequest));

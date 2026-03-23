@@ -7,11 +7,11 @@ export default function Users({ auth, users, departments, flash }) {
     const [showCreate, setShowCreate] = useState(false);
 
     const createForm = useForm({
-        name: '', email: '', password: '', department_id: '', role: 'user',
+        name: '', email: '', password: '', department_id: '', role: 'user', approval_position: '',
     });
 
     const editForm = useForm({
-        name: '', email: '', department_id: '', role: 'user',
+        name: '', email: '', department_id: '', role: 'user', approval_position: '',
     });
 
     const handleCreate = (e) => {
@@ -26,6 +26,7 @@ export default function Users({ auth, users, departments, flash }) {
         editForm.setData({
             name: user.name, email: user.email,
             department_id: user.department_id || '', role: user.role || 'user',
+            approval_position: user.approval_position || '',
         });
     };
 
@@ -44,6 +45,16 @@ export default function Users({ auth, users, departments, flash }) {
 
     const handleToggleActive = (id) => {
         router.patch(route('admin.users.toggle', id));
+    };
+
+    const approvalPositionLabel = (pos) => {
+        const labels = {
+            it_manager: 'IT Manager',
+            finance_operations: 'Finance Operations',
+            it_head: 'IT Head of Technology',
+            finance_director: 'Finance Director',
+        };
+        return labels[pos] || null;
     };
 
     const roleBadge = (role) => {
@@ -79,6 +90,13 @@ export default function Users({ auth, users, departments, flash }) {
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
                         </select>
+                        <select value={createForm.data.approval_position} onChange={e => createForm.setData('approval_position', e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            <option value="">No Approval Role</option>
+                            <option value="it_manager">IT Manager</option>
+                            <option value="finance_operations">Finance Operations</option>
+                            <option value="it_head">IT Head of Technology</option>
+                            <option value="finance_director">Finance Director</option>
+                        </select>
                         <div className="flex items-end gap-2">
                             <button type="submit" disabled={createForm.processing} className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 disabled:opacity-50">Create</button>
                             <button type="button" onClick={() => setShowCreate(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300">Cancel</button>
@@ -96,6 +114,7 @@ export default function Users({ auth, users, departments, flash }) {
                                 <th className="px-4 py-3">Email</th>
                                 <th className="px-4 py-3">Department</th>
                                 <th className="px-4 py-3">Role</th>
+                                <th className="px-4 py-3">Approval Position</th>
                                 <th className="px-4 py-3">Status</th>
                                 <th className="px-4 py-3">Joined</th>
                                 <th className="px-4 py-3 text-right">Actions</th>
@@ -108,7 +127,7 @@ export default function Users({ auth, users, departments, flash }) {
                             {users.map(user => (
                                 <tr key={user.id} className="hover:bg-gray-50">
                                     {editing === user.id ? (
-                                        <td colSpan="7" className="px-4 py-3">
+                                        <td colSpan="8" className="px-4 py-3">
                                             <form onSubmit={(e) => handleUpdate(e, user.id)} className="grid grid-cols-6 gap-2 items-center">
                                                 <input type="text" value={editForm.data.name} onChange={e => editForm.setData('name', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm" required />
                                                 <input type="email" value={editForm.data.email} onChange={e => editForm.setData('email', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm" required />
@@ -120,7 +139,13 @@ export default function Users({ auth, users, departments, flash }) {
                                                     <option value="user">User</option>
                                                     <option value="admin">Admin</option>
                                                 </select>
-                                                <div></div>
+                                                <select value={editForm.data.approval_position} onChange={e => editForm.setData('approval_position', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
+                                                    <option value="">No Approval Role</option>
+                                                    <option value="it_manager">IT Manager</option>
+                                                    <option value="finance_operations">Finance Operations</option>
+                                                    <option value="it_head">IT Head of Technology</option>
+                                                    <option value="finance_director">Finance Director</option>
+                                                </select>
                                                 <div className="flex gap-1 justify-end">
                                                     <button type="submit" className="text-green-600 hover:text-green-800 font-medium text-xs">Save</button>
                                                     <button type="button" onClick={() => setEditing(null)} className="text-gray-500 hover:text-gray-700 font-medium text-xs">Cancel</button>
@@ -133,6 +158,15 @@ export default function Users({ auth, users, departments, flash }) {
                                             <td className="px-4 py-3 text-gray-600">{user.email}</td>
                                             <td className="px-4 py-3 text-gray-600">{user.department_name}</td>
                                             <td className="px-4 py-3">{roleBadge(user.role)}</td>
+                                            <td className="px-4 py-3">
+                                                {user.approval_position ? (
+                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        {approvalPositionLabel(user.approval_position)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">—</span>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3">
                                                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                     {user.is_active ? 'Active' : 'Disabled'}
