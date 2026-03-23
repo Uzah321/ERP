@@ -80,20 +80,21 @@
 <div class="page">
 
     {{-- ── LETTERHEAD / LOGO HEADER ── --}}
-    <table style="width:100%; border-collapse:collapse; margin-bottom:10px; border:2px solid #1a3a8f;">
+    <table style="width:100%; border-collapse:collapse; margin-bottom:10px; border-bottom:2px solid #c0392b;">
         <tr>
-            <td style="width:76px; background:#1a3a8f; color:#fff; text-align:center; padding:10px 6px; vertical-align:middle;">
-                <div style="font-size:22px; font-weight:bold; letter-spacing:2px;">SBZ</div>
-                <div style="font-size:7px; letter-spacing:0.5px; margin-top:3px; opacity:0.8;">EST. 1980</div>
+            <td style="padding:6px 0; vertical-align:middle; width:220px;">
+                @if(file_exists(public_path('images/simbisa-logo.png')))
+                <img src="{{ public_path('images/simbisa-logo.png') }}" style="height:55px; width:auto;" />
+                @else
+                <div style="font-size:14px; font-weight:bold; color:#c0392b;">Simbisa Brands Limited</div>
+                @endif
             </td>
-            <td style="padding:8px 14px; vertical-align:middle;">
-                <div style="font-size:14px; font-weight:bold; color:#1a3a8f; letter-spacing:0.3px;">SIMBISA BRANDS ZIMBABWE (PVT) LTD</div>
-                <div style="font-size:9px; color:#555; margin-top:3px;">Investment Division &nbsp;&bull;&nbsp; Fort Street / 11th Avenue, P.O. Box 1001, Bulawayo</div>
-                <div style="font-size:9px; color:#555; margin-top:1px;">Tel: 78471, 66706, 60925, 74571 &nbsp;&bull;&nbsp; Fax: 66635</div>
-            </td>
-            <td style="text-align:center; padding:8px 12px; vertical-align:middle; width:160px;">
-                <div style="background:#1a3a8f; color:#fff; font-size:9px; font-weight:bold; padding:5px 12px; letter-spacing:0.8px;">CAPITAL EXPENDITURE</div>
-                <div style="font-size:8px; color:#444; margin-top:5px; letter-spacing:0.3px;">REQUEST TO PURCHASE FORM</div>
+            <td style="text-align:right; padding:6px 0; vertical-align:middle;">
+                <div style="font-size:9px; color:#555; line-height:1.7;">
+                    Fort Street / 11th Avenue, P.O. Box 1001, Bulawayo<br>
+                    Tel: 78471, 66706, 60925, 74571 &nbsp;&bull;&nbsp; Fax: 66635
+                </div>
+                <div style="margin-top:6px; background:#1a3a8f; color:#fff; font-size:9px; font-weight:bold; padding:4px 12px; display:inline-block; letter-spacing:0.8px;">CAPITAL EXPENDITURE &mdash; REQUEST TO PURCHASE FORM</div>
             </td>
         </tr>
     </table>
