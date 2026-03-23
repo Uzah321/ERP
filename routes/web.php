@@ -108,6 +108,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/capex', [CapexController::class, 'store'])->name('capex.store');
         Route::get('/admin/capex/{capexForm}/pdf', [CapexController::class, 'downloadPdf'])->name('capex.pdf');
 
+        // Admin: Purchase Orders
+        Route::get('/admin/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+        Route::post('/admin/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+        Route::get('/admin/purchase-orders/{purchaseOrder}/pdf', [\App\Http\Controllers\PurchaseOrderController::class, 'downloadPdf'])->name('purchase-orders.pdf');
+
         // Admin: Position Specifications Management
         Route::get('/admin/position-specifications', [PositionSpecificationController::class, 'index'])->name('admin.position-specs.index');
         Route::post('/admin/position-specifications', [PositionSpecificationController::class, 'store'])->name('admin.position-specs.store');

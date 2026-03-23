@@ -380,7 +380,7 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fla
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-gray-500">{f.created_at}</td>
-                                    <td className="px-4 py-3 text-right">
+                                    <td className="px-4 py-3 text-right space-x-3">
                                         <a
                                             href={route('capex.pdf', f.id)}
                                             target="_blank"
@@ -388,6 +388,14 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fla
                                         >
                                             Download PDF
                                         </a>
+                                        {f.status === 'approved' && (
+                                            <a
+                                                href={route('purchase-orders.index')}
+                                                className="text-green-600 hover:text-green-800 text-xs font-medium underline"
+                                            >
+                                                Generate PO
+                                            </a>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
