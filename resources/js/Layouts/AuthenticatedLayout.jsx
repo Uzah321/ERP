@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import Dropdown from '@/Components/Dropdown';
 
-export default function AuthenticatedLayout({ user, header, children }) {
+export default function AuthenticatedLayout({ user: userProp, header, children }) {
+    const { auth } = usePage().props;
+    const user = userProp ?? auth?.user;
     const [expandedMenus, setExpandedMenus] = useState({ pinned: true, reports: true, operations: true, admin: true });
     const [activeFeatureModal, setActiveFeatureModal] = useState(null);
 
