@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\PurchaseOrderCreated;
 use App\Models\CapexForm;
 use App\Models\PurchaseOrder;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class PurchaseOrderController extends Controller
@@ -14,12 +16,20 @@ class PurchaseOrderController extends Controller
     /**
      * List all purchase orders.
      */
-    public function index()
+    public function index(Request $request)
     {
         $orders = PurchaseOrder::with(['capexForm.assetRequest.department'])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('vendor_name', 'like', "%{$search}%")
+                        ->orWhere('po_number', 'like', "%{$search}%")
+                        ->orWhereHas('capexForm', fn($c) => $c->where('rtp_reference', 'like', "%{$search}%"));
+                });
+            })
             ->latest()
-            ->get()
-            ->map(fn($po) => [
+            ->paginate(15)
+            ->through(fn($po) => [
                 'id'            => $po->id,
                 'po_number'     => $po->po_number,
                 'vendor_name'   => $po->vendor_name,
@@ -52,6 +62,7 @@ class PurchaseOrderController extends Controller
             'orders'        => $orders,
             'approvedCapex' => $approvedCapex,
             'nextPoNumber'  => PurchaseOrder::nextPoNumber(),
+            'filters'       => $request->only(['search']),
         ]);
     }
 
@@ -114,6 +125,13 @@ class PurchaseOrderController extends Controller
             'allocation'       => $request->allocation,
             'authorised_by'    => $request->authorised_by,
         ]);
+
+        // Email the requester
+        $capex->loadMissing(['assetRequest.user']);
+        $requesterEmail = $capex->assetRequest->user?->email;
+        if ($requesterEmail) {
+            Mail::to($requesterEmail)->send(new PurchaseOrderCreated($po));
+        }
 
         return back()->with('success', 'Purchase Order #' . $po->po_number . ' created successfully.');
     }

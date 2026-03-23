@@ -50,7 +50,7 @@ class CapexController extends Controller
     /**
      * List all CAPEX forms (admin view).
      */
-    public function index()
+    public function index(Request $request)
     {
         // Legacy status label map for backward compatibility
         $legacyLabels = [
@@ -61,9 +61,18 @@ class CapexController extends Controller
         ];
 
         $forms = CapexForm::with(['assetRequest.user', 'assetRequest.department', 'approvals'])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('rtp_reference', 'like', "%{$search}%")
+                        ->orWhereHas('assetRequest.department', fn($d) => $d->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('assetRequest.user', fn($u) => $u->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
             ->latest()
-            ->get()
-            ->map(function ($f) use ($legacyLabels) {
+            ->paginate(15)
+            ->through(function ($f) use ($legacyLabels) {
                 // Compute a human-readable current stage label
                 if ($f->status === 'approved') {
                     $stageLabel = 'Fully Approved';
@@ -85,8 +94,11 @@ class CapexController extends Controller
                     'request_type'        => $f->request_type,
                     'status'              => $f->status,
                     'current_stage_label' => $stageLabel,
+                    'current_stage_index' => $f->current_stage_index ?? 0,
                     'chain_length'        => count($f->approval_chain ?? []),
-                    'items_count'         => count($f->items ?? []),                    'total_amount'        => $f->total_amount,                    'created_at'          => $f->created_at->format('d M Y'),
+                    'items_count'         => count($f->items ?? []),
+                    'total_amount'        => $f->total_amount,
+                    'created_at'          => $f->created_at->format('d M Y'),
                 ];
             });
 
@@ -117,6 +129,7 @@ class CapexController extends Controller
             'forms'         => $forms,
             'assetRequests' => $assetRequests,
             'users'         => $users,
+            'filters'       => $request->only(['search', 'status']),
         ]);
     }
 

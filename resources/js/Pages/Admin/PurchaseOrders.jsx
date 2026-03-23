@@ -1,11 +1,20 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
-export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumber, flash }) {
+export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumber, filters = {}, flash }) {
     const [selectedCapex, setSelectedCapex] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [formErrors, setFormErrors] = useState({});
+    const [search, setSearch] = useState(filters.search ?? '');
+
+    const doSearch = (q) => {
+        router.get(route('purchase-orders.index'), { search: q }, {
+            preserveState: true,
+            replace: true,
+            only: ['orders', 'filters'],
+        });
+    };
 
     // Form state
     const [form, setForm] = useState({
@@ -269,9 +278,16 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
 
                 {/* ── PURCHASE ORDERS TABLE ── */}
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
                         <h3 className="text-sm font-semibold text-gray-800">All Purchase Orders</h3>
-                        <span className="text-xs text-gray-400">{orders.length} total</span>
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={e => { setSearch(e.target.value); doSearch(e.target.value); }}
+                            placeholder="Search PO#, vendor, CAPEX ref…"
+                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-64 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none ml-2"
+                        />
+                        <span className="text-xs text-gray-400 ml-auto">{orders.total} total</span>
                     </div>
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
@@ -288,14 +304,14 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {orders.length === 0 && (
+                            {orders.data.length === 0 && (
                                 <tr>
                                     <td colSpan="9" className="px-4 py-10 text-center text-gray-400">
-                                        No purchase orders yet. They will appear here once a fully-approved CAPEX is converted.
+                                        No purchase orders found.
                                     </td>
                                 </tr>
                             )}
-                            {orders.map(o => (
+                            {orders.data.map(o => (
                                 <tr key={o.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 font-bold text-red-600 text-base">{o.po_number}</td>
                                     <td className="px-4 py-3 font-mono text-blue-700 text-xs">{o.capex_ref}</td>
@@ -318,6 +334,25 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
                             ))}
                         </tbody>
                     </table>
+                    {/* Pagination */}
+                    {orders.last_page > 1 && (
+                        <div className="flex justify-center items-center gap-1 px-4 py-3 border-t border-gray-100 flex-wrap">
+                            {orders.links.map((link, i) => (
+                                <Link
+                                    key={i}
+                                    href={link.url ?? '#'}
+                                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                                        link.active
+                                            ? 'bg-blue-600 text-white'
+                                            : link.url
+                                                ? 'text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                                : 'text-gray-300 cursor-not-allowed pointer-events-none'
+                                    }`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
             </div>

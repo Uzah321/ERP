@@ -75,6 +75,7 @@
                 Bulawayo
             </td>
             <td class="logo-block">
+                <div style="background:#1a3a8f; color:#fff; font-size:14px; font-weight:bold; padding:4px 14px; letter-spacing:2px; margin-bottom:5px;">SBZ</div>
                 <div class="logo-name">Simbisa Brands Zimbabwe (Pvt) Ltd</div>
                 <div class="logo-po">PURCHASE ORDER</div>
             </td>

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 // Compute a badge from the form's current_stage_label and status
@@ -18,13 +18,23 @@ const getStatusBadge = (f) => {
     return { label: f.current_stage_label || 'Pending', cls: colours[idx] };
 };
 
-export default function CapexForms({ auth, forms, assetRequests, users = [], flash }) {
+export default function CapexForms({ auth, forms, assetRequests, users = [], filters = {}, flash }) {
     const [quotationFiles, setQuotationFiles] = useState([null, null, null]);
+    const [search, setSearch]           = useState(filters.search ?? '');
+    const [statusFilter, setStatusFilter] = useState(filters.status ?? '');
 
     // Approval chain state—each entry: { user_id, label }
     const [approvalChain, setApprovalChain] = useState([
         { user_id: '', label: 'IT Manager' },
     ]);
+
+    const doSearch = (q, status) => {
+        router.get(route('admin.capex.index'), { search: q, status }, {
+            preserveState: true,
+            replace: true,
+            only: ['forms', 'filters'],
+        });
+    };
 
     const updateChainItem = (index, field, value) => {
         setApprovalChain(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
@@ -342,6 +352,27 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fla
 
                 {/* CAPEX Forms Table */}
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    {/* Search + Filter Bar */}
+                    <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={e => { setSearch(e.target.value); doSearch(e.target.value, statusFilter); }}
+                            placeholder="Search reference, department, requester…"
+                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-72 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                        />
+                        <select
+                            value={statusFilter}
+                            onChange={e => { setStatusFilter(e.target.value); doSearch(search, e.target.value); }}
+                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="declined">Declined</option>
+                        </select>
+                        <span className="text-xs text-gray-400 ml-auto">{forms.total} total</span>
+                    </div>
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
                             <tr>
@@ -357,14 +388,14 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fla
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {forms.length === 0 && (
+                            {forms.data.length === 0 && (
                                 <tr>
                                     <td colSpan="9" className="px-4 py-8 text-center text-gray-400">
-                                        No CAPEX forms yet.
+                                        No CAPEX forms found.
                                     </td>
                                 </tr>
                             )}
-                            {forms.map(f => (
+                            {forms.data.map(f => (
                                 <tr key={f.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 font-mono font-medium text-blue-700">{f.rtp_reference}</td>
                                     <td className="px-4 py-3 text-gray-700">{f.department}</td>
@@ -401,6 +432,25 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fla
                             ))}
                         </tbody>
                     </table>
+                    {/* Pagination */}
+                    {forms.last_page > 1 && (
+                        <div className="flex justify-center items-center gap-1 px-4 py-3 border-t border-gray-100 flex-wrap">
+                            {forms.links.map((link, i) => (
+                                <Link
+                                    key={i}
+                                    href={link.url ?? '#'}
+                                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                                        link.active
+                                            ? 'bg-blue-600 text-white'
+                                            : link.url
+                                                ? 'text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                                : 'text-gray-300 cursor-not-allowed pointer-events-none'
+                                    }`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>
