@@ -75,8 +75,8 @@
                 Bulawayo
             </td>
             <td class="logo-block">
-                @if(file_exists(public_path('images/simbisa-logo.png')))
-                <img src="{{ public_path('images/simbisa-logo.png') }}" style="height:48px; width:auto; margin-bottom:4px;" /><br>
+                @if(!empty($logoBase64))
+                <img src="{{ $logoBase64 }}" style="height:48px; width:auto; margin-bottom:4px;" /><br>
                 @else
                 <div class="logo-name">Simbisa Brands Zimbabwe (Pvt) Ltd</div>
                 @endif

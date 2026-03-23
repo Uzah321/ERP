@@ -147,7 +147,12 @@ class PurchaseOrderController extends Controller
         $options->set('isHtml5ParserEnabled', true);
         $dompdf = new Dompdf($options);
 
-        $html = view('pdf.purchase-order', ['po' => $purchaseOrder])->render();
+        $logoPath = public_path('images/simbisa-logo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
+
+        $html = view('pdf.purchase-order', ['po' => $purchaseOrder, 'logoBase64' => $logoBase64])->render();
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();

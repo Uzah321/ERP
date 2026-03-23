@@ -83,8 +83,8 @@
     <table style="width:100%; border-collapse:collapse; margin-bottom:10px; border-bottom:2px solid #c0392b;">
         <tr>
             <td style="padding:6px 0; vertical-align:middle; width:220px;">
-                @if(file_exists(public_path('images/simbisa-logo.png')))
-                <img src="{{ public_path('images/simbisa-logo.png') }}" style="height:55px; width:auto;" />
+                @if(!empty($logoBase64))
+                <img src="{{ $logoBase64 }}" style="height:55px; width:auto;" />
                 @else
                 <div style="font-size:14px; font-weight:bold; color:#c0392b;">Simbisa Brands Limited</div>
                 @endif
