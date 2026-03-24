@@ -17,6 +17,9 @@
         .table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
         .table tr:last-child td { border-bottom: none; }
         .total-row td { background: #f0f4ff; }
+        .status-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 16px 20px; margin: 18px 0; }
+        .status-box h3 { color: #166534; font-size: 14px; margin: 0 0 8px; }
+        .status-box p { color: #166534; font-size: 13px; margin: 0; line-height: 1.6; }
         .notice { background: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #713f12; margin: 18px 0; }
         .footer { background: #f3f4f6; padding: 14px 32px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
     </style>
@@ -24,44 +27,29 @@
 <body>
 <div class="wrap">
     <div class="header">
-        <h1>&#128203; Purchase Order Created</h1>
-        <div class="sub">Simbisa Brands Zimbabwe (Pvt) Ltd &nbsp;&mdash;&nbsp; {{ now()->format('d M Y') }}</div>
+        <h1>Purchase Order Notification</h1>
+        <div class="sub">Simbisa Brands Zimbabwe (Pvt) Ltd &mdash; {{ now()->format('d M Y') }}</div>
     </div>
     <div class="body">
-        <p>Dear <strong>{{ $po->capexForm->assetRequest->user?->name ?? 'Requester' }}</strong>,</p>
-        <p>A Purchase Order has been successfully raised for your fully-approved CAPEX request. Please find the summary below.</p>
+        <p>Dear <strong>{{ $po->vendor_name }}</strong>,</p>
+        <p>
+            We are pleased to inform you that a Purchase Order has been formally raised for goods/services to be procured from your organisation.
+            Please find the full Purchase Order details attached to this email as a PDF document.
+        </p>
 
         <div class="po-box">
             <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Purchase Order Number</div>
-            <div class="po-number">PO &nbsp;# {{ $po->po_number }}</div>
+            <div class="po-number">PO # {{ $po->po_number }}</div>
             <div style="font-size: 12px; color: #374151; margin-top: 8px;">
-                CAPEX Reference: &nbsp;<strong>{{ $po->capexForm->rtp_reference }}</strong>
+                CAPEX Reference: <strong>{{ $po->capexForm->rtp_reference }}</strong>
             </div>
         </div>
 
         <table class="table">
+            <tr><th colspan="2">Order Summary</th></tr>
             <tr>
-                <th colspan="2">Purchase Order Summary</th>
-            </tr>
-            <tr>
-                <td style="color: #6b7280; width: 200px;">Vendor / Supplier</td>
-                <td><strong>{{ $po->vendor_name }}</strong></td>
-            </tr>
-            @if($po->vendor_tin)
-            <tr>
-                <td style="color: #6b7280;">Vendor TIN</td>
-                <td>{{ $po->vendor_tin }}</td>
-            </tr>
-            @endif
-            @if($po->vendor_vat_number)
-            <tr>
-                <td style="color: #6b7280;">VAT Registration No.</td>
-                <td>{{ $po->vendor_vat_number }}</td>
-            </tr>
-            @endif
-            <tr>
-                <td style="color: #6b7280;">Requisition No.</td>
-                <td>{{ $po->requisition_no ?? '—' }}</td>
+                <td style="color: #6b7280; width: 220px;">Ordered By</td>
+                <td><strong>Simbisa Brands Zimbabwe (Pvt) Ltd</strong></td>
             </tr>
             <tr>
                 <td style="color: #6b7280;">Department</td>
@@ -78,7 +66,7 @@
             </tr>
             @endif
             <tr class="total-row">
-                <td style="font-weight: bold;">Total Amount</td>
+                <td style="font-weight: bold;">Total Order Amount</td>
                 <td style="font-size: 17px; font-weight: bold; color: #1a3a8f;">${{ number_format($po->total_amount, 2) }}</td>
             </tr>
         </table>
@@ -102,13 +90,29 @@
         </table>
         @endif
 
-        <div class="notice">
-            <strong>Next Step:</strong> The official Purchase Order PDF is attached to this email. Please forward it to the vendor to proceed with procurement. Payments will be made via direct bank transfer within 30 days of receipt of a valid invoice.
+        <div class="status-box">
+            <h3>&#10003; Payment Is Being Processed</h3>
+            <p>
+                Please be assured that payment for the above Purchase Order is currently being processed by our Finance team.
+                You will receive the transfer within the agreed payment terms.<br><br>
+                <strong>Once you have confirmed receipt of payment, you are authorised to proceed with the delivery of the goods/services
+                as specified in the attached Purchase Order.</strong>
+            </p>
         </div>
+
+        <div class="notice">
+            <strong>Delivery Address:</strong> Fort Street / 11th Avenue, Bulawayo, Zimbabwe.<br>
+            Please ensure all goods are delivered in accordance with the specifications outlined in the Purchase Order PDF attached.
+            A signed copy of the delivery note will be required upon delivery.
+        </div>
+
+        <p>If you have any queries regarding this Purchase Order, please contact us at
+            <a href="mailto:procurement@simbisa.co.zw" style="color: #1a3a8f;">procurement@simbisa.co.zw</a>.
+        </p>
 
         <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">This is an automated notification from the AssetLinq ERP system. Please do not reply to this email.</p>
     </div>
-    <div class="footer">Simbisa Brands Zimbabwe (Pvt) Ltd &nbsp;|&nbsp; AssetLinq ERP &nbsp;|&nbsp; &copy; {{ now()->format('Y') }}</div>
+    <div class="footer">Simbisa Brands Zimbabwe (Pvt) Ltd | AssetLinq ERP | &copy; {{ now()->format('Y') }}</div>
 </div>
 </body>
 </html>

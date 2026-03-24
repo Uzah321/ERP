@@ -183,7 +183,7 @@ export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
                             <table className="min-w-full text-sm">
                                 <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
-                                        {['Invoice #', 'PO #', 'Vendor', 'CAPEX Ref', 'Date', 'Due', 'Amount (USD)', 'VAT (USD)', 'Status', 'Action'].map(h => (
+                                            {['Invoice #', 'PO #', 'Vendor', 'CAPEX Ref', 'Date', 'Due', 'Amount (USD)', 'VAT (USD)', 'PO Match', 'Status', 'Action'].map(h => (
                                             <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
                                         ))}
                                     </tr>
@@ -199,6 +199,12 @@ export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
                                             <td className="px-4 py-3 text-gray-600">{inv.due_date || '—'}</td>
                                             <td className="px-4 py-3 font-semibold">${Number(inv.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                             <td className="px-4 py-3 text-gray-600">${Number(inv.vat_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                            <td className="px-4 py-3">
+                                                {inv.amount_mismatch
+                                                    ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800" title={`Invoice $${Number(inv.amount).toFixed(2)} ≠ PO net $${Number(inv.po_total_amount).toFixed(2)}`}>⚠ Mismatch</span>
+                                                    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">✓ Match</span>
+                                                }
+                                            </td>
                                             <td className="px-4 py-3">{statusBadge(inv.status)}</td>
                                             <td className="px-4 py-3">
                                                 {inv.status !== 'paid' && (

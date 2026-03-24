@@ -9,6 +9,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/departments/{department}', [App\Http\Controllers\DepartmentController::class, 'destroy'])->name('departments.destroy');
 });
 
+// 2FA routes (auth required, but exempt from 2FA challenge middleware)
+Route::middleware('auth')->group(function () {
+    Route::get('/two-factor/setup', [App\Http\Controllers\TwoFactorController::class, 'setup'])->name('two-factor.setup');
+    Route::post('/two-factor/enable', [App\Http\Controllers\TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::post('/two-factor/disable', [App\Http\Controllers\TwoFactorController::class, 'disable'])->name('two-factor.disable');
+    Route::get('/two-factor/challenge', [App\Http\Controllers\TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/two-factor/verify', [App\Http\Controllers\TwoFactorController::class, 'verify'])->name('two-factor.verify');
+});
+
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TransferRequestController;
 use App\Http\Controllers\MaintenanceController;
@@ -58,12 +67,12 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function (\Illuminate\Http\Request $request) {
     return app(\App\Http\Controllers\AssetController::class)->index($request);
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'verified', 'two-factor'])->name('dashboard');
 
-Route::post('/assets', [AssetController::class, 'store'])->middleware(['auth', 'verified'])->name('assets.store');
-Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['auth', 'verified'])->name('assets.update');
+Route::post('/assets', [AssetController::class, 'store'])->middleware(['auth', 'verified', 'two-factor'])->name('assets.store');
+Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['auth', 'verified', 'two-factor'])->name('assets.update');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::post('/asset-requests', [AssetRequestController::class, 'store'])->name('asset-requests.store');
 
     // Fetch position specs for the asset request modal (all authenticated users)
@@ -110,6 +119,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/capex', [CapexController::class, 'store'])->name('capex.store');
         Route::get('/admin/capex/{capexForm}/pdf', [CapexController::class, 'downloadPdf'])->name('capex.pdf');
 
+        // Admin: Budget vs Actual Tracking
+        Route::get('/admin/budget-tracking', [\App\Http\Controllers\BudgetTrackingController::class, 'index'])->name('admin.budget-tracking');
+
         // Admin: Purchase Orders
         Route::get('/admin/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
         Route::post('/admin/purchase-orders', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
@@ -148,10 +160,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/assets', [ReportController::class, 'generate'])->name('reports.assets');
     Route::get('/reports/assets/csv', [ReportController::class, 'exportCsv'])->name('reports.assets.csv');
     Route::get('/reports/maintenance', [ReportController::class, 'maintenance'])->name('reports.maintenance');
+    Route::get('/reports/depreciation/csv', [ReportController::class, 'depreciationCsv'])->name('reports.depreciation.csv');
+    Route::get('/reports/po-history/csv', [ReportController::class, 'poHistoryCsv'])->name('reports.po-history.csv');
+    Route::get('/reports/vendor-spend/csv', [ReportController::class, 'vendorSpendCsv'])->name('reports.vendor-spend.csv');
+    Route::get('/reports/sage-export/csv', [ReportController::class, 'sageExportCsv'])->name('reports.sage-export.csv');
+
+    // Software Licence Tracking
+    Route::get('/admin/software-licences', [\App\Http\Controllers\SoftwareLicenceController::class, 'index'])->name('admin.software-licences.index');
+    Route::post('/admin/software-licences', [\App\Http\Controllers\SoftwareLicenceController::class, 'store'])->name('admin.software-licences.store');
+    Route::put('/admin/software-licences/{softwareLicence}', [\App\Http\Controllers\SoftwareLicenceController::class, 'update'])->name('admin.software-licences.update');
+    Route::delete('/admin/software-licences/{softwareLicence}', [\App\Http\Controllers\SoftwareLicenceController::class, 'destroy'])->name('admin.software-licences.destroy');
 
     Route::post('/assets/{asset}/decommission', [AssetLifecycleController::class, 'decommission'])->name('assets.decommission');
     Route::post('/assets/{asset}/dispose', [AssetLifecycleController::class, 'dispose'])->name('assets.dispose');
     Route::post('/assets/{asset}/archive', [AssetLifecycleController::class, 'archive'])->name('assets.archive');
+    Route::get('/assets/{asset}/qr-label', [AssetController::class, 'qrLabel'])->name('assets.qr-label');
     
     Route::get('/decommission-log', [DecommissionLogController::class, 'index'])->name('decommission.log');
     Route::get('/disposal-log', [DisposalController::class, 'index'])->name('disposal.log');
@@ -159,6 +182,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/archive/{id}/restore', [ArchiveController::class, 'restore'])->name('archive.restore');
     
     Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+    Route::get('/activity-log/asset/{asset}', [ActivityLogController::class, 'forAsset'])->name('activity-log.asset');
     Route::get('/department-rollup', [DepartmentRollupController::class, 'index'])->name('department.rollup');
     Route::post('/system/sync', [SyncController::class, 'sync'])->name('system.sync');
     

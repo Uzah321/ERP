@@ -118,6 +118,7 @@ class CapexController extends Controller
                 'id'              => $r->id,
                 'asset_type'      => $r->asset_type ?? $r->asset_category,
                 'department_name' => $r->department?->name ?? '-',
+                'items'           => $r->items ?? [],
             ]);
 
         // All active users — for the approval chain builder
@@ -191,8 +192,15 @@ class CapexController extends Controller
 
         $ref = 'SRQ-' . now()->format('Y') . '-' . str_pad($assetRequest->id, 4, '0', STR_PAD_LEFT);
 
-        // Sort items by unit_price ascending (if provided)
-        $items = $assetRequest->items ?? [];
+        // Use items submitted from the CAPEX form (with user-entered unit prices), else fall back to asset request items
+        $submittedItemsRaw = $request->input('items');
+        $items = [];
+        if ($submittedItemsRaw) {
+            $decoded = is_string($submittedItemsRaw) ? json_decode($submittedItemsRaw, true) : $submittedItemsRaw;
+            $items = is_array($decoded) ? $decoded : ($assetRequest->items ?? []);
+        } else {
+            $items = $assetRequest->items ?? [];
+        }
         usort($items, fn($a, $b) => (float)($a['unit_price'] ?? 0) <=> (float)($b['unit_price'] ?? 0));
 
         // Store uploaded quotation files

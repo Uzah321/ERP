@@ -57,6 +57,11 @@ class CapexForm extends Model
         return $this->hasMany(CapexApproval::class);
     }
 
+    public function purchaseOrders()
+    {
+        return $this->hasMany(\App\Models\PurchaseOrder::class);
+    }
+
     public function currentApproval()
     {
         return $this->approvals()->where('status', 'pending')->latest()->first();

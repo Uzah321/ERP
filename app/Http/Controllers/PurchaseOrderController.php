@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Mail\PurchaseOrderCreated;
+use App\Mail\PurchaseOrderPaymentNotification;
+use App\Mail\PurchaseOrderVendorNotification;
 use App\Models\CapexForm;
 use App\Models\PurchaseOrder;
+use App\Models\Vendor;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -36,7 +39,7 @@ class PurchaseOrderController extends Controller
                 'department'    => $po->capexForm->assetRequest->department?->name ?? '-',
                 'total_amount'  => $po->total_amount,
                 'vat_amount'    => $po->vat_amount,
-                'items_count'   => count($po->items ?? []),
+                'items_count'  => (int) collect($po->items ?? [])->sum('qty'),
                 'created_at'    => $po->created_at->format('d M Y'),
                 'capex_ref'     => $po->capexForm->rtp_reference,
             ]);
@@ -63,6 +66,7 @@ class PurchaseOrderController extends Controller
             'approvedCapex' => $approvedCapex,
             'nextPoNumber'  => PurchaseOrder::nextPoNumber(),
             'filters'       => $request->only(['search']),
+            'vendors'       => Vendor::orderBy('name')->get(['id', 'name', 'contact_email']),
         ]);
     }
 
@@ -72,19 +76,22 @@ class PurchaseOrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'capex_form_id'    => 'required|exists:capex_forms,id',
-            'vendor_name'      => 'required|string|max:255',
-            'vendor_tin'       => 'nullable|string|max:100',
-            'vendor_vat_number'=> 'nullable|string|max:100',
-            'requisition_no'   => 'nullable|string|max:100',
-            'items'            => 'required|array|min:1',
-            'items.*.description' => 'required|string',
-            'items.*.qty'         => 'required|numeric|min:1',
-            'items.*.unit_price'  => 'required|numeric|min:0',
-            'vat_amount'       => 'nullable|numeric|min:0',
-            'manager_name'     => 'nullable|string|max:255',
-            'allocation'       => 'nullable|string|max:500',
-            'authorised_by'    => 'nullable|string|max:255',
+            'capex_form_id'        => 'required|exists:capex_forms,id',
+            'vendor_name'          => 'required|string|max:255',
+            'vendor_email'         => 'nullable|email|max:255',
+            'payment_person_email' => 'nullable|email|max:255',
+            'payment_person_name'  => 'nullable|string|max:255',
+            'vendor_tin'           => 'nullable|string|max:100',
+            'vendor_vat_number'    => 'nullable|string|max:100',
+            'requisition_no'       => 'nullable|string|max:100',
+            'items'                => 'required|array|min:1',
+            'items.*.description'  => 'required|string',
+            'items.*.qty'          => 'required|numeric|min:1',
+            'items.*.unit_price'   => 'required|numeric|min:0',
+            'vat_amount'           => 'nullable|numeric|min:0',
+            'manager_name'         => 'nullable|string|max:255',
+            'allocation'           => 'nullable|string|max:500',
+            'authorised_by'        => 'nullable|string|max:255',
         ]);
 
         // Ensure the CAPEX is approved and doesn't already have a PO
@@ -112,25 +119,39 @@ class PurchaseOrderController extends Controller
         $total     = round($subtotal + $vatAmount, 2);
 
         $po = PurchaseOrder::create([
-            'po_number'        => PurchaseOrder::nextPoNumber(),
-            'capex_form_id'    => $capex->id,
-            'vendor_name'      => $request->vendor_name,
-            'vendor_tin'       => $request->vendor_tin,
-            'vendor_vat_number'=> $request->vendor_vat_number,
-            'requisition_no'   => $request->requisition_no,
-            'items'            => $items,
-            'vat_amount'       => $vatAmount,
-            'total_amount'     => $total,
-            'manager_name'     => $request->manager_name,
-            'allocation'       => $request->allocation,
-            'authorised_by'    => $request->authorised_by,
+            'po_number'            => PurchaseOrder::nextPoNumber(),
+            'capex_form_id'        => $capex->id,
+            'vendor_name'          => $request->vendor_name,
+            'vendor_email'         => $request->vendor_email,
+            'payment_person_email' => $request->payment_person_email,
+            'payment_person_name'  => $request->payment_person_name,
+            'vendor_tin'           => $request->vendor_tin,
+            'vendor_vat_number'    => $request->vendor_vat_number,
+            'requisition_no'       => $request->requisition_no,
+            'items'                => $items,
+            'vat_amount'           => $vatAmount,
+            'total_amount'         => $total,
+            'manager_name'         => $request->manager_name,
+            'allocation'           => $request->allocation,
+            'authorised_by'        => $request->authorised_by,
         ]);
 
-        // Email the requester
         $capex->loadMissing(['assetRequest.user']);
+
+        // 1. Notify the requester that a PO has been raised
         $requesterEmail = $capex->assetRequest->user?->email;
         if ($requesterEmail) {
             Mail::to($requesterEmail)->send(new PurchaseOrderCreated($po));
+        }
+
+        // 2. Notify the vendor that payment is being processed and they can prepare delivery
+        if ($po->vendor_email) {
+            Mail::to($po->vendor_email)->send(new PurchaseOrderVendorNotification($po));
+        }
+
+        // 3. Notify the payment person to process the payment and then inform the vendor
+        if ($po->payment_person_email) {
+            Mail::to($po->payment_person_email)->send(new PurchaseOrderPaymentNotification($po));
         }
 
         return back()->with('success', 'Purchase Order #' . $po->po_number . ' created successfully.');

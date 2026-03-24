@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
-export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumber, filters = {}, flash }) {
+export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumber, filters = {}, flash, vendors = [] }) {
     const [selectedCapex, setSelectedCapex] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [formErrors, setFormErrors] = useState({});
@@ -18,14 +18,17 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
 
     // Form state
     const [form, setForm] = useState({
-        vendor_name:       '',
-        vendor_tin:        '',
-        vendor_vat_number: '',
-        requisition_no:    '',
-        manager_name:      '',
-        allocation:        '',
-        authorised_by:     '',
-        vat_amount:        '',
+        vendor_name:           '',
+        vendor_email:          '',
+        vendor_tin:            '',
+        vendor_vat_number:     '',
+        requisition_no:        '',
+        manager_name:          '',
+        allocation:            '',
+        authorised_by:         '',
+        vat_amount:            '',
+        payment_person_name:   '',
+        payment_person_email:  '',
     });
 
     // Items rows
@@ -80,20 +83,23 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
         setFormErrors({});
 
         router.post(route('purchase-orders.store'), {
-            capex_form_id:     selectedCapex.id,
-            vendor_name:       form.vendor_name,
-            vendor_tin:        form.vendor_tin,
-            vendor_vat_number: form.vendor_vat_number,
-            requisition_no:    form.requisition_no,
-            items:             items,
-            vat_amount:        form.vat_amount || 0,
-            manager_name:      form.manager_name,
-            allocation:        form.allocation,
-            authorised_by:     form.authorised_by,
+            capex_form_id:         selectedCapex.id,
+            vendor_name:           form.vendor_name,
+            vendor_email:          form.vendor_email,
+            vendor_tin:            form.vendor_tin,
+            vendor_vat_number:     form.vendor_vat_number,
+            requisition_no:        form.requisition_no,
+            items:                 items,
+            vat_amount:            form.vat_amount || 0,
+            manager_name:          form.manager_name,
+            allocation:            form.allocation,
+            authorised_by:         form.authorised_by,
+            payment_person_name:   form.payment_person_name,
+            payment_person_email:  form.payment_person_email,
         }, {
             onSuccess: () => {
                 setSelectedCapex(null);
-                setForm({ vendor_name:'', vendor_tin:'', vendor_vat_number:'', requisition_no:'', manager_name:'', allocation:'', authorised_by:'', vat_amount:'' });
+                setForm({ vendor_name:'', vendor_email:'', vendor_tin:'', vendor_vat_number:'', requisition_no:'', manager_name:'', allocation:'', authorised_by:'', vat_amount:'', payment_person_name:'', payment_person_email:'' });
                 setItems([{ description:'', qty:1, unit_price:'' }]);
                 setFormErrors({});
             },
@@ -166,8 +172,39 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Supplier Name <span className="text-red-500">*</span></label>
-                                        <input type="text" value={form.vendor_name} onChange={e => setForm(f => ({...f, vendor_name: e.target.value}))} className={inputCls} required />
+                                        <select
+                                            value={form.vendor_name}
+                                            onChange={e => {
+                                                const selected = vendors.find(v => v.name === e.target.value);
+                                                setForm(f => ({
+                                                    ...f,
+                                                    vendor_name:  e.target.value,
+                                                    vendor_email: selected?.contact_email ?? f.vendor_email,
+                                                }));
+                                            }}
+                                            className={inputCls}
+                                            required
+                                        >
+                                            <option value="">Select a vendor…</option>
+                                            {vendors.map(v => (
+                                                <option key={v.id} value={v.name}>{v.name}</option>
+                                            ))}
+                                        </select>
                                         {formErrors.vendor_name && <p className="text-red-500 text-xs mt-1">{formErrors.vendor_name}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Vendor Email
+                                            <span className="ml-1 text-xs text-gray-400 font-normal">(auto-filled from vendor list)</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={form.vendor_email}
+                                            onChange={e => setForm(f => ({...f, vendor_email: e.target.value}))}
+                                            className={inputCls}
+                                            placeholder="auto-filled or enter manually"
+                                        />
+                                        {formErrors.vendor_email && <p className="text-red-500 text-xs mt-1">{formErrors.vendor_email}</p>}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">TIN</label>
@@ -262,6 +299,26 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Authorised By</label>
                                         <input type="text" value={form.authorised_by} onChange={e => setForm(f=>({...f,authorised_by:e.target.value}))} className={inputCls} placeholder="Authorising officer" />
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            {/* Payment Person */}
+                            <fieldset className="border border-orange-200 rounded-lg p-4 bg-orange-50">
+                                <legend className="text-xs font-semibold text-orange-600 uppercase tracking-wider px-2">Payment Officer</legend>
+                                <p className="text-xs text-orange-700 mb-3 mt-1">
+                                    This person will receive an email instructing them to process the payment to the vendor and notify the vendor to proceed with delivery.
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Payment Officer Name</label>
+                                        <input type="text" value={form.payment_person_name} onChange={e => setForm(f=>({...f,payment_person_name:e.target.value}))} className={inputCls} placeholder="e.g. John Doe" />
+                                        {formErrors.payment_person_name && <p className="text-red-500 text-xs mt-1">{formErrors.payment_person_name}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Payment Officer Email</label>
+                                        <input type="email" value={form.payment_person_email} onChange={e => setForm(f=>({...f,payment_person_email:e.target.value}))} className={inputCls} placeholder="finance@simbisa.co.zw" />
+                                        {formErrors.payment_person_email && <p className="text-red-500 text-xs mt-1">{formErrors.payment_person_email}</p>}
                                     </div>
                                 </div>
                             </fieldset>

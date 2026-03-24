@@ -38,6 +38,8 @@ class InvoiceController extends Controller
                 'due_date'          => $inv->due_date?->format('Y-m-d'),
                 'amount'            => $inv->amount,
                 'vat_amount'        => $inv->vat_amount,
+                'amount_mismatch'   => $inv->amount_mismatch,
+                'po_total_amount'   => $inv->po_total_amount,
                 'status'            => $inv->status,   // uses accessor (auto-overdue)
                 'paid_at'           => $inv->paid_at?->format('Y-m-d'),
                 'payment_reference' => $inv->payment_reference,
@@ -80,6 +82,11 @@ class InvoiceController extends Controller
             'notes'             => 'nullable|string|max:1000',
         ]);
 
+        $po = PurchaseOrder::findOrFail($data['purchase_order_id']);
+        $poNet = (float) $po->total_amount - (float) $po->vat_amount;
+        $invoiceNet = (float) $data['amount'];
+        $mismatch = abs($invoiceNet - $poNet) > 0.01;
+
         Invoice::create([
             'purchase_order_id' => $data['purchase_order_id'],
             'invoice_number'    => $data['invoice_number'],
@@ -88,14 +95,20 @@ class InvoiceController extends Controller
             'amount'            => $data['amount'],
             'vat_amount'        => $data['vat_amount'] ?? 0,
             'status'            => 'pending',
+            'amount_mismatch'   => $mismatch,
+            'po_total_amount'   => $poNet,
             'notes'             => $data['notes'] ?? null,
         ]);
 
         // Mark PO as invoiced
-        PurchaseOrder::find($data['purchase_order_id'])?->update(['invoice_status' => 'invoiced']);
+        $po->update(['invoice_status' => 'invoiced']);
+
+        $flash = $mismatch
+            ? "Invoice {$data['invoice_number']} recorded — ⚠️ AMOUNT MISMATCH: invoice \${$data['amount']} vs PO net \${$poNet}."
+            : "Invoice {$data['invoice_number']} recorded.";
 
         return redirect()->route('invoices.index')
-            ->with('flash', ['success' => "Invoice {$data['invoice_number']} recorded."]);
+            ->with('flash', ['success' => $flash]);
     }
 
     public function markPaid(Request $request, Invoice $invoice)

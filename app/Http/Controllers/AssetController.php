@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Department;
 use App\Models\Location;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
@@ -90,10 +91,17 @@ class AssetController extends Controller
             'warranty_expiry_date'=> 'nullable|date',
             'warranty_provider'   => 'nullable|string|max:255',
             'warranty_notes'      => 'nullable|string|max:1000',
+            'photo'               => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
         // Automatically Generate a Barcode: AL (AssetLinq) + Year + Random 5-digit number
         $barcode = 'AL-' . date('Y') . '-' . strtoupper(substr(uniqid(), -5));
+
+        // Handle photo upload
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('asset-photos', 'public');
+        }
 
         Asset::create([
             'name' => $request->name,
@@ -113,6 +121,9 @@ class AssetController extends Controller
             'warranty_expiry_date'=> $request->warranty_expiry_date,
             'warranty_provider'   => $request->warranty_provider,
             'warranty_notes'      => $request->warranty_notes,
+            'photo_path'          => $photoPath,
+            // Initialise current_value to purchase_cost so the depreciation command has a baseline
+            'current_value'       => $request->purchase_cost ?: null,
         ]);
 
         return redirect()->route('dashboard');
@@ -136,9 +147,19 @@ class AssetController extends Controller
             'warranty_expiry_date'=> 'nullable|date',
             'warranty_provider'   => 'nullable|string|max:255',
             'warranty_notes'      => 'nullable|string|max:1000',
+            'photo'               => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
-        $asset->update([
+        // Handle photo upload — replace old file if new one supplied
+        $photoPath = $asset->photo_path;
+        if ($request->hasFile('photo')) {
+            if ($photoPath) {
+                Storage::disk('public')->delete($photoPath);
+            }
+            $photoPath = $request->file('photo')->store('asset-photos', 'public');
+        }
+
+        $updateData = [
             'name' => $request->name,
             'serial_number' => $request->serial_number,
             'category_id' => $request->category_id,
@@ -154,9 +175,39 @@ class AssetController extends Controller
             'warranty_expiry_date'=> $request->warranty_expiry_date,
             'warranty_provider'   => $request->warranty_provider,
             'warranty_notes'      => $request->warranty_notes,
-        ]);
+            'photo_path'          => $photoPath,
+        ];
+
+        // If purchase_cost changed and current_value was never set, initialise it
+        if ($request->purchase_cost && !$asset->current_value) {
+            $updateData['current_value'] = $request->purchase_cost;
+        }
+
+        $asset->update($updateData);
 
         return redirect()->route('dashboard');
+    }
+
+    public function qrLabel(Asset $asset)
+    {
+        // Generate QR code as base64 PNG using chillerlan/php-qrcode
+        $qrOptions = new \chillerlan\QRCode\QROptions([
+            'outputType' => \chillerlan\QRCode\Output\QROutputInterface::GDIMAGE_PNG,
+            'eccLevel'   => \chillerlan\QRCode\QRCode::ECC_H,
+            'scale'      => 6,
+            'imageBase64'=> false,
+        ]);
+        $qrCode = new \chillerlan\QRCode\QRCode($qrOptions);
+        $qrData = $asset->barcode ?? ('ASSET-' . $asset->id);
+        $qrImage = $qrCode->render($qrData);
+        $qrBase64 = base64_encode($qrImage);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.qr-label', [
+            'asset'     => $asset,
+            'qrBase64'  => $qrBase64,
+        ])->setPaper([0, 0, 226.77, 283.46], 'portrait'); // ~80mm x 100mm
+
+        return $pdf->download('label-' . ($asset->barcode ?? $asset->id) . '.pdf');
     }
 }
 

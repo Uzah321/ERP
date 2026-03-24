@@ -62,20 +62,28 @@ export default function Approve({ approval }) {
                                         <th className="px-3 py-2 text-left">#</th>
                                         <th className="px-3 py-2 text-left">Description</th>
                                         <th className="px-3 py-2 text-left">Qty</th>
-                                        <th className="px-3 py-2 text-left">Unit Price</th>
+                                        <th className="px-3 py-2 text-right">Unit Price</th>
+                                        <th className="px-3 py-2 text-right">Line Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {approval.items.map((item, i) => (
-                                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                            <td className="px-3 py-2">{i + 1}</td>
-                                            <td className="px-3 py-2 font-medium">{item.asset_type}</td>
-                                            <td className="px-3 py-2">{item.quantity ?? 1}</td>
-                                            <td className="px-3 py-2">
-                                                {item.unit_price ? `$${parseFloat(item.unit_price).toFixed(2)}` : '—'}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {approval.items.map((item, i) => {
+                                        const qty = parseInt(item.quantity ?? 1, 10);
+                                        const up  = parseFloat(item.unit_price ?? 0);
+                                        return (
+                                            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                                <td className="px-3 py-2">{i + 1}</td>
+                                                <td className="px-3 py-2 font-medium">{item.asset_type}</td>
+                                                <td className="px-3 py-2">{qty}</td>
+                                                <td className="px-3 py-2 text-right">
+                                                    {up > 0 ? `$${up.toFixed(2)}` : '—'}
+                                                </td>
+                                                <td className="px-3 py-2 text-right font-semibold">
+                                                    {(qty * up) > 0 ? `$${(qty * up).toFixed(2)}` : '—'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

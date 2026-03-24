@@ -20,6 +20,8 @@ const getStatusBadge = (f) => {
 
 export default function CapexForms({ auth, forms, assetRequests, users = [], filters = {}, flash }) {
     const [quotationFiles, setQuotationFiles] = useState([null, null, null]);
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [editableItems, setEditableItems] = useState([]);
     const [search, setSearch]           = useState(filters.search ?? '');
     const [statusFilter, setStatusFilter] = useState(filters.status ?? '');
 
@@ -42,6 +44,19 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
 
     const addChainStage = () => {
         setApprovalChain(prev => [...prev, { user_id: '', label: '' }]);
+    };
+
+    const updateItemPrice = (index, price) => {
+        setEditableItems(prev => {
+            const updated = prev.map((item, i) =>
+                i === index ? { ...item, unit_price: price } : item
+            );
+            const newTotal = updated.reduce(
+                (s, it) => s + parseFloat(it.unit_price || 0) * (parseInt(it.quantity ?? 1, 10)), 0
+            );
+            setData(d => ({ ...d, total_amount: newTotal > 0 ? newTotal.toFixed(2) : d.total_amount }));
+            return updated;
+        });
     };
 
     const removeChainStage = (index) => {
@@ -104,6 +119,9 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
         fd.append('total_amount', data.total_amount);
         filled.forEach(file => fd.append('quotations[]', file));
         fd.append('approval_chain', JSON.stringify(approvalChain));
+        if (editableItems.length > 0) {
+            fd.append('items', JSON.stringify(editableItems));
+        }
         setSubmitting(true);
         setFormErrors({});
         router.post(route('capex.store'), fd, {
@@ -112,6 +130,8 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                 reset();
                 setQuotationFiles([null, null, null]);
                 setApprovalChain([{ user_id: '', label: 'IT Manager' }]);
+                setEditableItems([]);
+                setSelectedRequest(null);
                 setFormErrors({});
             },
             onError: (errs) => setFormErrors(errs),
@@ -144,7 +164,19 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Asset Request *</label>
                                 <select
                                     value={data.asset_request_id}
-                                    onChange={e => setData('asset_request_id', e.target.value)}
+                                    onChange={e => {
+                                        const req = assetRequests.find(r => String(r.id) === String(e.target.value)) ?? null;
+                                        setSelectedRequest(req);
+                                        const items = (req?.items ?? []).map(i => ({ ...i, unit_price: i.unit_price ?? '' }));
+                                        setEditableItems(items);
+                                        const computedTotal = items.reduce((sum, i) =>
+                                            sum + (parseFloat(i.unit_price || 0) * (parseInt(i.quantity ?? 1, 10))), 0);
+                                        setData(d => ({
+                                            ...d,
+                                            asset_request_id: e.target.value,
+                                            total_amount: computedTotal > 0 ? computedTotal.toFixed(2) : '',
+                                        }));
+                                    }}
                                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                                     required
                                 >
@@ -156,6 +188,71 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                                     ))}
                                 </select>
                                 {formErrors.asset_request_id && <p className="text-red-500 text-xs mt-1">{formErrors.asset_request_id}</p>}
+
+                                {/* Editable items table with unit price inputs */}
+                                {editableItems.length > 0 && (() => {
+                                    const computedTotal = editableItems.reduce(
+                                        (s, i) => s + parseFloat(i.unit_price || 0) * (parseInt(i.quantity ?? 1, 10)), 0
+                                    );
+                                    return (
+                                        <div className="mt-3 border border-blue-200 rounded-lg overflow-hidden">
+                                            <div className="bg-blue-50 px-3 py-2 border-b border-blue-200 text-xs text-blue-700 font-medium">
+                                                Enter the unit price for each item — the total will be calculated automatically.
+                                            </div>
+                                            <table className="w-full text-xs">
+                                                <thead className="bg-blue-700 text-white">
+                                                    <tr>
+                                                        <th className="px-3 py-1.5 text-left">Item</th>
+                                                        <th className="px-3 py-1.5 text-center w-12">Qty</th>
+                                                        <th className="px-3 py-2 text-right w-32">Unit Price ($) *</th>
+                                                        <th className="px-3 py-1.5 text-right w-28">Line Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {editableItems.map((item, i) => {
+                                                        const qty      = parseInt(item.quantity ?? 1, 10);
+                                                        const up       = parseFloat(item.unit_price || 0);
+                                                        const lineTotal = qty * up;
+                                                        return (
+                                                            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+                                                                <td className="px-3 py-2 font-medium text-gray-800">
+                                                                    {item.asset_type ?? item.description ?? '—'}
+                                                                    {item.requirements && (
+                                                                        <div className="text-gray-400 font-normal mt-0.5">{item.requirements}</div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-3 py-2 text-center text-gray-600">{qty}</td>
+                                                                <td className="px-3 py-2 text-right">
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        value={item.unit_price ?? ''}
+                                                                        onChange={e => updateItemPrice(i, e.target.value)}
+                                                                        className="w-28 border border-gray-300 rounded px-2 py-1 text-right text-xs focus:ring-1 focus:ring-blue-400 focus:border-blue-400 outline-none"
+                                                                        placeholder="0.00"
+                                                                        required
+                                                                    />
+                                                                </td>
+                                                                <td className="px-3 py-2 text-right font-semibold text-gray-800">
+                                                                    {lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : <span className="text-gray-400">—</span>}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr className="bg-blue-700 text-white">
+                                                        <td colSpan="3" className="px-3 py-2 text-right font-semibold">Total Order Amount</td>
+                                                        <td className="px-3 py-2 text-right font-bold">
+                                                            {computedTotal > 0 ? `$${computedTotal.toFixed(2)}` : '—'}
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             <div>
@@ -319,7 +416,10 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                             {/* Total Order Amount */}
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Total Order Amount (from cheapest quotation) <span className="text-red-500">*</span>
+                                    Total Order Amount <span className="text-red-500">*</span>
+                                    {editableItems.length > 0 && (
+                                        <span className="ml-2 text-xs text-blue-600 font-normal">auto-calculated from item prices above — adjust if quotation differs</span>
+                                    )}
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">$</span>

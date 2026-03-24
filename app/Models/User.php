@@ -25,6 +25,9 @@ class User extends Authenticatable
         'role',
         'is_active',
         'approval_position',
+        'google2fa_secret',
+        'two_factor_enabled',
+        'two_factor_confirmed_at',
     ];
 
     /**

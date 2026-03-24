@@ -10,12 +10,14 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
         purchase_date: '',
         condition: 'New',
         status: 'Purchased',
-        description: ''
+        description: '',
+        photo: null,
     });
 
     const submit = (e) => {
         e.preventDefault();
         post(route('assets.store'), {
+            forceFormData: true,
             onSuccess: () => {
                 reset();
                 onClose();
@@ -24,17 +26,17 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity">
-            <div className="bg-white w-[600px] shadow-2xl rounded-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity p-4">
+            <div className="bg-white w-[600px] max-h-[90vh] shadow-2xl rounded-xl flex flex-col overflow-hidden">
                 {/* Title Bar */}
-                <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
                     <h3 className="text-lg font-semibold text-gray-800">Create New Asset</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
 
-                <form onSubmit={submit} className="p-6 text-sm text-gray-700">
+                <form onSubmit={submit} className="p-6 text-sm text-gray-700 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-6">
                         {/* Column 1 */}
                         <div className="space-y-4">
@@ -117,6 +119,18 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
                         <label className="mb-1.5 font-medium text-gray-700">Description</label>
                         <textarea rows="3" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none"
                             value={data.description} onChange={e => setData('description', e.target.value)}></textarea>
+                    </div>
+
+                    {/* Photo Upload */}
+                    <div className="mt-4 flex flex-col">
+                        <label className="mb-1.5 font-medium text-gray-700">Asset Photo <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/jpg,image/webp"
+                            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
+                            onChange={e => setData('photo', e.target.files[0] || null)}
+                        />
+                        {errors.photo && <div className="text-red-600 text-xs mt-1">{errors.photo}</div>}
                     </div>
 
                     <div className="mt-8 flex justify-end gap-3 pt-5 border-t border-gray-100">

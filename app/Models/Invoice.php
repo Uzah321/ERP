@@ -15,6 +15,8 @@ class Invoice extends Model
         'amount',
         'vat_amount',
         'status',
+        'amount_mismatch',
+        'po_total_amount',
         'paid_at',
         'payment_reference',
         'payment_method',
@@ -22,11 +24,13 @@ class Invoice extends Model
     ];
 
     protected $casts = [
-        'invoice_date' => 'date',
-        'due_date'     => 'date',
-        'paid_at'      => 'date',
-        'amount'       => 'decimal:2',
-        'vat_amount'   => 'decimal:2',
+        'invoice_date'    => 'date',
+        'due_date'        => 'date',
+        'paid_at'         => 'date',
+        'amount'          => 'decimal:2',
+        'vat_amount'      => 'decimal:2',
+        'po_total_amount' => 'decimal:2',
+        'amount_mismatch' => 'boolean',
     ];
 
     public function purchaseOrder()

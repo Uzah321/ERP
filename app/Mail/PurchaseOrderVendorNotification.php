@@ -12,7 +12,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class PurchaseOrderCreated extends Mailable
+class PurchaseOrderVendorNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -29,14 +29,14 @@ class PurchaseOrderCreated extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Purchase Order #' . $this->po->po_number . ' Created — Ref: ' . $this->po->capexForm->rtp_reference,
+            subject: 'Purchase Order #' . $this->po->po_number . ' — Payment Being Processed',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'mail.purchase-order-created',
+            view: 'mail.purchase-order-vendor',
             with: ['po' => $this->po],
         );
     }

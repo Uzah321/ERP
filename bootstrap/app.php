@@ -18,7 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'admin'      => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'two-factor' => \App\Http\Middleware\TwoFactorAuthentication::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

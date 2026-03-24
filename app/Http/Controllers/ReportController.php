@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\Invoice;
 use App\Models\MaintenanceRecord;
+use App\Models\PurchaseOrder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -125,5 +127,165 @@ class ReportController extends Controller
             'avgCost' => round($avgCost ?? 0, 2),
             'mostRepaired' => $mostRepaired,
         ]);
+    }
+
+    public function depreciationCsv()
+    {
+        $assets = Asset::with(['department', 'category'])
+            ->whereNotNull('purchase_cost')
+            ->get();
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="Depreciation_Schedule.csv"',
+        ];
+
+        $callback = function () use ($assets) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Barcode', 'Name', 'Category', 'Department', 'Purchase Date', 'Purchase Cost', 'Method', 'Life (yrs)', 'Salvage Value', 'Current Book Value', 'Annual Depreciation']);
+
+            foreach ($assets as $asset) {
+                $life = (float) ($asset->asset_life_years ?: 5);
+                $cost = (float) ($asset->purchase_cost ?: 0);
+                $salvage = (float) ($asset->salvage_value ?: 0);
+                $annualDep = $life > 0 ? round(($cost - $salvage) / $life, 2) : 0;
+
+                fputcsv($file, [
+                    $asset->barcode,
+                    $asset->name,
+                    $asset->category?->name,
+                    $asset->department?->name,
+                    $asset->purchase_date?->format('Y-m-d'),
+                    number_format($cost, 2),
+                    $asset->depreciation_method,
+                    $life,
+                    number_format($salvage, 2),
+                    number_format($asset->book_value ?? $cost, 2),
+                    number_format($annualDep, 2),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        activity()->causedBy(Auth::user())->log('Downloaded Depreciation Schedule CSV');
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function poHistoryCsv()
+    {
+        $pos = PurchaseOrder::with('capexForm')->orderByDesc('created_at')->get();
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="PO_History.csv"',
+        ];
+
+        $callback = function () use ($pos) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['PO Number', 'Vendor', 'CAPEX Ref', 'Total Amount', 'VAT', 'Delivery Status', 'Invoice Status', 'Created Date']);
+
+            foreach ($pos as $po) {
+                fputcsv($file, [
+                    $po->po_number,
+                    $po->vendor_name,
+                    $po->capexForm?->rtp_reference ?? '',
+                    number_format((float) $po->total_amount, 2),
+                    number_format((float) $po->vat_amount, 2),
+                    $po->delivery_status,
+                    $po->invoice_status,
+                    $po->created_at?->format('Y-m-d'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        activity()->causedBy(Auth::user())->log('Downloaded PO History CSV');
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function vendorSpendCsv()
+    {
+        $pos = PurchaseOrder::orderByDesc('created_at')->get();
+        $grouped = $pos->groupBy('vendor_name')->map(fn ($g) => [
+            'vendor'    => $g->first()->vendor_name,
+            'po_count'  => $g->count(),
+            'total_net' => $g->sum(fn ($p) => (float) $p->total_amount - (float) $p->vat_amount),
+            'total_vat' => $g->sum(fn ($p) => (float) $p->vat_amount),
+            'total_inc' => $g->sum(fn ($p) => (float) $p->total_amount),
+        ])->sortByDesc('total_inc')->values();
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="Vendor_Spend.csv"',
+        ];
+
+        $callback = function () use ($grouped) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Vendor', 'PO Count', 'Total Net (USD)', 'Total VAT (USD)', 'Total Incl. VAT (USD)']);
+
+            foreach ($grouped as $row) {
+                fputcsv($file, [
+                    $row['vendor'],
+                    $row['po_count'],
+                    number_format($row['total_net'], 2),
+                    number_format($row['total_vat'], 2),
+                    number_format($row['total_inc'], 2),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        activity()->causedBy(Auth::user())->log('Downloaded Vendor Spend CSV');
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Sage-compatible CSV export (paid invoices).
+     * Columns: Type, Reference, Date, AccountCode, Description, NetAmount, VATCode, VATAmount, TotalAmount
+     */
+    public function sageExportCsv(Request $request)
+    {
+        $invoices = Invoice::with(['purchaseOrder'])
+            ->where('status', 'paid')
+            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('paid_at', '>=', $request->date_from))
+            ->when($request->filled('date_to'),   fn ($q) => $q->whereDate('paid_at', '<=', $request->date_to))
+            ->orderBy('paid_at')
+            ->get();
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="Sage_Export.csv"',
+        ];
+
+        $callback = function () use ($invoices) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Type', 'Reference', 'Date', 'AccountCode', 'Description', 'NetAmount', 'VATCode', 'VATAmount', 'TotalAmount']);
+
+            foreach ($invoices as $inv) {
+                fputcsv($file, [
+                    'PI',                          // Purchase Invoice
+                    $inv->invoice_number,
+                    $inv->paid_at?->format('d/m/Y'),
+                    'PURCHASES',                   // Chart-of-accounts code – customise per Sage setup
+                    'PO #' . ($inv->purchaseOrder?->po_number ?? '') . ' — ' . ($inv->purchaseOrder?->vendor_name ?? ''),
+                    number_format((float) $inv->amount, 2),
+                    'T1',                          // Standard VAT code
+                    number_format((float) $inv->vat_amount, 2),
+                    number_format((float) $inv->amount + (float) $inv->vat_amount, 2),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        activity()->causedBy(Auth::user())->log('Downloaded Sage Accounting Export CSV');
+
+        return response()->stream($callback, 200, $headers);
     }
 }

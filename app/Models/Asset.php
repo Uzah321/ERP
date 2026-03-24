@@ -32,38 +32,32 @@ class Asset extends Model
         'order_number', 'condition', 'status', 'description', 'last_audited_at',
         'depreciation_method', 'asset_life_years', 'salvage_value',
         'warranty_expiry_date', 'warranty_provider', 'warranty_notes',
-        'goods_receipt_id',
+        'goods_receipt_id', 'photo_path', 'current_value', 'last_depreciated_at',
+        'maintenance_interval_days', 'next_maintenance_date',
     ];
 
     protected $casts = [
-        'purchase_date'        => 'date',
-        'warranty_expiry_date' => 'date',
-        'purchase_cost'        => 'decimal:2',
-        'salvage_value'        => 'decimal:2',
+        'purchase_date'            => 'date',
+        'warranty_expiry_date'     => 'date',
+        'next_maintenance_date'    => 'date',
+        'last_depreciated_at'      => 'datetime',
+        'purchase_cost'            => 'decimal:2',
+        'salvage_value'            => 'decimal:2',
+        'current_value'            => 'decimal:2',
+        'maintenance_interval_days'=> 'integer',
     ];
 
     /**
-     * Computed book value using straight-line or reducing-balance depreciation.
+     * Book value: returns the stored current_value (maintained by the
+     * DepreciateAssets command at 25% of purchase cost per year).
+     * Falls back to purchase_cost if current_value is not yet set.
      */
     public function getBookValueAttribute(): ?float
     {
-        if (!$this->purchase_cost || !$this->purchase_date || !$this->asset_life_years) {
+        if (!$this->purchase_cost) {
             return null;
         }
-        $cost     = (float) $this->purchase_cost;
-        $salvage  = (float) ($this->salvage_value ?? 0);
-        $life     = (int) $this->asset_life_years;
-        $years    = max(0, $this->purchase_date->diffInYears(now()));
-
-        if ($this->depreciation_method === 'reducing_balance') {
-            $rate  = 1 - pow(($salvage ?: 1) / $cost, 1 / $life);
-            $value = $cost * pow(1 - $rate, $years);
-        } else {
-            // Straight-line
-            $annual = ($cost - $salvage) / $life;
-            $value  = max($salvage, $cost - ($annual * $years));
-        }
-        return round($value, 2);
+        return round((float) ($this->current_value ?? $this->purchase_cost), 2);
     }
 
     /**

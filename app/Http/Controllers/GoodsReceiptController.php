@@ -114,7 +114,7 @@ class GoodsReceiptController extends Controller
                         'name'              => $item['description'],
                         'purchase_cost'     => $item['unit_price'],
                         'purchase_date'     => $data['received_at'],
-                        'department_id'     => $po->capexForm?->department_id,
+                        'department_id'     => $po->capexForm?->assetRequest?->department_id,
                         'status'            => 'Purchased',
                         'condition'         => 'New',
                         'order_number'      => 'PO-' . $po->po_number,

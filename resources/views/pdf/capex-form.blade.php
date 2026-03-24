@@ -35,12 +35,15 @@
                           text-align: left; border: 1px solid #000; border-top: none; vertical-align: middle; }
         .items-table td { padding: 7px 8px; border: 1px solid #000; border-top: none;
                           font-size: 10px; vertical-align: top; }
-        .items-table .col-desc  { width: 28%; }
-        .items-table .col-spec  { width: 38%; }
-        .items-table .col-qty   { width: 8%;  text-align: center; }
-        .items-table .col-edt   { width: 26%; text-align: center; }
+        .items-table .col-desc  { width: 24%; }
+        .items-table .col-spec  { width: 30%; }
+        .items-table .col-qty   { width: 7%;  text-align: center; }
+        .items-table .col-edt   { width: 15%; text-align: center; }
+        .items-table .col-unit  { width: 12%; text-align: right; }
+        .items-table .col-total { width: 12%; text-align: right; }
         .edt-label { font-size: 9px; font-weight: bold; text-transform: uppercase; }
         .edt-sub   { font-size: 8px; color: #555; }
+        .items-total-row td { background: #1a3a8f; color: #fff; font-weight: bold; font-size: 10px; text-align: right; padding: 6px 8px; }
 
         /* ── ASSET INFO TABLE ── */
         .info-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
@@ -121,37 +124,59 @@
     </table>
 
     {{-- ── ITEMS TABLE HEADER ── --}}
+    @php
+        $grandTotal = collect($capex->items)->sum(fn($i) => ($i['unit_price'] ?? 0) * ($i['quantity'] ?? 1));
+    @endphp
     <table class="items-table">
         <thead>
             <tr>
                 <th class="col-desc">PRIMARY ITEM DESCRIPTION</th>
                 <th class="col-spec">REQUIRED ITEM SPECIFICATIONS</th>
-                <th class="col-qty">QUANTITY</th>
+                <th class="col-qty">QTY</th>
                 <th class="col-edt">
                     <span class="edt-label">EDT (WORKING DAYS)</span><br>
-                    <span class="edt-sub">EXPECTED DELIVERY TIME</span>
+                    <span class="edt-sub">EXPECTED DELIVERY</span>
                 </th>
+                <th class="col-unit" style="text-align:right;">UNIT PRICE</th>
+                <th class="col-total" style="text-align:right;">LINE TOTAL</th>
             </tr>
         </thead>
         <tbody>
             @foreach($capex->items as $item)
+            @php
+                $qty   = (int)($item['quantity'] ?? 1);
+                $up    = (float)($item['unit_price'] ?? 0);
+                $line  = $qty * $up;
+            @endphp
             <tr>
                 <td class="col-desc"><strong>{{ $item['asset_type'] ?? '-' }}</strong></td>
                 <td class="col-spec">{{ $item['requirements'] ?? '-' }}</td>
-                <td class="col-qty">{{ $item['quantity'] ?? 1 }}</td>
+                <td class="col-qty">{{ $qty }}</td>
                 <td class="col-edt">3 &ndash; 7</td>
+                <td class="col-unit">{{ $up > 0 ? '$'.number_format($up, 2) : '-' }}</td>
+                <td class="col-total">{{ $line > 0 ? '$'.number_format($line, 2) : '-' }}</td>
             </tr>
             @endforeach
             {{-- Blank pad rows to fill space --}}
-            @for($p = count($capex->items); $p < 5; $p++)
+            @for($p = count($capex->items); $p < 4; $p++)
             <tr>
                 <td class="col-desc">&nbsp;</td>
                 <td class="col-spec">&nbsp;</td>
                 <td class="col-qty">&nbsp;</td>
                 <td class="col-edt">&nbsp;</td>
+                <td class="col-unit">&nbsp;</td>
+                <td class="col-total">&nbsp;</td>
             </tr>
             @endfor
         </tbody>
+        <tfoot>
+            <tr class="items-total-row">
+                <td colspan="4" style="text-align:right;">TOTAL ORDER AMOUNT:</td>
+                <td colspan="2" style="text-align:right;">
+                    {{ $grandTotal > 0 ? '$'.number_format($grandTotal, 2) : ($capex->total_amount ? '$'.number_format($capex->total_amount, 2) : '—') }}
+                </td>
+            </tr>
+        </tfoot>
     </table>
 
     {{-- ── ASSET INFO SECTION ── --}}

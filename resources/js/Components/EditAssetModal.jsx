@@ -1,7 +1,8 @@
 import { useForm } from '@inertiajs/react';
 
 export default function EditAssetModal({ asset, onClose, categories, locations }) {
-    const { data, setData, put, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
+        _method: 'put',
         name: asset?.name || '',
         serial_number: asset?.serial_number || '',
         category_id: asset?.category_id || '',
@@ -11,17 +12,16 @@ export default function EditAssetModal({ asset, onClose, categories, locations }
         condition: asset?.condition || 'New',
         status: asset?.status || 'Purchased',
         description: asset?.description || '',
-        depreciation_method: asset?.depreciation_method || 'straight_line',
-        asset_life_years: asset?.asset_life_years || '',
-        salvage_value: asset?.salvage_value || '',
         warranty_expiry_date: asset?.warranty_expiry_date || '',
         warranty_provider: asset?.warranty_provider || '',
         warranty_notes: asset?.warranty_notes || '',
+        photo: null,
     });
 
     const submit = (e) => {
         e.preventDefault();
-        put(route('assets.update', asset.id), {
+        post(route('assets.update', asset.id), {
+            forceFormData: true,
             onSuccess: () => {
                 reset();
                 onClose();
@@ -30,17 +30,17 @@ export default function EditAssetModal({ asset, onClose, categories, locations }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity">
-            <div className="bg-white w-[680px] shadow-2xl rounded-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity p-4">
+            <div className="bg-white w-[680px] max-h-[90vh] shadow-2xl rounded-xl flex flex-col overflow-hidden">
                 {/* Title Bar */}
-                <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
                     <h3 className="text-lg font-semibold text-gray-800">Edit Asset: {asset?.barcode}</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
 
-                <form onSubmit={submit} className="p-6 text-sm text-gray-700">
+                <form onSubmit={submit} className="p-6 text-sm text-gray-700 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-6">
                         {/* Column 1 */}
                         <div className="space-y-4">
@@ -125,34 +125,38 @@ export default function EditAssetModal({ asset, onClose, categories, locations }
                             value={data.description} onChange={e => setData('description', e.target.value)}></textarea>
                     </div>
 
+                    {/* Photo Upload */}
+                    <div className="mt-4">
+                        <label className="mb-1.5 font-medium text-gray-700 block">Asset Photo <span className="text-gray-400 font-normal text-xs">(leave blank to keep existing)</span></label>
+                        {asset?.photo_path && (
+                            <div className="mb-2">
+                                <img
+                                    src={`/storage/${asset.photo_path}`}
+                                    alt="Asset"
+                                    className="h-24 w-auto rounded-lg border border-gray-200 object-cover shadow-sm"
+                                />
+                            </div>
+                        )}
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/jpg,image/webp"
+                            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
+                            onChange={e => setData('photo', e.target.files[0] || null)}
+                        />
+                    </div>
+
                     {/* ── Depreciation ─────────────────────────────────────── */}
                     <div className="mt-6 border-t border-gray-100 pt-5">
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Depreciation</p>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Method</label>
-                                <select className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.depreciation_method} onChange={e => setData('depreciation_method', e.target.value)}>
-                                    <option value="straight_line">Straight-Line</option>
-                                    <option value="reducing_balance">Reducing Balance</option>
-                                </select>
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Useful Life (years)</label>
-                                <input type="number" min="1" max="50" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.asset_life_years} onChange={e => setData('asset_life_years', e.target.value)} />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Salvage Value (USD)</label>
-                                <input type="number" step="0.01" min="0" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.salvage_value} onChange={e => setData('salvage_value', e.target.value)} />
+                        <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                            <svg className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div className="text-xs text-blue-700 leading-relaxed">
+                                <span className="font-semibold">Fixed rate: 25% of purchase cost per year.</span> Depreciation is applied automatically overnight by the system scheduler.
+                                {asset?.book_value != null && (
+                                    <span className="block mt-1">Current book value: <strong>${Number(asset.book_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
+                                )}
                             </div>
                         </div>
-                        {asset?.book_value != null && (
-                            <p className="mt-2 text-xs text-blue-700">
-                                Current book value: <strong>${Number(asset.book_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
-                            </p>
-                        )}
                     </div>
 
                     {/* ── Warranty ─────────────────────────────────────────── */}
