@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\CapexApprovalRequest;
+use App\Mail\CapexDeclined;
 use App\Mail\CapexFullyApproved;
 use App\Models\AssetRequest;
 use App\Models\CapexApproval;
@@ -306,7 +307,7 @@ class CapexController extends Controller
             $capex->update(['status' => 'declined']);
             // Notify the requester
             Mail::to($capex->assetRequest->user->email)
-                ->send(new CapexFullyApproved($capex)); // reuses same mail, status will say declined
+                ->send(new CapexDeclined($capex));
             return Inertia::render('Capex/ApproveResult', [
                 'result'        => 'declined',
                 'rtp_reference' => $capex->rtp_reference,

@@ -87,6 +87,15 @@ class GoodsReceiptController extends Controller
             'notes'             => 'nullable|string|max:1000',
         ]);
 
+        // Prevent over-receipt: qty_received must not exceed qty_ordered per line
+        foreach ($data['items'] as $index => $item) {
+            if ((float) $item['qty_received'] > (float) $item['qty_ordered']) {
+                return back()->withErrors([
+                    "items.{$index}.qty_received" => "Quantity received cannot exceed quantity ordered ({$item['qty_ordered']}).",
+                ])->withInput();
+            }
+        }
+
         $po = PurchaseOrder::with('capexForm')->findOrFail($data['purchase_order_id']);
 
         $receipt = GoodsReceipt::create([

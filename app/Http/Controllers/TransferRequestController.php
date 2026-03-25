@@ -58,6 +58,11 @@ class TransferRequestController extends Controller
 
     public function update(Request $request, TransferRequest $transferRequest)
     {
+        // Only admins may approve / reject / complete transfers
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only administrators can update transfer requests.');
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected,completed'
         ]);

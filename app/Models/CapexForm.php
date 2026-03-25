@@ -100,6 +100,12 @@ class CapexForm extends Model
         // ── Legacy fixed chain (backward compatibility) ───────────────────────
         $stages       = self::STAGES;
         $currentIndex = array_search($this->status, $stages);
+
+        // Guard: if status is not in the stages array (e.g. 'approved' or 'declined'), do not advance
+        if ($currentIndex === false) {
+            return null;
+        }
+
         $nextStatus   = $stages[$currentIndex + 1] ?? 'approved';
         $this->update(['status' => $nextStatus]);
 

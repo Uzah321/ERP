@@ -1,22 +1,4 @@
-
 <?php
-
-// Department management (non-admin, for demo)
-Route::middleware('auth')->group(function () {
-    Route::get('/departments', [App\Http\Controllers\DepartmentController::class, 'index'])->name('departments.index');
-    Route::post('/departments', [App\Http\Controllers\DepartmentController::class, 'store'])->name('departments.store');
-    Route::put('/departments/{department}', [App\Http\Controllers\DepartmentController::class, 'update'])->name('departments.update');
-    Route::delete('/departments/{department}', [App\Http\Controllers\DepartmentController::class, 'destroy'])->name('departments.destroy');
-});
-
-// 2FA routes (auth required, but exempt from 2FA challenge middleware)
-Route::middleware('auth')->group(function () {
-    Route::get('/two-factor/setup', [App\Http\Controllers\TwoFactorController::class, 'setup'])->name('two-factor.setup');
-    Route::post('/two-factor/enable', [App\Http\Controllers\TwoFactorController::class, 'enable'])->name('two-factor.enable');
-    Route::post('/two-factor/disable', [App\Http\Controllers\TwoFactorController::class, 'disable'])->name('two-factor.disable');
-    Route::get('/two-factor/challenge', [App\Http\Controllers\TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
-    Route::post('/two-factor/verify', [App\Http\Controllers\TwoFactorController::class, 'verify'])->name('two-factor.verify');
-});
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TransferRequestController;
@@ -38,30 +20,40 @@ use App\Http\Controllers\VendorController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\PositionSpecificationController;
+use App\Http\Controllers\CapexController;
+use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\InvoiceController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-use App\Http\Controllers\CapexController;
-use App\Http\Controllers\GoodsReceiptController;
-use App\Http\Controllers\InvoiceController;
-
-// CAPEX approval links — no auth required (token-based, approver enters password on the page)
+// ── Public CAPEX approval links (token-based, approver enters password on the page) ──
 Route::get('/capex/approve/{token}', [CapexController::class, 'showApprove'])->name('capex.approve.show');
-Route::post('/capex/approve/{token}', [CapexController::class, 'processApprove'])->name('capex.approve.process');
+Route::post('/capex/approve/{token}', [CapexController::class, 'processApprove'])
+    ->middleware('throttle:5,1')
+    ->name('capex.approve.process');
 
-// Asset request approval/decline links for IT admin
+// ── 2FA routes (auth required, exempt from 2FA challenge middleware) ──
 Route::middleware('auth')->group(function () {
-    Route::get('/asset-requests/{assetRequest}/approve', [App\Http\Controllers\AssetRequestController::class, 'approveViaEmail'])->name('asset-requests.approve');
-    Route::get('/asset-requests/{assetRequest}/decline', [App\Http\Controllers\AssetRequestController::class, 'declineViaEmail'])->name('asset-requests.decline');
+    Route::get('/two-factor/setup', [App\Http\Controllers\TwoFactorController::class, 'setup'])->name('two-factor.setup');
+    Route::post('/two-factor/enable', [App\Http\Controllers\TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::post('/two-factor/disable', [App\Http\Controllers\TwoFactorController::class, 'disable'])->name('two-factor.disable');
+    Route::get('/two-factor/challenge', [App\Http\Controllers\TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/two-factor/verify', [App\Http\Controllers\TwoFactorController::class, 'verify'])
+        ->middleware('throttle:5,1')
+        ->name('two-factor.verify');
+});
+
+// ── Asset request approval links (admin-only, email link clicks) ──
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/asset-requests/{assetRequest}/approve', [AssetRequestController::class, 'approveViaEmail'])->name('asset-requests.approve');
+    Route::get('/asset-requests/{assetRequest}/decline', [AssetRequestController::class, 'declineViaEmail'])->name('asset-requests.decline');
 });
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
     ]);
 });
 

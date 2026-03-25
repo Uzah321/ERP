@@ -132,6 +132,12 @@ export default function Register({ departments }) {
                                 ))}
                             </select>
 
+                            {(!departments || departments.length === 0) && (
+                                <p className="mt-1 text-sm text-red-500">
+                                    No departments available. Please contact an administrator.
+                                </p>
+                            )}
+
                             <InputError message={errors.department_id} className="mt-2" />
                         </div>
 

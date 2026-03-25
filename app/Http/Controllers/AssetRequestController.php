@@ -17,6 +17,11 @@ class AssetRequestController extends Controller
     // Approve via email link
     public function approveViaEmail(AssetRequest $assetRequest)
     {
+        // Belt-and-suspenders: route is admin-protected, but verify here too
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
         if ($assetRequest->status !== 'pending') {
             return redirect()->route('dashboard')->with('error', 'Request already processed.');
         }
@@ -39,6 +44,11 @@ class AssetRequestController extends Controller
     // Decline via email link
     public function declineViaEmail(AssetRequest $assetRequest)
     {
+        // Belt-and-suspenders: route is admin-protected, but verify here too
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
         if ($assetRequest->status !== 'pending') {
             return redirect()->route('dashboard')->with('error', 'Request already processed.');
         }

@@ -1,12 +1,13 @@
-import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 
-export default function TwoFactorChallenge({ flash }) {
-    const [code, setCode] = useState('');
+export default function TwoFactorChallenge() {
+    const { flash } = usePage().props;
+    const { data, setData, post, processing } = useForm({ code: '' });
 
     function handleSubmit(e) {
         e.preventDefault();
-        router.post(route('two-factor.verify'), { code });
+        post(route('two-factor.verify'));
     }
 
     return (
@@ -40,17 +41,20 @@ export default function TwoFactorChallenge({ flash }) {
                                 inputMode="numeric"
                                 pattern="[0-9]{6}"
                                 maxLength={6}
-                                value={code}
-                                onChange={e => setCode(e.target.value)}
+                                value={data.code}
+                                onChange={e => setData('code', e.target.value)}
                                 autoFocus
                                 required
                                 placeholder="000000"
                                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-center font-mono text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                             />
                         </div>
-                        <button type="submit"
-                            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors">
-                            Verify
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold transition-colors"
+                        >
+                            {processing ? 'Verifying…' : 'Verify'}
                         </button>
                     </form>
                 </div>

@@ -103,7 +103,7 @@ class TwoFactorController extends Controller
      */
     public function verify(Request $request)
     {
-        $request->validate(['code' => 'required|string']);
+        $request->validate(['code' => 'required|string|digits:6']);
 
         $user   = Auth::user();
         $google = new Google2FA();
@@ -111,12 +111,13 @@ class TwoFactorController extends Controller
         $valid = $google->verifyKey($user->google2fa_secret, $request->code);
 
         if (!$valid) {
-            return back()->withErrors(['code' => 'Invalid verification code.']);
+            return back()->with('error', 'Invalid verification code. Please try again.');
         }
 
-        // Mark session as 2FA-verified
+        // Mark session as 2FA-verified and regenerate session ID
         session()->forget('2fa_required');
         session(['2fa_verified' => true]);
+        session()->regenerate();
 
         return redirect()->intended(route('dashboard'));
     }
