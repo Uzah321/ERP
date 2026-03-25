@@ -23,7 +23,12 @@ export default function Login({ status, canResetPassword }) {
 
     return (
         <GuestLayout>
-            <Head title="Log in" />
+            <Head title="Log In" />
+
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-slate-800">Welcome back</h1>
+                <p className="text-sm text-slate-500 mt-1">Sign in to your ASSETLINQ account</p>
+            </div>
 
             {status && (
                 <div className="mb-4 text-sm font-medium text-green-600">
@@ -80,7 +85,7 @@ export default function Login({ status, canResetPassword }) {
                     </label>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
+                <div className="mt-4 flex items-center justify-between">
                     {canResetPassword && (
                         <Link
                             href={route('password.request')}
@@ -90,10 +95,17 @@ export default function Login({ status, canResetPassword }) {
                         </Link>
                     )}
 
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
+                    <PrimaryButton className="ms-auto" disabled={processing}>
+                        Sign In
                     </PrimaryButton>
                 </div>
+
+                <p className="mt-6 text-center text-sm text-slate-500">
+                    Don&apos;t have an account?{' '}
+                    <Link href={route('register')} className="text-indigo-600 font-medium hover:text-indigo-500">
+                        Register
+                    </Link>
+                </p>
             </form>
         </GuestLayout>
     );

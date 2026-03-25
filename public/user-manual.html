@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ASSETLINQ – User Manual</title>
+<style>
+  :root {
+    --blue: #2563eb;
+    --blue-light: #eff6ff;
+    --blue-dark: #1d4ed8;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-500: #6b7280;
+    --gray-200: #e5e7eb;
+    --gray-100: #f3f4f6;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--gray-700);
+    background: #fff;
+  }
+
+  /* ── COVER ── */
+  .cover {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
+    color: #fff;
+    padding: 80px 60px;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cover .brand { font-size: 36px; font-weight: 800; letter-spacing: -1px; }
+  .cover .brand span { font-weight: 300; opacity: .8; }
+  .cover .tagline { font-size: 15px; opacity: .7; margin-top: 4px; }
+  .cover h1 { font-size: 26px; font-weight: 700; margin-top: 28px; }
+  .cover .meta { font-size: 13px; opacity: .6; margin-top: 8px; }
+
+  /* ── LAYOUT ── */
+  .wrapper { max-width: 900px; margin: 0 auto; padding: 48px 40px 80px; }
+
+  /* ── TOC ── */
+  .toc { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 28px 32px; margin-bottom: 48px; }
+  .toc h2 { font-size: 15px; font-weight: 700; color: var(--gray-900); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; }
+  .toc a { color: var(--blue); text-decoration: none; font-size: 13px; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .sub { padding-left: 20px; list-style: none; }
+  .toc .sub li::before { content: '· '; color: var(--gray-500); }
+
+  /* ── HEADINGS ── */
+  h2.section {
+    font-size: 22px; font-weight: 800; color: var(--gray-900);
+    border-bottom: 3px solid var(--blue); padding-bottom: 8px;
+    margin: 56px 0 20px;
+  }
+  h3.subsection { font-size: 16px; font-weight: 700; color: var(--blue-dark); margin: 32px 0 10px; }
+  h4 { font-size: 14px; font-weight: 700; color: var(--gray-900); margin: 20px 0 6px; }
+
+  /* ── PROSE ── */
+  p { margin-bottom: 12px; }
+  ul, ol { padding-left: 22px; margin-bottom: 12px; }
+  li { margin: 4px 0; }
+  strong { color: var(--gray-900); }
+  code { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 4px; padding: 1px 5px; font-size: 12px; font-family: 'Cascadia Code', 'Consolas', monospace; }
+
+  /* ── CALLOUTS ── */
+  .callout { border-left: 4px solid; border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 16px 0; font-size: 13px; }
+  .callout.info    { border-color: var(--blue);  background: var(--blue-light); color: #1e40af; }
+  .callout.warning { border-color: var(--amber); background: #fffbeb; color: #92400e; }
+  .callout.danger  { border-color: var(--red);   background: #fef2f2; color: #991b1b; }
+  .callout.success { border-color: var(--green); background: #f0fdf4; color: #166534; }
+  .callout strong  { display: block; margin-bottom: 2px; }
+
+  /* ── TABLES ── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th { background: var(--gray-100); color: var(--gray-900); font-weight: 700; text-align: left; padding: 8px 12px; border: 1px solid var(--gray-200); }
+  td { padding: 8px 12px; border: 1px solid var(--gray-200); vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── ROLE BADGES ── */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge.admin { background: #ede9fe; color: #5b21b6; }
+  .badge.user  { background: #dbeafe; color: #1e40af; }
+  .badge.all   { background: #d1fae5; color: #065f46; }
+
+  /* ── STEP LIST ── */
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li { counter-increment: step; display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start; }
+  .steps li::before {
+    content: counter(step);
+    background: var(--blue); color: #fff;
+    width: 24px; height: 24px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+  }
+
+  /* ── SIDEBAR NAV TABLE ── */
+  .nav-table td:first-child { font-weight: 600; color: var(--gray-900); white-space: nowrap; }
+
+  /* ── PRINT ── */
+  @media print {
+    .wrapper { padding: 24px; }
+    h2.section { page-break-before: always; }
+  }
+
+  @page { margin: 20mm; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="brand">ASSET<span>LINQ</span></div>
+  <div class="tagline">Enterprise Asset Management System — Simbisa Brands</div>
+  <h1>User Manual</h1>
+  <div class="meta">Version 2.0 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Confidential</div>
+</div>
+
+<div class="wrapper">
+
+<!-- ──────────────────────────────────────────────
+     TABLE OF CONTENTS
+────────────────────────────────────────────── -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li><a href="#s1">Introduction</a></li>
+    <li><a href="#s2">Getting Started</a>
+      <ul class="sub">
+        <li><a href="#s2-login">Logging In</a></li>
+        <li><a href="#s2-2fa">Two-Factor Authentication</a></li>
+        <li><a href="#s2-nav">Navigating the Interface</a></li>
+        <li><a href="#s2-roles">User Roles</a></li>
+      </ul>
+    </li>
+    <li><a href="#s3">Asset Register (Dashboard)</a></li>
+    <li><a href="#s4">Asset Transfers</a></li>
+    <li><a href="#s5">Asset Allocations</a></li>
+    <li><a href="#s6">Asset Requests</a></li>
+    <li><a href="#s7">CAPEX Forms</a></li>
+    <li><a href="#s8">Purchase Orders</a></li>
+    <li><a href="#s9">Goods Receipts</a></li>
+    <li><a href="#s10">Invoices &amp; Payments</a></li>
+    <li><a href="#s11">Budget vs. Actual</a></li>
+    <li><a href="#s12">Audit &amp; Inventory</a></li>
+    <li><a href="#s13">Maintenance Tracking</a></li>
+    <li><a href="#s14">Software Licences</a></li>
+    <li><a href="#s15">Asset Lifecycle (Decommission / Disposal / Archive)</a></li>
+    <li><a href="#s16">Reports &amp; Exports</a></li>
+    <li><a href="#s17">Activity Log &amp; Audit Trail</a></li>
+    <li><a href="#s18">Executive Summary (Admin)</a></li>
+    <li><a href="#s19">Department Rollup</a></li>
+    <li><a href="#s20">Settings — Administration</a>
+      <ul class="sub">
+        <li><a href="#s20-users">User Management</a></li>
+        <li><a href="#s20-departments">Department Management</a></li>
+        <li><a href="#s20-vendors">Vendor Management</a></li>
+        <li><a href="#s20-positions">Position Specifications</a></li>
+        <li><a href="#s20-archive">Archive Utilities</a></li>
+        <li><a href="#s20-2fa">Two-Factor Auth Setup</a></li>
+      </ul>
+    </li>
+    <li><a href="#s21">QR Code Labels</a></li>
+    <li><a href="#s22">Troubleshooting</a></li>
+  </ol>
+</div>
+
+
+<!-- ──────────────────────────────────────────────
+     1. INTRODUCTION
+────────────────────────────────────────────── -->
+<h2 class="section" id="s1">1. Introduction</h2>
+<p><strong>ASSETLINQ</strong> is a full-featured Enterprise Resource Planning system built for Simbisa Brands. It centralises the entire lifecycle of physical and software assets — from procurement and allocation through to maintenance, depreciation, and disposal — and integrates a complete procurement chain covering CAPEX approvals, purchase orders, goods receipts, and invoice matching.</p>
+
+<table>
+  <tr><th>Category</th><th>Capability</th></tr>
+  <tr><td>Asset Management</td><td>Full asset register with photos, depreciation, QR labels</td></tr>
+  <tr><td>Procurement</td><td>CAPEX → PO → GR → Invoice 3-way matching</td></tr>
+  <tr><td>Operations</td><td>Transfers, allocations, maintenance, software licences</td></tr>
+  <tr><td>Compliance</td><td>Audit trail, activity logs, decommission &amp; disposal records</td></tr>
+  <tr><td>Reporting</td><td>PDF, CSV, Sage accounting export</td></tr>
+  <tr><td>Security</td><td>Role-based access + optional two-factor authentication</td></tr>
+</table>
+
+<div class="callout info"><strong>System Requirements</strong> A modern web browser (Chrome, Edge, Firefox) with JavaScript enabled. No software installation required for end users.</div>
+
+
+<!-- ──────────────────────────────────────────────
+     2. GETTING STARTED
+────────────────────────────────────────────── -->
+<h2 class="section" id="s2">2. Getting Started</h2>
+
+<h3 class="subsection" id="s2-login">2.1 Logging In</h3>
+<ol class="steps">
+  <li>Navigate to the application URL provided by your administrator.</li>
+  <li>Enter your <strong>email address</strong> and <strong>password</strong>.</li>
+  <li>Click <strong>Log In</strong>. If your account has Two-Factor Authentication enabled, you will be redirected to the verification screen (see §2.2).</li>
+</ol>
+<div class="callout warning"><strong>Locked Out?</strong> Use "Forgot your password?" on the login page to receive a reset link by email. Contact your administrator if your account is deactivated.</div>
+
+<h3 class="subsection" id="s2-2fa">2.2 Two-Factor Authentication (2FA)</h3>
+<p>2FA adds a second layer of security by requiring a time-based one-time code from an authenticator app after your password is accepted.</p>
+
+<h4>Setting Up 2FA</h4>
+<ol class="steps">
+  <li>Log in to ASSETLINQ.</li>
+  <li>In the sidebar, go to <strong>Settings → Two-Factor Auth</strong>.</li>
+  <li>Open any authenticator app on your phone (Google Authenticator, Microsoft Authenticator, or Authy).</li>
+  <li>Tap <strong>+</strong> / Add account, then <strong>Scan QR code</strong>.</li>
+  <li>Point your camera at the QR code displayed on screen.</li>
+  <li>Enter the 6-digit code shown in your app into the <em>Confirm Setup</em> field, then click <strong>Enable 2FA</strong>.</li>
+</ol>
+<div class="callout info"><strong>Can't scan?</strong> Click "Can't scan? Show the secret key" and manually type the key into your authenticator app instead.</div>
+
+<h4>Logging In With 2FA Active</h4>
+<p>After entering your password you will see a verification card. Open your authenticator app, find ASSETLINQ, and enter the current 6-digit code. Codes refresh every 30 seconds.</p>
+
+<h4>Disabling 2FA</h4>
+<p>Go to <strong>Settings → Two-Factor Auth</strong>, scroll to the <em>Disable 2FA</em> section, enter your current password, and click <strong>Disable 2FA</strong>.</p>
+
+<h3 class="subsection" id="s2-nav">2.3 Navigating the Interface</h3>
+<p>The interface is divided into three areas:</p>
+<table class="nav-table">
+  <tr><th>Area</th><th>Purpose</th></tr>
+  <tr><td>Top Header</td><td>Brand logo, Home / Help shortcuts, and your account menu (profile, log out)</td></tr>
+  <tr><td>Left Sidebar</td><td>Grouped navigation to all modules. Collapse or expand each section by clicking its header.</td></tr>
+  <tr><td>Main Content Area</td><td>The active page, with Export and Sync tools in the secondary toolbar</td></tr>
+</table>
+
+<p>The sidebar groups are:</p>
+<ul>
+  <li><strong>Main</strong> — Asset Register, Transfers, Allocations, Asset Requests</li>
+  <li><strong>Procurement</strong> (Admin) — CAPEX, Purchase Orders, Goods Receipts, Invoices, Budget</li>
+  <li><strong>Operations</strong> — Audit, Maintenance, Software Licences, Decommission, Disposal</li>
+  <li><strong>Reports &amp; Analytics</strong> — Executive Summary, Activity Log, Department Rollup, Export Reports</li>
+  <li><strong>Settings</strong> — Users, Departments, Vendors, Position Specs, Archive, 2FA</li>
+</ul>
+<p>Active pages are highlighted with a <span style="background:#2563eb;color:#fff;padding:1px 8px;border-radius:6px;font-size:12px;">blue pill</span> on the relevant sidebar link.</p>
+
+<h3 class="subsection" id="s2-roles">2.4 User Roles</h3>
+<table>
+  <tr><th>Role</th><th>Access Level</th></tr>
+  <tr>
+    <td><span class="badge admin">admin</span></td>
+    <td>Full access to all modules including Procurement, Settings, and admin-only reports. Can manage users, departments, vendors, and approve/reject workflows.</td>
+  </tr>
+  <tr>
+    <td><span class="badge user">user</span></td>
+    <td>Can view the asset register, submit asset requests and transfers, log maintenance, run audits, generate reports, and manage their own 2FA. Cannot access Procurement or Settings (except 2FA).</td>
+  </tr>
+</table>
+
+
+<!-- ──────────────────────────────────────────────
+     3. ASSET REGISTER
+────────────────────────────────────────────── -->
+<h2 class="section" id="s3">3. Asset Register (Dashboard)</h2>
+<p>The Asset Register is your central view of every asset in the organisation. Access it from <strong>Main → Asset Register</strong> in the sidebar.</p>
+
+<h3 class="subsection">3.1 Viewing Assets</h3>
+<p>The dashboard displays a table of all assets with columns for Name, Barcode, Serial Number, Category, Department, Status, Condition, and Purchase details. Use the <strong>search bar</strong> at the top to filter by any keyword across all fields.</p>
+
+<h3 class="subsection">3.2 Adding a New Asset <span class="badge admin">admin</span></h3>
+<ol class="steps">
+  <li>Click the <strong>+ Add Asset</strong> button (top-right of the dashboard).</li>
+  <li>Fill in the asset details: Name, Category, Department, Serial Number, Barcode, Condition, Purchase Date, Purchase Cost, etc.</li>
+  <li>Optionally upload a photo and set the depreciation method (Straight-Line or Declining Balance), useful life, and salvage value.</li>
+  <li>Click <strong>Save Asset</strong>.</li>
+</ol>
+<div class="callout info"><strong>Automatic Asset Creation:</strong> Assets can also be created automatically when a Goods Receipt is marked as <em>Complete</em> — no manual entry required for purchased equipment.</div>
+
+<h3 class="subsection">3.3 Editing an Asset <span class="badge admin">admin</span></h3>
+<p>Click the <strong>pencil icon</strong> in the Actions column for any asset row to open the Edit modal. Make your changes and click <strong>Update Asset</strong>.</p>
+
+<h3 class="subsection">3.4 Asset Actions (per row)</h3>
+<table>
+  <tr><th>Button</th><th>Action</th></tr>
+  <tr><td>✏ Edit</td><td>Modify asset details</td></tr>
+  <tr><td>🕐 View History</td><td>Opens the per-asset audit timeline in a new tab</td></tr>
+  <tr><td>🖨 Print QR Label</td><td>Generates a printable PDF label with QR code, barcode, and key asset info</td></tr>
+  <tr><td>Decommission / Dispose / Archive</td><td>Lifecycle actions (see §15)</td></tr>
+</table>
+
+<h3 class="subsection">3.5 Asset Statuses</h3>
+<table>
+  <tr><th>Status</th><th>Meaning</th></tr>
+  <tr><td>Active</td><td>In normal use</td></tr>
+  <tr><td>Under Maintenance</td><td>Currently being serviced</td></tr>
+  <tr><td>Decommissioned</td><td>Taken out of service, pending disposal</td></tr>
+  <tr><td>Disposed</td><td>Formally removed from the register</td></tr>
+  <tr><td>Archived</td><td>Soft-deleted; can be restored</td></tr>
+</table>
+
+
+<!-- ──────────────────────────────────────────────
+     4. ASSET TRANSFERS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s4">4. Asset Transfers</h2>
+<p>Use transfers to move assets between departments. Access via <strong>Main → Asset Transfers</strong>.</p>
+
+<h3 class="subsection">4.1 Requesting a Transfer</h3>
+<ol class="steps">
+  <li>On the Transfers page, click <strong>New Transfer</strong>.</li>
+  <li>Select the asset, the destination department, and provide a reason.</li>
+  <li>Submit — an admin will be notified to approve or reject.</li>
+</ol>
+
+<h3 class="subsection">4.2 Bulk Transfer</h3>
+<p>On the Dashboard, select multiple assets using their checkboxes, then click <strong>Bulk Transfer</strong> to move them to a new department in a single action.</p>
+
+<h3 class="subsection">4.3 Approving / Rejecting <span class="badge admin">admin</span></h3>
+<p>Pending transfers appear on the Transfers page. Click <strong>Approve</strong> or <strong>Reject</strong> and the asset's department will update automatically.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     5. ASSET ALLOCATIONS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s5">5. Asset Allocations</h2>
+<p>Allocations assign a specific asset to an individual user. Access via <strong>Main → Asset Allocations</strong> <span class="badge admin">admin</span>.</p>
+
+<h3 class="subsection">5.1 Allocating an Asset</h3>
+<ol class="steps">
+  <li>Click <strong>Allocate Asset</strong>.</li>
+  <li>Choose the asset, the user, and optionally set an allocation date.</li>
+  <li>Click <strong>Allocate</strong>.</li>
+</ol>
+
+<h3 class="subsection">5.2 Returning an Asset</h3>
+<p>Find the allocation in the table and click <strong>Return</strong>. The asset is marked as available again.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     6. ASSET REQUESTS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s6">6. Asset Requests</h2>
+<p>Any user can submit a request for a new asset that needs to be procured. Access via <strong>Main → Asset Requests</strong>.</p>
+
+<h3 class="subsection">6.1 Submitting a Request <span class="badge all">all users</span></h3>
+<ol class="steps">
+  <li>Click <strong>New Request</strong>.</li>
+  <li>Fill in the asset type, justification, priority, and required date.</li>
+  <li>Submit — admins will be notified by email.</li>
+</ol>
+
+<h3 class="subsection">6.2 Approving / Declining a Request <span class="badge admin">admin</span></h3>
+<p>In the Asset Requests table, click <strong>Approve</strong> to begin a CAPEX/procurement workflow or <strong>Decline</strong> to reject with notification to the requester. IT requests are separated into the <strong>IT Asset Requests</strong> view.</p>
+
+<h3 class="subsection">6.3 Export</h3>
+<p>Click <strong>Export CSV</strong> on the Asset Requests page to download a full list.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     7. CAPEX FORMS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s7">7. CAPEX Forms <span class="badge admin">admin</span></h2>
+<p>CAPEX (Capital Expenditure) forms are used to formally request approval for large purchases. They follow a multi-stage email approval workflow. Access via <strong>Procurement → CAPEX Forms</strong>.</p>
+
+<h3 class="subsection">7.1 Creating a CAPEX Form</h3>
+<ol class="steps">
+  <li>Click <strong>New CAPEX</strong>.</li>
+  <li>Complete the form: description, category, estimated cost, department, linked asset request, and approval chain positions.</li>
+  <li>Submit — the first approver in the chain is emailed a secure approval link.</li>
+</ol>
+
+<h3 class="subsection">7.2 Approval Workflow</h3>
+<p>Each CAPEX form moves through configurable approval stages. Approvers receive an email with a unique link. They can <strong>Approve</strong> or <strong>Decline</strong> directly from their email without logging in. When all stages are approved, vendor quote requests are sent automatically.</p>
+
+<h3 class="subsection">7.3 Downloading a CAPEX PDF</h3>
+<p>From the CAPEX Forms table, click the <strong>PDF</strong> icon to download a formatted PDF of the form including all approval stages and unit pricing.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     8. PURCHASE ORDERS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s8">8. Purchase Orders <span class="badge admin">admin</span></h2>
+<p>Access via <strong>Procurement → Purchase Orders</strong>.</p>
+
+<h3 class="subsection">8.1 Creating a PO</h3>
+<ol class="steps">
+  <li>Click <strong>New Purchase Order</strong>.</li>
+  <li>Select the vendor, link to a CAPEX form (optional), and add line items with quantities and unit prices.</li>
+  <li>Totals (excl. VAT, VAT 15%, incl. VAT) are calculated automatically.</li>
+  <li>Save — the vendor receives a notification email with the PO details; the IT/Finance team also receive copies.</li>
+</ol>
+
+<h3 class="subsection">8.2 Tracking Delivery Status</h3>
+<p>Each PO shows its <strong>Delivery Status</strong> (Pending / Partial / Complete) and <strong>Invoice Status</strong> (Unpaid / Paid), which update automatically as goods receipts and invoices are recorded.</p>
+
+<h3 class="subsection">8.3 PO PDF</h3>
+<p>Click the <strong>PDF</strong> icon on any PO row to download a formatted purchase order document.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     9. GOODS RECEIPTS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s9">9. Goods Receipts <span class="badge admin">admin</span></h2>
+<p>Record the physical delivery of goods against a Purchase Order. Access via <strong>Procurement → Goods Receipts</strong>.</p>
+
+<h3 class="subsection">9.1 Recording a Receipt</h3>
+<ol class="steps">
+  <li>Click <strong>Record Receipt</strong>.</li>
+  <li>Select the Purchase Order from the dropdown — line items are pre-filled.</li>
+  <li>Enter the quantities actually received for each line item.</li>
+  <li>Set the delivery status: <strong>Partial</strong> (some items received) or <strong>Complete</strong> (all items received).</li>
+  <li>Click <strong>Save Receipt</strong>.</li>
+</ol>
+<div class="callout success"><strong>Auto Asset Creation:</strong> When a receipt is marked <em>Complete</em>, ASSETLINQ automatically creates new asset records for each received item, assigned to the department on the linked CAPEX form.</div>
+
+
+<!-- ──────────────────────────────────────────────
+     10. INVOICES & PAYMENTS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s10">10. Invoices &amp; Payments <span class="badge admin">admin</span></h2>
+<p>Access via <strong>Procurement → Invoices &amp; Payments</strong>.</p>
+
+<h3 class="subsection">10.1 Recording an Invoice</h3>
+<ol class="steps">
+  <li>Click <strong>Record Invoice</strong>.</li>
+  <li>Select the linked Purchase Order, enter the invoice number, net amount, VAT amount, and invoice date.</li>
+  <li>Click <strong>Save Invoice</strong>.</li>
+</ol>
+
+<h3 class="subsection">10.2 Three-Way Matching</h3>
+<p>ASSETLINQ automatically compares the invoice net amount against the PO total. If a discrepancy greater than R0.01 is detected, the invoice is flagged with a <strong style="color:#dc2626;">⚠ Mismatch</strong> badge. Matching invoices show a <strong style="color:#16a34a;">✓ Match</strong> badge.</p>
+<div class="callout warning"><strong>Mismatch detected?</strong> Contact your vendor to issue a corrected invoice or credit note before marking as paid.</div>
+
+<h3 class="subsection">10.3 Marking an Invoice as Paid</h3>
+<p>Click <strong>Mark Paid</strong> on the invoice row. The PO invoice status updates to <em>Paid</em> automatically.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     11. BUDGET VS. ACTUAL
+────────────────────────────────────────────── -->
+<h2 class="section" id="s11">11. Budget vs. Actual <span class="badge admin">admin</span></h2>
+<p>Access via <strong>Procurement → Budget vs. Actual</strong>. This dashboard compares approved CAPEX budgets against actual spend from Purchase Orders, giving a clear view of budget utilisation by department and category.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     12. AUDIT & INVENTORY
+────────────────────────────────────────────── -->
+<h2 class="section" id="s12">12. Audit &amp; Inventory</h2>
+<p>Run physical verification exercises to confirm assets are where the register says they are. Access via <strong>Operations → Audit &amp; Inventory</strong>.</p>
+
+<h3 class="subsection">12.1 Verifying an Asset</h3>
+<ol class="steps">
+  <li>Scan or type the asset's <strong>barcode or serial number</strong> into the search field.</li>
+  <li>The system finds the asset and displays its registered details.</li>
+  <li>Confirm the physical location matches. Click <strong>Verify</strong> to log the audit event.</li>
+</ol>
+<p>All verifications are recorded in the activity log with a timestamp and the user who performed the verification.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     13. MAINTENANCE TRACKING
+────────────────────────────────────────────── -->
+<h2 class="section" id="s13">13. Maintenance Tracking</h2>
+<p>Access via <strong>Operations → Maintenance Tracking</strong>.</p>
+
+<h3 class="subsection">13.1 Logging a Maintenance Event</h3>
+<ol class="steps">
+  <li>Find the asset on the Dashboard or Maintenance page.</li>
+  <li>Click <strong>+ Add Maintenance</strong>.</li>
+  <li>Select the type (Preventive / Corrective), enter a description, cost, technician name, and dates.</li>
+  <li>While under maintenance, the asset status changes to <em>Under Maintenance</em>.</li>
+  <li>When complete, click <strong>Mark Complete</strong> — the asset returns to <em>Active</em>.</li>
+</ol>
+
+<h3 class="subsection">13.2 Preventive Maintenance Scheduler</h3>
+<p>Assets with a configured <strong>maintenance interval</strong> (in days) have their next maintenance date tracked automatically. The system runs a daily check at 06:00 and creates scheduled maintenance records for any assets due for service.</p>
+
+<h3 class="subsection">13.3 Warranty Reminders</h3>
+<p>The system sends automated email alerts to admins and department managers at <strong>30 days</strong> and <strong>7 days</strong> before an asset's warranty expiry date. No manual action is required.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     14. SOFTWARE LICENCES
+────────────────────────────────────────────── -->
+<h2 class="section" id="s14">14. Software Licences <span class="badge admin">admin</span></h2>
+<p>Track software licences centrally to control costs and compliance. Access via <strong>Operations → Software Licences</strong>.</p>
+
+<h3 class="subsection">14.1 Adding a Licence</h3>
+<ol class="steps">
+  <li>Click <strong>+ Add Licence</strong>.</li>
+  <li>Complete the form: software name, vendor, licence key, type (Perpetual / Subscription / Per-Seat), seat count, purchase and expiry dates, costs, and status.</li>
+  <li>Click <strong>Save</strong>.</li>
+</ol>
+
+<h3 class="subsection">14.2 Expiry Alerts</h3>
+<ul>
+  <li><span style="background:#fffbeb;border:1px solid #d97706;padding:1px 6px;border-radius:4px;color:#92400e;font-size:12px;">⚠ Expiring Soon</span> — licence expires within 60 days</li>
+  <li><span style="background:#fef2f2;border:1px solid #dc2626;padding:1px 6px;border-radius:4px;color:#991b1b;font-size:12px;">✕ Expired</span> — licence has passed its expiry date</li>
+</ul>
+
+<h3 class="subsection">14.3 Seat Tracking</h3>
+<p>For Per-Seat licences, update <strong>Seats Used</strong> as users are added or removed. The table shows available seats at a glance.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     15. ASSET LIFECYCLE
+────────────────────────────────────────────── -->
+<h2 class="section" id="s15">15. Asset Lifecycle</h2>
+<p>Manage the end-of-life stages of assets through Decommission, Disposal, and Archive workflows.</p>
+
+<h3 class="subsection">15.1 Decommissioning an Asset <span class="badge admin">admin</span></h3>
+<p>From the Dashboard Actions column, click <strong>Decommission</strong>. The asset status changes to <em>Decommissioned</em> and a record is added to the Decommission Log (<strong>Operations → Decommission Log</strong>).</p>
+
+<h3 class="subsection">15.2 Disposing of an Asset <span class="badge admin">admin</span></h3>
+<p>Click <strong>Dispose</strong> on a decommissioned asset. This moves it to the Disposal Log (<strong>Operations → Disposal Certificates</strong>) with a formal disposal certificate record.</p>
+
+<h3 class="subsection">15.3 Archiving &amp; Restoring</h3>
+<p>Use <strong>Archive</strong> to soft-delete an asset without permanently removing it. Archived assets appear in <strong>Settings → Archive Utilities</strong>, where they can be <strong>Restored</strong> back to active status.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     16. REPORTS & EXPORTS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s16">16. Reports &amp; Exports</h2>
+<p>Access all reports from <strong>Reports &amp; Analytics → Export Reports</strong>.</p>
+
+<table>
+  <tr><th>Report</th><th>Format</th><th>Contents</th></tr>
+  <tr><td>Asset Register</td><td>PDF</td><td>Full asset register with photos and status</td></tr>
+  <tr><td>Asset Register</td><td>CSV</td><td>All asset fields, spreadsheet-friendly</td></tr>
+  <tr><td>Depreciation Schedule</td><td>CSV</td><td>Book value, annual depreciation per asset</td></tr>
+  <tr><td>PO History</td><td>CSV</td><td>All purchase orders with delivery &amp; invoice status</td></tr>
+  <tr><td>Vendor Spend</td><td>CSV</td><td>Total spend grouped by vendor</td></tr>
+  <tr><td>Sage Export</td><td>CSV</td><td>Paid invoices in Sage PI journal format, filter by date range</td></tr>
+  <tr><td>Maintenance Report</td><td>PDF</td><td>Maintenance history, costs, and frequency</td></tr>
+</table>
+
+<div class="callout info"><strong>Sage Export:</strong> To filter by date, append <code>?date_from=YYYY-MM-DD&amp;date_to=YYYY-MM-DD</code> to the Sage Export URL, or use the date fields on the Export Reports page.</div>
+
+
+<!-- ──────────────────────────────────────────────
+     17. ACTIVITY LOG & AUDIT TRAIL
+────────────────────────────────────────────── -->
+<h2 class="section" id="s17">17. Activity Log &amp; Audit Trail</h2>
+<p>Access via <strong>Reports &amp; Analytics → Activity Log</strong>.</p>
+
+<h3 class="subsection">17.1 Viewing the Log</h3>
+<p>All create, update, and delete events across the system are recorded here with timestamp, the user who made the change, and what changed. Use the <strong>search bar</strong> to filter by description or username, and the <strong>Event</strong> dropdown to filter by type (Created / Updated / Deleted).</p>
+
+<h3 class="subsection">17.2 Per-Asset History</h3>
+<p>For rows where the subject is an Asset, click <strong>View history →</strong> or use the <strong>🕐 View History</strong> button on the Dashboard to open a full <strong>timeline view</strong> of every change made to that specific asset — including what fields changed and their before/after values.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     18. EXECUTIVE SUMMARY
+────────────────────────────────────────────── -->
+<h2 class="section" id="s18">18. Executive Summary <span class="badge admin">admin</span></h2>
+<p>Access via <strong>Reports &amp; Analytics → Executive Summary</strong>. This dashboard provides a high-level overview of the asset portfolio including total asset value, spend by category, maintenance costs, and budget utilisation — designed for management reporting.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     19. DEPARTMENT ROLLUP
+────────────────────────────────────────────── -->
+<h2 class="section" id="s19">19. Department Rollup</h2>
+<p>Access via <strong>Reports &amp; Analytics → Department Rollup</strong>. This view shows a breakdown of assets, their total value, and maintenance costs grouped by department — useful for internal cost allocation and departmental budgeting reviews.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     20. SETTINGS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s20">20. Settings — Administration</h2>
+<div class="callout warning"><strong>Admin Only:</strong> All Settings pages are restricted to users with the <em>admin</em> role, except the Two-Factor Auth page which is available to all users.</div>
+
+<h3 class="subsection" id="s20-users">20.1 User Management</h3>
+<p>Access via <strong>Settings → User Management</strong>. Create, edit, activate/deactivate, and delete user accounts.</p>
+<ul>
+  <li><strong>Role:</strong> Set to <em>admin</em> or <em>user</em></li>
+  <li><strong>Active:</strong> Deactivating a user prevents login without deleting their data</li>
+  <li><strong>Approval Position:</strong> Used in CAPEX approval chains (e.g. "Finance Manager", "CFO")</li>
+</ul>
+
+<h3 class="subsection" id="s20-departments">20.2 Department Management</h3>
+<p>Access via <strong>Settings → Departments</strong>. Add, edit, or delete departments.</p>
+<ul>
+  <li>Click <strong>Add Department</strong> to open the creation modal.</li>
+  <li>Assign a <strong>Department Manager</strong> (optional) — this user receives warranty reminder emails for assets in their department.</li>
+  <li>Departments with assigned users or assets <strong>cannot be deleted</strong> — reassign them first.</li>
+</ul>
+
+<h3 class="subsection" id="s20-vendors">20.3 Vendor Management</h3>
+<p>Access via <strong>Settings → Vendors</strong>. Maintain a central vendor directory. When creating a Purchase Order, vendor details (email, address) are auto-filled from this registry.</p>
+
+<h3 class="subsection" id="s20-positions">20.4 Position Specifications</h3>
+<p>Access via <strong>Settings → Position Specifications</strong>. Define standard asset entitlements by job position (e.g. "Senior Manager gets a laptop + mobile phone"). Used to guide asset allocation decisions.</p>
+
+<h3 class="subsection" id="s20-archive">20.5 Archive Utilities</h3>
+<p>Access via <strong>Settings → Archive Utilities</strong>. View all soft-archived assets and restore them to active status if needed.</p>
+
+<h3 class="subsection" id="s20-2fa">20.6 Two-Factor Auth Setup</h3>
+<p>Access via <strong>Settings → Two-Factor Auth</strong>. Available to all users. See §2.2 for full setup instructions.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     21. QR CODE LABELS
+────────────────────────────────────────────── -->
+<h2 class="section" id="s21">21. QR Code Labels</h2>
+<p>ASSETLINQ can generate a printable PDF label for any asset containing a QR code, barcode, key details, and warranty information — ideal for label printers or standard A4 printing.</p>
+
+<h3 class="subsection">21.1 Printing a Label</h3>
+<ol class="steps">
+  <li>On the Asset Register, find the asset you need to label.</li>
+  <li>Click the <strong>🖨 Print QR Label</strong> button (purple printer icon) in the Actions column.</li>
+  <li>A PDF opens in a new browser tab (approx. 80mm × 100mm label size).</li>
+  <li>Print using your browser's print dialogue. For label printers, set paper size to match your labels.</li>
+</ol>
+
+<p>The label includes: Company header, QR code (encoding the asset barcode), asset name, barcode number, serial number, department, location, warranty expiry date, and print date.</p>
+
+<h3 class="subsection">21.2 Scanning the QR Code</h3>
+<p>The QR code encodes the asset's barcode number. Scan it with any QR scanner app or the audit module's search field to instantly pull up the asset record.</p>
+
+
+<!-- ──────────────────────────────────────────────
+     22. TROUBLESHOOTING
+────────────────────────────────────────────── -->
+<h2 class="section" id="s22">22. Troubleshooting</h2>
+
+<table>
+  <tr><th>Issue</th><th>What to do</th></tr>
+  <tr><td>Cannot log in</td><td>Use "Forgot Password" to reset. If still blocked, contact your administrator — your account may be deactivated.</td></tr>
+  <tr><td>2FA code rejected</td><td>Ensure your phone's clock/time is correct (TOTP is time-sensitive). Try the next code (they refresh every 30 s).</td></tr>
+  <tr><td>Lost access to authenticator app</td><td>Contact your administrator. They can disable 2FA on your account from User Management.</td></tr>
+  <tr><td>Invoice shows ⚠ Mismatch</td><td>The invoice amount differs from the PO by more than R0.01. Verify both figures and contact the vendor for a corrected document.</td></tr>
+  <tr><td>Cannot delete a department</td><td>The department has users or assets linked to it. Reassign them first, then retry the deletion.</td></tr>
+  <tr><td>Asset not found in audit scan</td><td>Check the barcode/serial matches exactly what's on record. The asset may have been archived — check Archive Utilities.</td></tr>
+  <tr><td>CAPEX email approval not received</td><td>Check the approver's spam folder. Verify the approver has a valid email and the correct approval position is assigned to them in Settings → Users.</td></tr>
+  <tr><td>QR label PDF is blank</td><td>Ensure the asset has a barcode number saved. Edit the asset and add a barcode, then retry printing the label.</td></tr>
+  <tr><td>Reports page shows no data</td><td>Ensure there is data in the relevant module (e.g. no assets → Asset CSV will be empty). Check with your administrator.</td></tr>
+</table>
+
+<div class="callout info" style="margin-top:32px;">
+  <strong>Need further help?</strong>
+  For system issues not covered here, contact your ASSETLINQ system administrator or the IT support team.
+</div>
+
+<hr style="margin:48px 0; border:none; border-top:1px solid var(--gray-200);">
+<p style="text-align:center; color:var(--gray-500); font-size:12px;">
+  ASSETLINQ v2.0 &nbsp;·&nbsp; Simbisa Brands &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Confidential — Internal Use Only
+</p>
+
+</div><!-- /wrapper -->
+</body>
+</html>
