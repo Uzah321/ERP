@@ -46,6 +46,22 @@ if errorlevel 1 (
     exit /b 1
 )
 
+scp -r "%LOCAL_APP_PATH%\.docker" %SSH_USER%@%SERVER_IP%:%APP_PATH%/
+
+if errorlevel 1 (
+    echo ERROR: Failed to upload .docker.
+    pause
+    exit /b 1
+)
+
+scp "%LOCAL_APP_PATH%\.env.production" %SSH_USER%@%SERVER_IP%:%APP_PATH%/.env.production
+
+if errorlevel 1 (
+    echo ERROR: Failed to upload .env.production.
+    pause
+    exit /b 1
+)
+
 echo.
 echo ================================
 echo Deployment Files Uploaded!
@@ -56,39 +72,7 @@ REM Remote commands
 echo Now executing setup on remote server...
 echo.
 
-ssh %SSH_USER%@%SERVER_IP% << 'REMOTE_COMMANDS'
-    cd /var/www/simbisa
-    
-    echo "Setting up environment..."
-    cp .env.production .env
-    
-    echo "Generating APP_KEY..."
-    docker-compose run --rm app php artisan key:generate
-    
-    echo "Building Docker containers..."
-    sudo docker-compose up -d --build
-    
-    echo "Waiting for database to initialize..."
-    sleep 15
-    
-    echo "Running migrations..."
-    sudo docker-compose exec -T app php artisan migrate --force
-    
-    echo "Caching configuration..."
-    sudo docker-compose exec -T app php artisan config:cache
-    sudo docker-compose exec -T app php artisan route:cache
-    
-    echo "Setting permissions..."
-    sudo docker-compose exec -T app chown -R www-data:www-data storage bootstrap/cache
-    
-    echo ""
-    echo "================================"
-    echo "Deployment Complete!"
-    echo "================================"
-    echo "Application URL: http://77.93.154.83"
-    echo "Check status: docker-compose ps"
-    
-REMOTE_COMMANDS
+ssh %SSH_USER%@%SERVER_IP% "cd %APP_PATH%; if [ ! -f .env ]; then if [ -f .env.production ]; then cp .env.production .env; else echo 'ERROR: .env is missing and .env.production was not found.'; exit 1; fi; fi; if ! grep -q '^APP_KEY=base64:' .env; then echo 'ERROR: APP_KEY is missing in .env. Refusing to generate a new key during deployment.'; exit 1; fi; sudo docker-compose up -d --build --remove-orphans; sleep 15; sudo docker-compose exec -T app php artisan migrate --force; sudo docker-compose exec -T app php artisan optimize:clear; sudo docker-compose exec -T app php artisan config:cache; sudo docker-compose exec -T app php artisan route:cache; sudo docker-compose exec -T app php artisan view:cache; sudo docker-compose exec -T app chown -R www-data:www-data storage bootstrap/cache; docker-compose ps"
 
 if errorlevel 1 (
     echo ERROR: Remote setup failed. Check Docker installation on server.
