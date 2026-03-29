@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class CategoryController extends Controller
@@ -24,6 +25,7 @@ class CategoryController extends Controller
         ]);
 
         Category::create($request->only(['name', 'description']));
+        Cache::forget('categories-dropdown');
 
         return redirect()->back()->with('success', 'Category created successfully.');
     }
@@ -36,6 +38,7 @@ class CategoryController extends Controller
         ]);
 
         $category->update($request->only(['name', 'description']));
+        Cache::forget('categories-dropdown');
 
         return redirect()->back()->with('success', 'Category updated successfully.');
     }
@@ -47,6 +50,7 @@ class CategoryController extends Controller
         }
 
         $category->delete();
+        Cache::forget('categories-dropdown');
 
         return redirect()->back()->with('success', 'Category deleted successfully.');
     }
