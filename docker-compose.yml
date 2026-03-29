@@ -1,0 +1,133 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: simbisa_postgres
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-simbisa}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: simbisa_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simbisa_app
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL:-http://localhost}
+      
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-simbisa}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      
+      CACHE_STORE: redis
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      REDIS_PORT: 6379
+      
+      SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      SESSION_ENCRYPT: ${SESSION_ENCRYPT:-false}
+      
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+      
+      LOG_CHANNEL: ${LOG_CHANNEL:-stack}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_HOST: ${MAIL_HOST:-smtp.mailtrap.io}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
+      
+      VITE_API_BASE_URL: ${APP_URL:-http://localhost}
+    
+    volumes:
+      - .:/app
+      - storage_data:/app/storage
+      - bootstrap_cache:/app/bootstrap/cache
+    
+    ports:
+      - "${APP_PORT:-8000}:9000"
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - app-network
+    
+    command: php-fpm
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: simbisa_nginx
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+      - "${WEB_PORT_SSL:-443}:443"
+    volumes:
+      - .:/app
+      - .docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - .docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./storage/logs/nginx:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  storage_data:
+    driver: local
+  bootstrap_cache:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

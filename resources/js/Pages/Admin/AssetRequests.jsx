@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 
 export default function AssetRequests({ auth, requests, flash }) {
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['requests'] });
+        }, 30000); // Poll every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
     const handleAction = (id, status) => {
         router.patch(route('asset-requests.update', id), { status });
     };

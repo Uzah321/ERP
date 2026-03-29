@@ -8,6 +8,7 @@ use App\Models\Asset;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class GoodsReceiptController extends Controller
@@ -98,39 +99,45 @@ class GoodsReceiptController extends Controller
 
         $po = PurchaseOrder::with('capexForm')->findOrFail($data['purchase_order_id']);
 
-        $receipt = GoodsReceipt::create([
-            'purchase_order_id' => $data['purchase_order_id'],
-            'received_by'       => Auth::id(),
-            'received_at'       => $data['received_at'],
-            'delivery_note_no'  => $data['delivery_note_no'] ?? null,
-            'status'            => $data['status'],
-            'items'             => $data['items'],
-            'condition_notes'   => $data['condition_notes'] ?? null,
-            'notes'             => $data['notes'] ?? null,
-        ]);
+        try {
+            DB::transaction(function () use ($data, $po) {
+                $receipt = GoodsReceipt::create([
+                    'purchase_order_id' => $data['purchase_order_id'],
+                    'received_by'       => Auth::id(),
+                    'received_at'       => $data['received_at'],
+                    'delivery_note_no'  => $data['delivery_note_no'] ?? null,
+                    'status'            => $data['status'],
+                    'items'             => $data['items'],
+                    'condition_notes'   => $data['condition_notes'] ?? null,
+                    'notes'             => $data['notes'] ?? null,
+                ]);
 
-        // Update PO delivery status
-        $po->update([
-            'delivery_status' => $data['status'] === 'complete' ? 'delivered' : 'partial',
-        ]);
+                // Update PO delivery status
+                $po->update([
+                    'delivery_status' => $data['status'] === 'complete' ? 'delivered' : 'partial',
+                ]);
 
-        // Auto-create Asset records on complete delivery
-        if ($data['status'] === 'complete') {
-            foreach ($data['items'] as $item) {
-                $qty = (int) ($item['qty_received'] ?? 0);
-                for ($i = 0; $i < $qty; $i++) {
-                    Asset::create([
-                        'name'              => $item['description'],
-                        'purchase_cost'     => $item['unit_price'],
-                        'purchase_date'     => $data['received_at'],
-                        'department_id'     => $po->capexForm?->assetRequest?->department_id,
-                        'status'            => 'Purchased',
-                        'condition'         => 'New',
-                        'order_number'      => 'PO-' . $po->po_number,
-                        'goods_receipt_id'  => $receipt->id,
-                    ]);
+                // Auto-create Asset records on complete delivery
+                if ($data['status'] === 'complete') {
+                    foreach ($data['items'] as $item) {
+                        $qty = (int) ($item['qty_received'] ?? 0);
+                        for ($i = 0; $i < $qty; $i++) {
+                            Asset::create([
+                                'name'              => $item['description'],
+                                'purchase_cost'     => $item['unit_price'],
+                                'purchase_date'     => $data['received_at'],
+                                'department_id'     => $po->capexForm?->assetRequest?->department_id,
+                                'status'            => 'Purchased',
+                                'condition'         => 'New',
+                                'order_number'      => 'PO-' . $po->po_number,
+                                'goods_receipt_id'  => $receipt->id,
+                            ]);
+                        }
+                    }
                 }
-            }
+            });
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'An error occurred while saving the goods receipt. Please try again.']);
         }
 
         return redirect()->route('goods-receipts.index')

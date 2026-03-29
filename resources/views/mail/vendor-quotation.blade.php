@@ -122,14 +122,14 @@
 
             <div class="supplier-notice">
                 <p><strong>Dear Suppliers.</strong></p>
-                <p>We invite you to kindly submit full quotations for the IT products/services as per attached spec-sheet by 13/03/2026.</p>
+                <p>We invite you to kindly submit full quotations for the IT products/services as per attached spec-sheet within 3 days.</p>
 
                 <h3>How to Submit your Quotes:</h3>
                 <ol>
-                    <li>Send us an email with subject <strong>QUOTATION SUBMISSION - REF: {{ $ref }}</strong></li>
-                    <li>Attach and send your quote as per spec-sheet within 3 days to <strong>quotes@zw-simbisa.com</strong> (replying with quotes to this email will automatically disqualify your submission)</li>
-                    <li>Attach and send copies of your TAX and/or VAT Registration Certificates to <strong>compliance@zw-simbisa.com</strong> with subject <strong>REF: {{ $ref }}</strong></li>
-                    <li>Please ensure that all requirements are sent to the appropriate emails to avoid delays/disqualification.</li>
+                    <li>Send your quote as per spec-sheet directly to <strong>{{ $approver->email ?? 'the sender' }}</strong>.</li>
+                    <li>Ensure the email subject includes <strong>QUOTATION SUBMISSION - REF: {{ $ref }}</strong>.</li>
+                    <li>Attach and send copies of your TAX and/or VAT Registration Certificates in the same email.</li>
+                    <li>Please ensure that all requirements are included to avoid delays/disqualification.</li>
                 </ol>
 
                 <h3>All Quotes must include the following information:</h3>

@@ -18,11 +18,12 @@ class AssetController extends Controller
         $user = Auth::user();
         $department = $user->department;
 
-        // Fetch arrays for our dropdowns
-        $categories = Category::all();
-        $locations = Location::all();
+        // Fetch arrays for our dropdowns with short-circuit cache to speed rendering
+        $categories = cache()->remember('categories-dropdown', now()->minutes(30), fn() => Category::select('id', 'name')->orderBy('name')->get());
+        $locations = cache()->remember('locations-dropdown', now()->minutes(30), fn() => Location::select('id', 'name')->orderBy('name')->get());
+        $departments = cache()->remember('departments-dropdown', now()->minutes(30), fn() => Department::select('id', 'name')->orderBy('name')->get());
 
-        $query = Asset::with(['category', 'location']);
+        $query = Asset::with(['category:id,name', 'location:id,name']);
 
         // Determine which department to show
         $selectedDepartmentId = null;
@@ -57,14 +58,14 @@ class AssetController extends Controller
             $query->where('condition', $request->condition);
         }
 
-        $assets = $query->latest()->get();
+        $assets = $query->latest()->paginate(25)->withQueryString();
 
-        $vendorCategories = \App\Models\Vendor::select('product_category')->distinct()->pluck('product_category');
+        $vendorCategories = cache()->remember('vendor_categories-dropdown', now()->minutes(30), fn() => \App\Models\Vendor::select('product_category')->distinct()->pluck('product_category'));
 
         return Inertia::render('Dashboard', [
             'assets' => $assets,
             'filters' => $request->only(['search', 'status', 'condition', 'department_id']),
-            'all_departments' => Department::all(),
+            'all_departments' => $departments,
             'department' => $department,
             'selected_department_id' => $selectedDepartmentId,
             'categories' => $categories,
@@ -86,6 +87,7 @@ class AssetController extends Controller
             'status' => 'required|in:Active,Purchased,Under Maintenance,Decommissioned,Disposed,Archived',
             'description' => 'nullable|string',
             'depreciation_method' => 'nullable|in:straight_line,reducing_balance',
+            'annual_depreciation_rate' => 'nullable|numeric|min:0|max:100',
             'asset_life_years'    => 'nullable|integer|min:1|max:50',
             'salvage_value'       => 'nullable|numeric|min:0',
             'warranty_expiry_date'=> 'nullable|date',
@@ -116,6 +118,7 @@ class AssetController extends Controller
             'description' => $request->description,
             'department_id' => Auth::user()->department_id,
             'depreciation_method' => $request->depreciation_method ?? 'straight_line',
+            'annual_depreciation_rate' => $request->filled('annual_depreciation_rate') ? $request->annual_depreciation_rate : 25,
             'asset_life_years'    => $request->asset_life_years,
             'salvage_value'       => $request->salvage_value,
             'warranty_expiry_date'=> $request->warranty_expiry_date,
@@ -142,6 +145,7 @@ class AssetController extends Controller
             'status' => 'required|in:Active,Purchased,Under Maintenance,Decommissioned,Disposed,Archived',
             'description' => 'nullable|string',
             'depreciation_method' => 'nullable|in:straight_line,reducing_balance',
+            'annual_depreciation_rate' => 'nullable|numeric|min:0|max:100',
             'asset_life_years'    => 'nullable|integer|min:1|max:50',
             'salvage_value'       => 'nullable|numeric|min:0',
             'warranty_expiry_date'=> 'nullable|date',
@@ -170,6 +174,7 @@ class AssetController extends Controller
             'status' => $request->status,
             'description' => $request->description,
             'depreciation_method' => $request->depreciation_method ?? 'straight_line',
+            'annual_depreciation_rate' => $request->filled('annual_depreciation_rate') ? $request->annual_depreciation_rate : 25,
             'asset_life_years'    => $request->asset_life_years,
             'salvage_value'       => $request->salvage_value,
             'warranty_expiry_date'=> $request->warranty_expiry_date,

@@ -19,6 +19,8 @@ use App\Http\Controllers\AssetAllocationController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PositionSpecificationController;
 use App\Http\Controllers\CapexController;
 use App\Http\Controllers\GoodsReceiptController;
@@ -86,6 +88,18 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/admin/departments', [DepartmentController::class, 'store'])->name('admin.departments.store');
         Route::put('/admin/departments/{department}', [DepartmentController::class, 'update'])->name('admin.departments.update');
         Route::delete('/admin/departments/{department}', [DepartmentController::class, 'destroy'])->name('admin.departments.destroy');
+
+                // Admin: Categories
+        Route::get('/admin/categories', [CategoryController::class, 'index'])->name('admin.categories.index');
+        Route::post('/admin/categories', [CategoryController::class, 'store'])->name('admin.categories.store');
+        Route::put('/admin/categories/{category}', [CategoryController::class, 'update'])->name('admin.categories.update');
+        Route::delete('/admin/categories/{category}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
+
+        // Admin: Locations
+        Route::get('/admin/locations', [LocationController::class, 'index'])->name('admin.locations.index');
+        Route::post('/admin/locations', [LocationController::class, 'store'])->name('admin.locations.store');
+        Route::put('/admin/locations/{location}', [LocationController::class, 'update'])->name('admin.locations.update');
+        Route::delete('/admin/locations/{location}', [LocationController::class, 'destroy'])->name('admin.locations.destroy');
 
         // Admin: Vendor Management
         Route::get('/admin/vendors', [VendorController::class, 'index'])->name('admin.vendors.index');

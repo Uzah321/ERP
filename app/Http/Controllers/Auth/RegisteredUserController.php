@@ -9,6 +9,8 @@ use App\Models\Department;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules;
@@ -22,7 +24,19 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        $departments = Department::all();
+        $departments = collect();
+
+        try {
+            if (Schema::hasTable('departments')) {
+                $departments = Department::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name']);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Unable to load departments for registration.', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
 
         return Inertia::render('Auth/Register', [
             'departments' => $departments

@@ -51,9 +51,9 @@ class User extends Authenticatable
         return [
             'email_verified_at'       => 'datetime',
             'password'                => 'hashed',
-            'google2fa_secret'        => 'encrypted',
             'two_factor_enabled'      => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
+            'google2fa_secret'        => 'encrypted',
         ];
     }
 

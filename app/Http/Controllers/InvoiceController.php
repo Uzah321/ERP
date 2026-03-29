@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\PurchaseOrder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
@@ -87,21 +88,27 @@ class InvoiceController extends Controller
         $invoiceNet = (float) $data['amount'];
         $mismatch = abs($invoiceNet - $poNet) > 0.01;
 
-        Invoice::create([
-            'purchase_order_id' => $data['purchase_order_id'],
-            'invoice_number'    => $data['invoice_number'],
-            'invoice_date'      => $data['invoice_date'],
-            'due_date'          => $data['due_date'] ?? null,
-            'amount'            => $data['amount'],
-            'vat_amount'        => $data['vat_amount'] ?? 0,
-            'status'            => 'pending',
-            'amount_mismatch'   => $mismatch,
-            'po_total_amount'   => $poNet,
-            'notes'             => $data['notes'] ?? null,
-        ]);
+        try {
+            DB::transaction(function () use ($data, $po, $mismatch, $poNet) {
+                Invoice::create([
+                    'purchase_order_id' => $data['purchase_order_id'],
+                    'invoice_number'    => $data['invoice_number'],
+                    'invoice_date'      => $data['invoice_date'],
+                    'due_date'          => $data['due_date'] ?? null,
+                    'amount'            => $data['amount'],
+                    'vat_amount'        => $data['vat_amount'] ?? 0,
+                    'status'            => 'pending',
+                    'amount_mismatch'   => $mismatch,
+                    'po_total_amount'   => $poNet,
+                    'notes'             => $data['notes'] ?? null,
+                ]);
 
-        // Mark PO as invoiced
-        $po->update(['invoice_status' => 'invoiced']);
+                // Mark PO as invoiced
+                $po->update(['invoice_status' => 'invoiced']);
+            });
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'An error occurred while saving the invoice.']);
+        }
 
         $flash = $mismatch
             ? "Invoice {$data['invoice_number']} recorded — ⚠️ AMOUNT MISMATCH: invoice \${$data['amount']} vs PO net \${$poNet}."

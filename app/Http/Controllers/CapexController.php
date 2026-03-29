@@ -13,6 +13,7 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -210,39 +211,46 @@ class CapexController extends Controller
             $quotationPaths[] = $file->store('capex-quotations', 'local');
         }
 
-        $capex = CapexForm::create([
-            'asset_request_id'    => $assetRequest->id,
-            'rtp_reference'       => $ref,
-            'request_type'        => $request->request_type,
-            'asset_life'          => $request->asset_life,
-            'cost_allocation'     => $request->cost_allocation,
-            'insurance_status'    => $request->boolean('insurance_status', true),
-            'reason_for_purchase' => $request->reason_for_purchase,
-            'items'               => $items,
-            'quotations'          => $quotationPaths,
-            'approval_chain'      => $chain,
-            'current_stage_index' => 0,
-            'total_amount'        => $request->total_amount,
-            'status'              => 'pending',
-        ]);
+        try {
+            $approval = DB::transaction(function () use ($request, $assetRequest, $ref, $items, $quotationPaths, $chain) {
+                $capex = CapexForm::create([
+                    'asset_request_id'    => $assetRequest->id,
+                    'rtp_reference'       => $ref,
+                    'request_type'        => $request->request_type,
+                    'asset_life'          => $request->asset_life,
+                    'cost_allocation'     => $request->cost_allocation,
+                    'insurance_status'    => $request->boolean('insurance_status', true),
+                    'reason_for_purchase' => $request->reason_for_purchase,
+                    'items'               => $items,
+                    'quotations'          => $quotationPaths,
+                    'approval_chain'      => $chain,
+                    'current_stage_index' => 0,
+                    'total_amount'        => $request->total_amount,
+                    'status'              => 'pending',
+                ]);
 
-        // Create first approval record from chain[0]
-        $firstStage  = $chain[0];
-        $firstUser   = User::find($firstStage['user_id']);
-        $approval    = $capex->approvals()->create([
-            'approval_position' => $firstStage['label'],
-            'approver_id'       => $firstUser?->id,
-            'approver_name'     => $firstUser?->name,
-            'status'            => 'pending',
-            'token'             => Str::random(64),
-        ]);
+                // Create first approval record from chain[0]
+                $firstStage  = $chain[0];
+                $firstUser   = User::find($firstStage['user_id']);
+                return $capex->approvals()->create([
+                    'approval_position' => $firstStage['label'],
+                    'approver_id'       => $firstUser?->id,
+                    'approver_name'     => $firstUser?->name,
+                    'status'            => 'pending',
+                    'token'             => Str::random(64),
+                ]);
+            });
 
-        // Email the first approver
-        if ($firstUser) {
-            Mail::to($firstUser->email)->send(new CapexApprovalRequest($approval));
+            // Email the first approver out of transaction
+            $firstUser = User::find($chain[0]['user_id']);
+            if ($firstUser) {
+                Mail::to($firstUser->email)->send(new CapexApprovalRequest($approval));
+            }
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'An error occurred while creating the CAPEX form.']);
         }
 
-        return back()->with('success', 'CAPEX form created and sent to ' . $firstStage['label'] . ' for approval.');
+        return back()->with('success', 'CAPEX form created and sent to ' . $chain[0]['label'] . ' for approval.');
     }
 
     /**
@@ -251,9 +259,18 @@ class CapexController extends Controller
     public function showApprove(string $token)
     {
         $approval = CapexApproval::where('token', $token)
-            ->where('status', 'pending')
             ->with('capexForm.assetRequest.department')
             ->firstOrFail();
+
+        if ($approval->status !== 'pending') {
+            return Inertia::render('Capex/ApproveResult', [
+                'result'        => $approval->status,
+                'rtp_reference' => $approval->capexForm->rtp_reference,
+                'position'      => $approval->positionLabel(),
+                'fully_approved'=> $approval->capexForm->status === 'approved',
+                'already_processed' => true,
+            ]);
+        }
 
         return Inertia::render('Capex/Approve', [
             'approval' => [
@@ -280,9 +297,12 @@ class CapexController extends Controller
         ]);
 
         $approval = CapexApproval::where('token', $token)
-            ->where('status', 'pending')
             ->with('capexForm.assetRequest.user')
             ->firstOrFail();
+
+        if ($approval->status !== 'pending') {
+            return back()->withErrors(['error' => 'This request has already been processed.']);
+        }
 
         // Verify password of the approver
         $approver = $approval->approver_id
@@ -295,47 +315,57 @@ class CapexController extends Controller
 
         $capex = $approval->capexForm;
 
-        // Record the decision
-        $approval->update([
-            'status'        => $request->decision,
-            'approver_id'   => $approver->id,
-            'approver_name' => $approver->name,
-            'signed_at'     => now(),
-        ]);
+        try {
+            $nextApproval = DB::transaction(function () use ($approval, $request, $approver, $capex) {
+                // Record the decision
+                $approval->update([
+                    'status'        => $request->decision,
+                    'approver_id'   => $approver->id,
+                    'approver_name' => $approver->name,
+                    'signed_at'     => now(),
+                ]);
 
-        if ($request->decision === 'declined') {
-            $capex->update(['status' => 'declined']);
-            // Notify the requester
-            Mail::to($capex->assetRequest->user->email)
-                ->send(new CapexDeclined($capex));
+                if ($request->decision === 'declined') {
+                    $capex->update(['status' => 'declined']);
+                    return false; // means declined, no next approval
+                }
+
+                // Advance to next stage if approved
+                return $capex->advanceStage();
+            });
+
+            if ($request->decision === 'declined') {
+                // Notify the requester
+                Mail::to($capex->assetRequest->user->email)
+                    ->send(new CapexDeclined($capex));
+                return Inertia::render('Capex/ApproveResult', [
+                    'result'        => 'declined',
+                    'rtp_reference' => $capex->rtp_reference,
+                    'position'      => $approval->positionLabel(),
+                ]);
+            }
+
+            if ($nextApproval) {
+                // Email the next approver
+                $nextApprover = $nextApproval->approver_id
+                    ? User::find($nextApproval->approver_id)
+                    : User::where('approval_position', $nextApproval->approval_position)->where('is_active', true)->first();
+                if ($nextApprover) {
+                    Mail::to($nextApprover->email)->send(new CapexApprovalRequest($nextApproval));
+                }
+            } else {
+                // Fully approved — notify requester
+                Mail::to($capex->assetRequest->user->email)->send(new CapexFullyApproved($capex));
+            }
+
             return Inertia::render('Capex/ApproveResult', [
-                'result'        => 'declined',
+                'result'        => 'approved',
                 'rtp_reference' => $capex->rtp_reference,
                 'position'      => $approval->positionLabel(),
+                'fully_approved'=> $capex->status === 'approved',
             ]);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'An error occurred while processing the approval. Please try again.']);
         }
-
-        // Advance to next stage
-        $nextApproval = $capex->advanceStage();
-
-        if ($nextApproval) {
-            // Email the next approver
-            $nextApprover = $nextApproval->approver_id
-                ? User::find($nextApproval->approver_id)
-                : User::where('approval_position', $nextApproval->approval_position)->where('is_active', true)->first();
-            if ($nextApprover) {
-                Mail::to($nextApprover->email)->send(new CapexApprovalRequest($nextApproval));
-            }
-        } else {
-            // Fully approved — notify requester
-            Mail::to($capex->assetRequest->user->email)->send(new CapexFullyApproved($capex));
-        }
-
-        return Inertia::render('Capex/ApproveResult', [
-            'result'        => 'approved',
-            'rtp_reference' => $capex->rtp_reference,
-            'position'      => $approval->positionLabel(),
-            'fully_approved'=> $capex->status === 'approved',
-        ]);
     }
 }

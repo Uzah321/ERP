@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Compute a badge from the form's current_stage_label and status
 const getStatusBadge = (f) => {
@@ -19,6 +19,13 @@ const getStatusBadge = (f) => {
 };
 
 export default function CapexForms({ auth, forms, assetRequests, users = [], filters = {}, flash }) {
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['forms', 'assetRequests'], preserveScroll: true, preserveState: true });
+        }, 30000); // Poll every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
     const [quotationFiles, setQuotationFiles] = useState([null, null, null]);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [editableItems, setEditableItems] = useState([]);

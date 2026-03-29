@@ -4,34 +4,47 @@ namespace App\Mail;
 
 use App\Models\AssetRequest;
 use App\Models\Vendor;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use App\Services\AssetRequestPDFService;
 use Illuminate\Queue\SerializesModels;
 
-class VendorQuotationRequest extends Mailable
+class VendorQuotationRequest extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     public $assetRequest;
     public $vendor;
+    public $approver;
 
-    public function __construct(AssetRequest $assetRequest, Vendor $vendor)
+    public function __construct(AssetRequest $assetRequest, Vendor $vendor, User $approver = null)
     {
         $this->assetRequest = $assetRequest->loadMissing(['user', 'department', 'targetDepartment']);
         $this->vendor = $vendor;
+        $this->approver = $approver ?? auth()->user();
     }
 
     public function envelope(): Envelope
     {
         $ref = 'SRQ-' . now()->format('Y') . '-' . str_pad($this->assetRequest->id, 4, '0', STR_PAD_LEFT);
-        return new Envelope(
-            subject: $ref . ' — Quotation Request: ' . $this->assetRequest->asset_type . ' (' . $this->assetRequest->asset_category . ')',
-        );
+
+        $envData = [
+            'subject' => $ref . ' — Quotation Request: ' . $this->assetRequest->asset_type . ' (' . $this->assetRequest->asset_category . ')',
+        ];
+
+        if ($this->approver) {
+            $envData['replyTo'] = [
+                new Address($this->approver->email, $this->approver->name)
+            ];
+        }
+
+        return new Envelope(...$envData);
     }
 
     public function content(): Content
@@ -39,7 +52,10 @@ class VendorQuotationRequest extends Mailable
         $ref = 'SRQ-' . now()->format('Y') . '-' . str_pad($this->assetRequest->id, 4, '0', STR_PAD_LEFT);
         return new Content(
             view: 'mail.vendor-quotation',
-            with: ['ref' => $ref],
+            with: [
+                'ref' => $ref,
+                'approver' => $this->approver
+            ],
         );
     }
 

@@ -142,13 +142,14 @@ class ReportController extends Controller
 
         $callback = function () use ($assets) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Barcode', 'Name', 'Category', 'Department', 'Purchase Date', 'Purchase Cost', 'Method', 'Life (yrs)', 'Salvage Value', 'Current Book Value', 'Annual Depreciation']);
+            fputcsv($file, ['Barcode', 'Name', 'Category', 'Department', 'Purchase Date', 'Purchase Cost', 'Method', 'Rate (%)', 'Life (yrs)', 'Salvage Value', 'Current Book Value', 'Annual Depreciation']);
 
             foreach ($assets as $asset) {
                 $life = (float) ($asset->asset_life_years ?: 5);
                 $cost = (float) ($asset->purchase_cost ?: 0);
                 $salvage = (float) ($asset->salvage_value ?: 0);
-                $annualDep = $life > 0 ? round(($cost - $salvage) / $life, 2) : 0;
+                $rate = (float) ($asset->annual_depreciation_rate ?: 25);
+                $annualDep = $rate > 0 ? round($cost * ($rate / 100), 2) : ($life > 0 ? round(($cost - $salvage) / $life, 2) : 0);
 
                 fputcsv($file, [
                     $asset->barcode,
@@ -158,6 +159,7 @@ class ReportController extends Controller
                     $asset->purchase_date?->format('Y-m-d'),
                     number_format($cost, 2),
                     $asset->depreciation_method,
+                    number_format($rate, 2),
                     $life,
                     number_format($salvage, 2),
                     number_format($asset->book_value ?? $cost, 2),

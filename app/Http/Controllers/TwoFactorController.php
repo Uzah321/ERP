@@ -17,15 +17,22 @@ class TwoFactorController extends Controller
         $user   = Auth::user();
         $google = new Google2FA();
 
-        // Generate a secret if the user doesn't have one yet
-        if (!$user->google2fa_secret) {
-            $secret = $google->generateSecretKey();
-            $user->update(['google2fa_secret' => $secret]);
-        } else {
+        // Retrieve decrypted secret; catch corrupted payloads that can happen after cast updates.
+        try {
             $secret = $user->google2fa_secret;
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            // Log and reset, then re-generate a new secret safely
+            logger()->warning('2FA secret decrypt failed for user ' . $user->id . ', issuing new key.', ['exception' => $e]);
+            $secret = null;
+            $user->forceFill(['google2fa_secret' => null])->save();
         }
 
-        // Build the QR code URL (key URI format)
+        if (!$secret) {
+            $secret = $google->generateSecretKey();
+            $user->update(['google2fa_secret' => $secret]);
+        }
+
+        // Build the key URI for authenticator apps.
         $qrUrl = $google->getQRCodeUrl(
             config('app.name', 'Simbisa Asset Management'),
             $user->email,

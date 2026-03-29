@@ -12,6 +12,8 @@ export default function EditAssetModal({ asset, onClose, categories, locations }
         condition: asset?.condition || 'New',
         status: asset?.status || 'Purchased',
         description: asset?.description || '',
+        depreciation_method: asset?.depreciation_method || 'straight_line',
+        annual_depreciation_rate: asset?.annual_depreciation_rate ?? '25',
         warranty_expiry_date: asset?.warranty_expiry_date || '',
         warranty_provider: asset?.warranty_provider || '',
         warranty_notes: asset?.warranty_notes || '',
@@ -148,10 +150,28 @@ export default function EditAssetModal({ asset, onClose, categories, locations }
                     {/* ── Depreciation ─────────────────────────────────────── */}
                     <div className="mt-6 border-t border-gray-100 pt-5">
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Depreciation</p>
-                        <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col">
+                                <label className="mb-1.5 font-medium text-gray-700">Method</label>
+                                <select className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    value={data.depreciation_method} onChange={e => setData('depreciation_method', e.target.value)}>
+                                    <option value="straight_line">Straight Line</option>
+                                    <option value="reducing_balance">Reducing Balance</option>
+                                </select>
+                                {errors.depreciation_method && <div className="text-red-600 text-xs mt-1">{errors.depreciation_method}</div>}
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="mb-1.5 font-medium text-gray-700">Depreciation % Per Year</label>
+                                <input type="number" min="0" max="100" step="0.01" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    value={data.annual_depreciation_rate} onChange={e => setData('annual_depreciation_rate', e.target.value)} />
+                                <p className="mt-1 text-xs text-gray-500">Defaults to 25% per year and is used by the overnight depreciation job.</p>
+                                {errors.annual_depreciation_rate && <div className="text-red-600 text-xs mt-1">{errors.annual_depreciation_rate}</div>}
+                            </div>
+                        </div>
+                        <div className="mt-3 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-lg p-3">
                             <svg className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <div className="text-xs text-blue-700 leading-relaxed">
-                                <span className="font-semibold">Fixed rate: 25% of purchase cost per year.</span> Depreciation is applied automatically overnight by the system scheduler.
+                                <span className="font-semibold">Depreciation is applied automatically overnight by the system scheduler.</span>
                                 {asset?.book_value != null && (
                                     <span className="block mt-1">Current book value: <strong>${Number(asset.book_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
                                 )}

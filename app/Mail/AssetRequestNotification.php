@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\AssetRequest;
 
-class AssetRequestNotification extends Mailable
+class AssetRequestNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

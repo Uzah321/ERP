@@ -12,7 +12,9 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class PurchaseOrderCreated extends Mailable
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class PurchaseOrderCreated extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

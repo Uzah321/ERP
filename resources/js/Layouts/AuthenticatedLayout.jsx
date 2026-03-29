@@ -8,7 +8,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
     const currentUrl = ziggy?.location ?? window.location.href;
 
     const [expandedMenus, setExpandedMenus] = useState({
-        main: true, procurement: true, operations: true, reports: true, settings: false,
+        main: true, procurement: true, operations: true, reports: true, settings: true,
     });
     const [activeFeatureModal, setActiveFeatureModal] = useState(null);
 
@@ -53,7 +53,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
         </button>
     );
 
-    // Icons (inline SVGs kept small — 16×16)
+    // Icons (inline SVGs kept small ??? 16??16)
     const ic = {
         grid:       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>,
         transfer:   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>,
@@ -137,7 +137,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
                     {/* Nav */}
                     <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4 custom-scrollbar">
 
-                        {/* ── MAIN ── */}
+                        {/* ?????? MAIN ?????? */}
                         <div>
                             <SectionHeader id="main" label="Main"
                                 icon={<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h3a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h3a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>}
@@ -154,7 +154,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
 
                         <div className="border-t border-gray-100"/>
 
-                        {/* ── PROCUREMENT ── */}
+                        {/* ?????? PROCUREMENT ?????? */}
                         {user?.role === 'admin' && (
                             <div>
                                 <SectionHeader id="procurement" label="Procurement"
@@ -174,7 +174,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
 
                         {user?.role === 'admin' && <div className="border-t border-gray-100"/>}
 
-                        {/* ── OPERATIONS ── */}
+                        {/* ?????? OPERATIONS ?????? */}
                         <div>
                             <SectionHeader id="operations" label="Operations"
                                 icon={<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/></svg>}
@@ -192,7 +192,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
 
                         <div className="border-t border-gray-100"/>
 
-                        {/* ── REPORTS ── */}
+                        {/* ?????? REPORTS ?????? */}
                         <div>
                             <SectionHeader id="reports" label="Reports &amp; Analytics"
                                 icon={<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>}
@@ -212,7 +212,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
 
                         <div className="border-t border-gray-100"/>
 
-                        {/* ── SETTINGS (admin only) ── */}
+                        {/* ?????? SETTINGS (admin only) ?????? */}
                         {user?.role === 'admin' && (
                             <div>
                                 <SectionHeader id="settings" label="Settings"
@@ -222,6 +222,9 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
                                     <div className="space-y-0.5">
                                         <NavLink href={route('admin.users.index')} icon={ic.users}>User Management</NavLink>
                                         <NavLink href={route('admin.departments.index')} icon={ic.dept}>Departments</NavLink>
+                                        <NavLink href={route('admin.categories.index')} icon={ic.grid}>Categories</NavLink>
+                                        <NavLink href={route('admin.locations.index')} icon={ic.dashboard}>Locations</NavLink>
+
                                         <NavLink href={route('admin.vendors.index')} icon={ic.vendor}>Vendors</NavLink>
                                         <NavLink href={route('admin.position-specs.index')} icon={ic.position}>Position Specifications</NavLink>
                                         <NavLink href={route('archive.utilities')} icon={ic.archive}>Archive Utilities</NavLink>
@@ -255,7 +258,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-gray-800 truncate">{user?.name ?? 'Guest'}</p>
-                                <p className="text-xs text-gray-400 truncate capitalize">{user?.role ?? '—'}</p>
+                                <p className="text-xs text-gray-400 truncate capitalize">{user?.role ?? '???'}</p>
                             </div>
                             <Link href={route('logout')} method="post" as="button"
                                 className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"

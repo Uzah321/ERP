@@ -8,7 +8,7 @@ import CreateAssetModal from '@/Components/CreateAssetModal';
 import EditAssetModal from '@/Components/EditAssetModal';
 import AssetRequestModal from '@/Components/AssetRequestModal';
 
-export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, selected_department_id }) {
+export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, selected_department_id, filters }) {
         const [bulkTransferData, setBulkTransferData] = useState({ target_department_id: '', reason: '' });
         const [bulkTransferErrors, setBulkTransferErrors] = useState({});
         const [bulkTransferProcessing, setBulkTransferProcessing] = useState(false);
@@ -17,39 +17,45 @@ export default function Dashboard({ auth, assets, department, categories, locati
     const [showTransferModal, setShowTransferModal] = useState(false);
     const [editingAsset, setEditingAsset] = useState(null);
     const [selectedAssets, setSelectedAssets] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterStatus, setFilterStatus] = useState('');
-    const [filterCondition, setFilterCondition] = useState('');
+    const [searchQuery, setSearchQuery] = useState(filters?.search ?? '');
+    const [filterStatus, setFilterStatus] = useState(filters?.status ?? '');
+    const [filterCondition, setFilterCondition] = useState(filters?.condition ?? '');
+    const [pendingDepartment, setPendingDepartment] = useState(selected_department_id ?? '');
     const isAdmin = auth.user.role === 'admin';
 
-    // Client-side filtering — instant, no server round-trip
-    const q = searchQuery.toLowerCase().trim();
-    const filteredAssets = assets.filter(asset => {
-        const matchesSearch = !q || [
-            asset.name,
-            asset.barcode,
-            asset.serial_number,
-            asset.description,
-            asset.category?.name,
-            asset.location?.name,
-            asset.condition,
-            asset.status,
-            asset.warranty_provider,
-            asset.order_number,
-        ].some(v => v && v.toLowerCase().includes(q));
+    // Server-side filtering with pagination to avoid frontend heavy loops when dataset grows.
+    const filteredAssets = assets?.data ?? [];
+    const rows = filteredAssets;
+    const currentPage = assets?.current_page ?? 1;
+    const lastPage = assets?.last_page ?? 1;
+    const totalAssets = assets?.total ?? 0;
 
-        const matchesStatus    = !filterStatus    || asset.status === filterStatus;
-        const matchesCondition = !filterCondition || asset.condition === filterCondition;
-        return matchesSearch && matchesStatus && matchesCondition;
-    });
+    const clearFilters = () => {
+        setSearchQuery('');
+        setFilterStatus('');
+        setFilterCondition('');
+        applyFilters(1);
+    };
 
-    const clearFilters = () => { setSearchQuery(''); setFilterStatus(''); setFilterCondition(''); };
+    const applyFilters = (page = 1) => {
+        const params = {
+            department_id: pendingDepartment,
+            search: searchQuery,
+            status: filterStatus,
+            condition: filterCondition,
+            page,
+        };
+
+        router.get(route('dashboard'), params, {
+            preserveState: true,
+            replace: true,
+        });
+    };
 
     const handleDepartmentChange = (e) => {
         const deptId = e.target.value;
-        if (deptId) {
-            router.get(route('dashboard'), { department_id: deptId }, { preserveState: true });
-        }
+        setPendingDepartment(deptId);
+        applyFilters(1);
     };
 
     return (
@@ -103,7 +109,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                         <label className="text-sm text-gray-500 whitespace-nowrap">Department:</label>
                         {isAdmin ? (
                             <select
-                                value={selected_department_id || ''}
+                                value={pendingDepartment || ''}
                                 onChange={handleDepartmentChange}
                                 className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[200px]"
                             >
@@ -135,6 +141,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                     className="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 focus:bg-white transition"
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' ? applyFilters(1) : null}
                                 />
                                 {searchQuery && (
                                     <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -146,7 +153,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                             {/* Status filter */}
                             <select
                                 value={filterStatus}
-                                onChange={e => setFilterStatus(e.target.value)}
+                                onChange={e => { setFilterStatus(e.target.value); applyFilters(1); }}
                                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition"
                             >
                                 <option value="">All Statuses</option>
@@ -158,7 +165,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                             {/* Condition filter */}
                             <select
                                 value={filterCondition}
-                                onChange={e => setFilterCondition(e.target.value)}
+                                onChange={e => { setFilterCondition(e.target.value); applyFilters(1); }}
                                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition"
                             >
                                 <option value="">All Conditions</option>
@@ -176,7 +183,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                             )}
 
                             <span className="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                                {filteredAssets.length} / {assets.length} assets
+                                {(assets.data || []).length} / {totalAssets} assets
                             </span>
                         </div>
 
@@ -205,9 +212,9 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {assets.length === 0 ? (
+                                    {totalAssets === 0 ? (
                                         <tr>
-                                            <td colSpan="8" className="p-8 text-center text-gray-500">
+                                            <td colSpan="12" className="p-8 text-center text-gray-500">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <svg className="w-12 h-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
                                                     <span className="text-lg font-medium text-gray-400">No assets found</span>
@@ -215,7 +222,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : filteredAssets.length === 0 ? (
+                                    ) : rows.length === 0 ? (
                                         <tr>
                                             <td colSpan="11" className="p-8 text-center text-gray-400">
                                                 <div className="flex flex-col items-center gap-2">
@@ -225,7 +232,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : filteredAssets.map((asset, index) => (
+                                    ) : rows.map((asset, index) => (
                                             <tr key={asset.id} onDoubleClick={() => setEditingAsset(asset)} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors bg-white">
                                                 <td className="px-5 py-3">
                                                     <input type="checkbox" checked={selectedAssets.includes(asset.id)} onChange={e => {
@@ -309,6 +316,21 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                         ))}
                                 </tbody>
                             </table>
+                        </div>
+                        <div className="border-t border-gray-200 bg-white px-5 py-3 flex items-center justify-between text-sm">
+                            <div className="text-gray-600">Showing page {currentPage} of {lastPage}</div>
+                            <div className="space-x-2">
+                                <button
+                                    className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+                                    disabled={!assets.prev_page_url}
+                                    onClick={() => applyFilters(currentPage - 1)}
+                                >Prev</button>
+                                <button
+                                    className="px-3 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+                                    disabled={!assets.next_page_url}
+                                    onClick={() => applyFilters(currentPage + 1)}
+                                >Next</button>
+                            </div>
                         </div>
                     </div>
                 </div>

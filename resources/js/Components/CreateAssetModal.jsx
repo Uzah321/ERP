@@ -11,6 +11,8 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
         condition: 'New',
         status: 'Purchased',
         description: '',
+        depreciation_method: 'straight_line',
+        annual_depreciation_rate: '25',
         photo: null,
     });
 
@@ -119,6 +121,28 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
                         <label className="mb-1.5 font-medium text-gray-700">Description</label>
                         <textarea rows="3" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none"
                             value={data.description} onChange={e => setData('description', e.target.value)}></textarea>
+                    </div>
+
+                    <div className="mt-6 border-t border-gray-100 pt-5">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Depreciation</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col">
+                                <label className="mb-1.5 font-medium text-gray-700">Method</label>
+                                <select className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    value={data.depreciation_method} onChange={e => setData('depreciation_method', e.target.value)}>
+                                    <option value="straight_line">Straight Line</option>
+                                    <option value="reducing_balance">Reducing Balance</option>
+                                </select>
+                                {errors.depreciation_method && <div className="text-red-600 text-xs mt-1">{errors.depreciation_method}</div>}
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="mb-1.5 font-medium text-gray-700">Depreciation % Per Year</label>
+                                <input type="number" min="0" max="100" step="0.01" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    value={data.annual_depreciation_rate} onChange={e => setData('annual_depreciation_rate', e.target.value)} />
+                                <p className="mt-1 text-xs text-gray-500">Defaults to 25% per year, but you can edit it for this asset.</p>
+                                {errors.annual_depreciation_rate && <div className="text-red-600 text-xs mt-1">{errors.annual_depreciation_rate}</div>}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Photo Upload */}
