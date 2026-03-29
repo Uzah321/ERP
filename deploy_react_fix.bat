@@ -5,7 +5,7 @@ scp resources\js\Pages\Admin\Locations.jsx administrator@77.93.154.83:/var/www/s
 
 echo.
 echo Step 2: Compiling React assets on the server...
-ssh administrator@77.93.154.83 "cd /var/www/simbisa && sg docker -c 'docker exec simbisa_app npm install && docker exec simbisa_app npm run build && docker exec simbisa_app php artisan optimize:clear'"
+ssh administrator@77.93.154.83 "cd /var/www/simbisa && sg docker -c 'docker exec assetlinq_app npm install && docker exec assetlinq_app npm run build && docker exec assetlinq_app php artisan optimize:clear'"
 
 echo.
 echo React Deployment Completed!

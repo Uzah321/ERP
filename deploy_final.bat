@@ -9,7 +9,7 @@ scp resources\js\Layouts\AuthenticatedLayout.jsx administrator@77.93.154.83:/var
 
 echo.
 echo Step 2: Compiling React assets and clearing Laravel Cache...
-ssh administrator@77.93.154.83 "cd /var/www/simbisa && sg docker -c 'docker exec simbisa_app php artisan optimize:clear && docker exec simbisa_app npm run build'"
+ssh administrator@77.93.154.83 "cd /var/www/simbisa && sg docker -c 'docker exec assetlinq_app php artisan optimize:clear && docker exec assetlinq_app npm run build'"
 
 echo.
 echo Deployment and Cache Reset Completed!

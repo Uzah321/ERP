@@ -15,7 +15,7 @@ scp public\build.tar.gz administrator@77.93.154.83:/var/www/simbisa/public/
 
 echo.
 echo Step 4: Extracting assets and clearing Laravel cache...
-ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && rm -rf build && tar -xzf build.tar.gz && test -f build/manifest.json && cd /var/www/simbisa && sg docker -c 'docker exec simbisa_app php artisan optimize:clear'"
+ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && rm -rf build && tar -xzf build.tar.gz && test -f build/manifest.json && cd /var/www/simbisa && sg docker -c 'docker exec assetlinq_app php artisan optimize:clear'"
 
 echo.
 echo Depreciation rate feature deployed.

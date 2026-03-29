@@ -9,7 +9,7 @@ scp resources\js\Pages\Admin\Locations.jsx administrator@77.93.154.83:/var/www/s
 
 echo.
 echo Step 3: Unzipping build and clearing cache...
-ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && rm -rf build && unzip -q build.zip && cd /var/www/simbisa && sg docker -c 'docker exec simbisa_app php artisan optimize:clear'"
+ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && rm -rf build && unzip -q build.zip && cd /var/www/simbisa && sg docker -c 'docker exec assetlinq_app php artisan optimize:clear'"
 
 echo.
 echo Deployment Complete!

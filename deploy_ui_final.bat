@@ -10,7 +10,7 @@ scp public\build.zip administrator@77.93.154.83:/var/www/simbisa/public/
 
 echo.
 echo Step 3: Unzipping build and clearing cache...
-ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && python3 -c \"import zipfile; zipfile.ZipFile('build.zip', 'r').extractall('.')\" && cd /var/www/simbisa && sg docker -c 'docker exec simbisa_app php artisan optimize:clear'"
+ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && python3 -c \"import zipfile; zipfile.ZipFile('build.zip', 'r').extractall('.')\" && cd /var/www/simbisa && sg docker -c 'docker exec assetlinq_app php artisan optimize:clear'"
 
 echo.
 echo Deployment Complete!

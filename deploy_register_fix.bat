@@ -4,7 +4,7 @@ scp app\Http\Controllers\Auth\RegisteredUserController.php administrator@77.93.1
 
 echo.
 echo Step 2: Clearing Laravel cache...
-ssh administrator@77.93.154.83 "cd /var/www/simbisa && sg docker -c 'docker exec simbisa_app php artisan optimize:clear'"
+ssh administrator@77.93.154.83 "cd /var/www/simbisa && sg docker -c 'docker exec assetlinq_app php artisan optimize:clear'"
 
 echo.
 echo Register page fix deployed.
