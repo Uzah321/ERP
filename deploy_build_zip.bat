@@ -1,15 +1,29 @@
 @echo off
-echo Step 1: Uploading Compiled Vite Assets...
+cd /d "%~dp0"
+
+echo Step 1: Building and packaging Vite assets...
+call npm run build
+if errorlevel 1 exit /b 1
+
+powershell -Command "if (Test-Path 'public\\build.zip') { Remove-Item 'public\\build.zip' -Force }; Compress-Archive -Path 'public\\build' -DestinationPath 'public\\build.zip' -Force"
+if errorlevel 1 exit /b 1
+
+echo.
+echo Step 2: Uploading Compiled Vite Assets...
 scp public\build.zip administrator@77.93.154.83:/var/www/simbisa/public/
+if errorlevel 1 exit /b 1
 
 echo.
-echo Step 2: Uploading React Source Files...
+echo Step 3: Uploading React Source Files...
 scp resources\js\Pages\Admin\Categories.jsx administrator@77.93.154.83:/var/www/simbisa/resources/js/Pages/Admin/
+if errorlevel 1 exit /b 1
 scp resources\js\Pages\Admin\Locations.jsx administrator@77.93.154.83:/var/www/simbisa/resources/js/Pages/Admin/
+if errorlevel 1 exit /b 1
 
 echo.
-echo Step 3: Unzipping build and clearing cache...
-ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && rm -rf build && unzip -q build.zip && cd /var/www/simbisa && sg docker -c 'docker exec simbisa_app php artisan optimize:clear'"
+echo Step 4: Unzipping build and clearing cache...
+ssh administrator@77.93.154.83 "cd /var/www/simbisa/public && rm -rf build && unzip -oq build.zip && cd /var/www/simbisa && sg docker -c 'docker-compose exec -T app php artisan optimize:clear'"
+if errorlevel 1 exit /b 1
 
 echo.
 echo Deployment Complete!

@@ -50,7 +50,7 @@ export default function TransferModal({ asset, departments, locations, onClose }
                 </div>
 
                 <div className="mt-4">
-                    <InputLabel htmlFor="target_location_id" value="Target Location (Deploy)" />
+                    <InputLabel htmlFor="target_location_id" value="Target Location" />
                     <select
                         id="target_location_id"
                         className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"

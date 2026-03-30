@@ -105,6 +105,20 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+scp -r "$LocalPath\.docker" "$SSHUser@$ServerIP`:$AppPath/"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "ERROR: .docker upload failed"
+    exit 1
+}
+
+scp "$LocalPath\.env.production" "$SSHUser@$ServerIP`:$AppPath/.env.production"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "ERROR: .env.production upload failed"
+    exit 1
+}
+
 Write-Success "Files uploaded successfully!"
 Write-Info ""
 
@@ -135,13 +149,22 @@ $remoteSetup = @"
 cd $AppPath
 
 echo 'Setting up environment...'
-cp .env.production .env
+if [ ! -f .env ]; then
+    if [ -f .env.production ]; then
+        cp .env.production .env
+    else
+        echo 'ERROR: .env is missing and .env.production was not found.'
+        exit 1
+    fi
+fi
 
-echo 'Generating APP_KEY...'
-docker-compose run --rm app php artisan key:generate
+if ! grep -q '^APP_KEY=base64:' .env; then
+    echo 'ERROR: APP_KEY is missing in .env. Refusing to generate a new key during deployment.'
+    exit 1
+fi
 
 echo 'Building Docker containers...'
-sudo docker-compose up -d --build
+sudo docker-compose up -d --build --remove-orphans
 
 echo 'Waiting for database to initialize...'
 sleep 15
@@ -150,6 +173,7 @@ echo 'Running migrations...'
 sudo docker-compose exec -T app php artisan migrate --force
 
 echo 'Caching configuration...'
+sudo docker-compose exec -T app php artisan optimize:clear
 sudo docker-compose exec -T app php artisan config:cache
 sudo docker-compose exec -T app php artisan route:cache
 

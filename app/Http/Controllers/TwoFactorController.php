@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use PragmaRX\Google2FA\Google2FA;
+use Illuminate\Contracts\Encryption\DecryptException;
 
 class TwoFactorController extends Controller
 {
@@ -17,15 +18,7 @@ class TwoFactorController extends Controller
         $user   = Auth::user();
         $google = new Google2FA();
 
-        // Retrieve decrypted secret; catch corrupted payloads that can happen after cast updates.
-        try {
-            $secret = $user->google2fa_secret;
-        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
-            // Log and reset, then re-generate a new secret safely
-            logger()->warning('2FA secret decrypt failed for user ' . $user->id . ', issuing new key.', ['exception' => $e]);
-            $secret = null;
-            $user->forceFill(['google2fa_secret' => null])->save();
-        }
+        $secret = $this->resolveSecret($user);
 
         if (!$secret) {
             $secret = $google->generateSecretKey();
@@ -58,8 +51,13 @@ class TwoFactorController extends Controller
 
         $user   = Auth::user();
         $google = new Google2FA();
+        $secret = $this->resolveSecret($user);
 
-        $valid = $google->verifyKey($user->google2fa_secret, $request->code);
+        if (! $secret) {
+            return back()->withErrors(['code' => 'Your 2FA secret is invalid. Open 2FA setup and scan a new QR code.']);
+        }
+
+        $valid = $google->verifyKey($secret, $request->code);
 
         if (!$valid) {
             return back()->withErrors(['code' => 'The verification code is incorrect. Please try again.']);
@@ -114,8 +112,15 @@ class TwoFactorController extends Controller
 
         $user   = Auth::user();
         $google = new Google2FA();
+        $secret = $this->resolveSecret($user);
 
-        $valid = $google->verifyKey($user->google2fa_secret, $request->code);
+        if (! $secret) {
+            session()->forget('2fa_required');
+            return redirect()->route('two-factor.setup')
+                ->with('error', 'Your 2FA secret is invalid. Please set up 2FA again.');
+        }
+
+        $valid = $google->verifyKey($secret, $request->code);
 
         if (!$valid) {
             return back()->with('error', 'Invalid verification code. Please try again.');
@@ -127,5 +132,21 @@ class TwoFactorController extends Controller
         session()->regenerate();
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    private function resolveSecret($user): ?string
+    {
+        try {
+            return $user->google2fa_secret;
+        } catch (DecryptException $e) {
+            logger()->warning('2FA secret decrypt failed for user ' . $user->id . ', resetting secret.', ['exception' => $e]);
+            $user->forceFill([
+                'google2fa_secret' => null,
+                'two_factor_enabled' => false,
+                'two_factor_confirmed_at' => null,
+            ])->save();
+
+            return null;
+        }
     }
 }

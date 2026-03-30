@@ -61,11 +61,12 @@ sudo docker-compose exec postgres psql -U postgres -c "CREATE DATABASE assets_er
 sudo docker-compose up -d --build
 ```
 
-### 7. Generate APP_KEY
+### 7. Verify APP_KEY
 ```bash
-sudo docker-compose exec app php artisan key:generate
-sudo docker-compose exec app php artisan migrate --force
+grep '^APP_KEY=base64:' .env
 ```
+
+If this command does not print a base64 key, stop and fix `.env.production` before deploying.
 
 ### 8. Configure Web Server (Nginx/Apache)
 Update your web server to proxy to the Docker container or configure the port forwarding.
@@ -77,6 +78,7 @@ sudo docker-compose exec app php artisan migrate --force
 
 ### 10. Cache Configuration
 ```bash
+sudo docker-compose exec app php artisan optimize:clear
 sudo docker-compose exec app php artisan config:cache
 sudo docker-compose exec app php artisan route:cache
 sudo docker-compose exec app php artisan view:cache

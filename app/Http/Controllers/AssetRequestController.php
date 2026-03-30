@@ -10,6 +10,7 @@ use App\Mail\VendorQuotationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class AssetRequestController extends Controller
@@ -198,6 +199,14 @@ class AssetRequestController extends Controller
             'items.*.quantity'     => 'required|integer|min:1',
         ]);
 
+        $requester = Auth::user();
+
+        if (! $requester?->department_id) {
+            throw ValidationException::withMessages([
+                'target_department_id' => 'Your account is not assigned to a department. Contact an administrator before submitting a request.',
+            ]);
+        }
+
         // Per-item IT spec validation
         $isIT = \App\Models\Department::where('name', 'IT')->first()?->id == $validated['target_department_id'];
         if ($isIT) {
@@ -229,7 +238,7 @@ class AssetRequestController extends Controller
 
         $assetRequest = AssetRequest::create([
             'user_id'              => Auth::id(),
-            'department_id'        => Auth::user()->department_id,
+            'department_id'        => $requester->department_id,
             'target_department_id' => $validated['target_department_id'],
             'asset_category'       => $validated['asset_category'],
             'asset_type'           => $firstItem['asset_type'],

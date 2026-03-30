@@ -75,6 +75,9 @@ export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
                 {flash?.success && (
                     <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">{flash.success}</div>
                 )}
+                {flash?.error && (
+                    <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">{flash.error}</div>
+                )}
 
                 {/* Header */}
                 <div className="flex items-center justify-between">

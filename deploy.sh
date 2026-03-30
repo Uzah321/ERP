@@ -16,27 +16,30 @@ cd /var/www/simbisa
 echo "Pulling latest code..."
 git pull origin main 2>/dev/null || echo "Git not initialized, skipping pull"
 
-# 3. Copy production .env file
-echo "Setting up environment..."
-cp .env.production .env
+# 3. Ensure production environment exists but never overwrite the live file
+echo "Checking environment..."
+if [ ! -f .env ]; then
+    if [ -f .env.production ]; then
+        cp .env.production .env
+    else
+        echo "ERROR: .env is missing and .env.production is not available."
+        exit 1
+    fi
+fi
 
-# 4. Generate APP_KEY if not set
-if ! grep -q "APP_KEY=base64:" .env; then
-    echo "Generating APP_KEY..."
-    docker-compose run --rm app php artisan key:generate
+# 4. Refuse destructive APP_KEY regeneration during deploy
+if ! grep -q "^APP_KEY=base64:" .env; then
+    echo "ERROR: APP_KEY is missing in .env. Refusing to generate a new key during deployment."
+    exit 1
 fi
 
 # 5. Pull latest images
 echo "Pulling Docker images..."
 docker-compose pull
 
-# 6. Build images
-echo "Building Docker images..."
-docker-compose build --no-cache
-
-# 7. Start containers
-echo "Starting containers..."
-docker-compose up -d
+# 6. Build and start containers without tearing down named volumes
+echo "Building and starting containers..."
+docker-compose up -d --build --remove-orphans
 
 # 8. Wait for database to be ready
 echo "Waiting for database..."
@@ -48,6 +51,7 @@ docker-compose exec -T app php artisan migrate --force
 
 # 10. Clear and cache configuration
 echo "Caching configuration..."
+docker-compose exec -T app php artisan optimize:clear
 docker-compose exec -T app php artisan config:cache
 docker-compose exec -T app php artisan route:cache
 docker-compose exec -T app php artisan view:cache

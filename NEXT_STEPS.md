@@ -85,7 +85,7 @@ cd c:\Users\dingulwazi.zondo\Desktop\LARAVEL\first-app
 The script will:
 - ✅ Upload all files to server
 - ✅ Configure environment
-- ✅ Generate APP_KEY
+- ✅ Verify APP_KEY already exists
 - ✅ Start Docker containers
 - ✅ Run database migrations
 - ✅ Cache configuration
@@ -160,8 +160,8 @@ scp -r "c:\Users\dingulwazi.zondo\Desktop\LARAVEL\first-app\*" administrator@77.
 # 2. Configure  
 ssh administrator@77.93.154.83 "cd /var/www/simbisa && cp .env.production .env"
 
-# 3. Deploy
-ssh administrator@77.93.154.83 "cd /var/www/simbisa && docker-compose up -d --build"
+# 3. Verify APP_KEY and deploy
+ssh administrator@77.93.154.83 "cd /var/www/simbisa && grep '^APP_KEY=base64:' .env && docker-compose up -d --build && docker-compose exec -T app php artisan migrate --force && docker-compose exec -T app php artisan optimize:clear && docker-compose exec -T app php artisan config:cache"
 ```
 - More control
 - Better for debugging
@@ -313,6 +313,7 @@ For more help, check:
 - [ ] SSH connection works: `ssh administrator@77.93.154.83`
 - [ ] OpenSSH Client installed on Windows
 - [ ] `.env.production` is configured
+- [ ] `.env.production` contains a valid `APP_KEY=base64:...`
 - [ ] All application files are present
 - [ ] Read `QUICK_START.md`
 - [ ] Run `.\deploy.ps1`

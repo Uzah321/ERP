@@ -1,3 +1,41 @@
+x-app-environment: &app-environment
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_KEY: ${APP_KEY}
+  APP_URL: ${APP_URL:-http://localhost}
+
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${DB_DATABASE:-simbisa}
+  DB_USERNAME: ${DB_USERNAME:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:-secret}
+
+  CACHE_STORE: ${CACHE_STORE:-redis}
+  REDIS_HOST: redis
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+  REDIS_PORT: 6379
+
+  SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+  SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+  SESSION_ENCRYPT: ${SESSION_ENCRYPT:-false}
+
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+
+  LOG_CHANNEL: ${LOG_CHANNEL:-stack}
+  LOG_LEVEL: ${LOG_LEVEL:-debug}
+
+  MAIL_MAILER: ${MAIL_MAILER:-failover}
+  MAIL_HOST: ${MAIL_HOST:-smtp.sendgrid.net}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_SCHEME: ${MAIL_SCHEME:-tls}
+  MAIL_USERNAME: ${MAIL_USERNAME:-apikey}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@example.com}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Simbisa Asset Management}
+
+  VITE_API_BASE_URL: ${APP_URL:-http://localhost}
+
 services:
   # PostgreSQL Database
   postgres:
@@ -42,44 +80,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: simbisa_app
+    container_name: assetlinq_app
     restart: unless-stopped
     working_dir: /app
-    environment:
-      APP_ENV: ${APP_ENV:-production}
-      APP_DEBUG: ${APP_DEBUG:-false}
-      APP_KEY: ${APP_KEY}
-      APP_URL: ${APP_URL:-http://localhost}
-      
-      DB_CONNECTION: pgsql
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE:-simbisa}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-secret}
-      
-      CACHE_STORE: redis
-      REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
-      REDIS_PORT: 6379
-      
-      SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
-      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
-      SESSION_ENCRYPT: ${SESSION_ENCRYPT:-false}
-      
-      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
-      
-      LOG_CHANNEL: ${LOG_CHANNEL:-stack}
-      LOG_LEVEL: ${LOG_LEVEL:-debug}
-      
-      MAIL_MAILER: ${MAIL_MAILER:-log}
-      MAIL_HOST: ${MAIL_HOST:-smtp.mailtrap.io}
-      MAIL_PORT: ${MAIL_PORT:-465}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
-      
-      VITE_API_BASE_URL: ${APP_URL:-http://localhost}
+    environment: *app-environment
     
     volumes:
       - .:/app
@@ -99,6 +103,48 @@ services:
       - app-network
     
     command: php-fpm
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simbisa_worker
+    restart: unless-stopped
+    working_dir: /app
+    environment: *app-environment
+    volumes:
+      - .:/app
+      - storage_data:/app/storage
+      - bootstrap_cache:/app/bootstrap/cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=120
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simbisa_scheduler
+    restart: unless-stopped
+    working_dir: /app
+    environment: *app-environment
+    volumes:
+      - .:/app
+      - storage_data:/app/storage
+      - bootstrap_cache:/app/bootstrap/cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: php artisan schedule:work
 
   # Nginx Web Server
   nginx:
@@ -120,12 +166,16 @@ services:
 
 volumes:
   postgres_data:
+    name: simbisa_postgres_data
     driver: local
   redis_data:
+    name: simbisa_redis_data
     driver: local
   storage_data:
+    name: simbisa_storage_data
     driver: local
   bootstrap_cache:
+    name: simbisa_bootstrap_cache
     driver: local
 
 networks:

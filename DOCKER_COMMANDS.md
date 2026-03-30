@@ -109,8 +109,8 @@ docker compose exec app composer require vendor/package
 # Check service health
 docker compose ps
 
-# Inspect container
-docker inspect simbisa_app
+# Inspect current app container
+docker inspect $(docker compose ps -q app)
 
 # View resource usage
 docker stats
