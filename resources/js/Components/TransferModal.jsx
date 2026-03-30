@@ -1,11 +1,8 @@
-import Modal from '@/Components/Modal';
 import { useForm } from '@inertiajs/react';
-import { useState } from 'react';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
-import InputLabel from '@/Components/InputLabel';
-import InputError from '@/Components/InputError';
+import {
+    ComposedModal, ModalHeader, ModalBody, ModalFooter,
+    Select, SelectItem, TextArea, Button, FileUploader,
+} from '@carbon/react';
 
 export default function TransferModal({ asset, departments, locations, onClose }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -15,88 +12,77 @@ export default function TransferModal({ asset, departments, locations, onClose }
         document: null,
     });
 
-    const submit = (e) => {
-        e.preventDefault();
+    const submit = () => {
         post(route('transfers.store', asset.id), {
-            onSuccess: () => {
-                reset();
-                onClose();
-            },
+            onSuccess: () => { reset(); onClose(); },
         });
     };
 
     return (
-        <Modal show={true} onClose={onClose}>
-            <form onSubmit={submit} className="p-6">
-                <h2 className="text-lg font-medium text-gray-900">
-                    Transfer Asset: {asset.name} ({asset.barcode})
-                </h2>
+        <ComposedModal open onClose={onClose} size="sm">
+            <ModalHeader title={`Transfer Asset: ${asset.name} (${asset.barcode})`} />
+            <ModalBody>
+                <Select
+                    id="target_department_id"
+                    labelText="Target Department"
+                    value={data.target_department_id}
+                    onChange={(e) => setData('target_department_id', e.target.value)}
+                    required
+                    invalid={!!errors.target_department_id}
+                    invalidText={errors.target_department_id}
+                >
+                    <SelectItem value="" text="Select Department" />
+                    {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={String(dept.id)} text={dept.name} />
+                    ))}
+                </Select>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="target_department_id" value="Target Department" />
-                    <select
-                        id="target_department_id"
-                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                        value={data.target_department_id}
-                        onChange={(e) => setData('target_department_id', e.target.value)}
-                        required
-                    >
-                        <option value="">Select Department</option>
-                        {departments.map((dept) => (
-                            <option key={dept.id} value={dept.id}>{dept.name}</option>
-                        ))}
-                    </select>
-                    <InputError message={errors.target_department_id} className="mt-2" />
-                </div>
-
-                <div className="mt-4">
-                    <InputLabel htmlFor="target_location_id" value="Target Location" />
-                    <select
+                <div style={{ marginTop: '1rem' }}>
+                    <Select
                         id="target_location_id"
-                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        labelText="Target Location (Deploy)"
                         value={data.target_location_id}
                         onChange={(e) => setData('target_location_id', e.target.value)}
                         required
+                        invalid={!!errors.target_location_id}
+                        invalidText={errors.target_location_id}
                     >
-                        <option value="">Select Location</option>
+                        <SelectItem value="" text="Select Location" />
                         {locations.map((loc) => (
-                            <option key={loc.id} value={loc.id}>{loc.name}</option>
+                            <SelectItem key={loc.id} value={String(loc.id)} text={loc.name} />
                         ))}
-                    </select>
-                    <InputError message={errors.target_location_id} className="mt-2" />
+                    </Select>
                 </div>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="reason" value="Transfer Reason" />
-                    <textarea
+                <div style={{ marginTop: '1rem' }}>
+                    <TextArea
                         id="reason"
-                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        labelText="Transfer Reason"
                         value={data.reason}
                         onChange={(e) => setData('reason', e.target.value)}
+                        rows={3}
                         required
-                        rows="3"
-                    ></textarea>
-                    <InputError message={errors.reason} className="mt-2" />
-                </div>
-                
-                <div className="mt-4">
-                    <InputLabel htmlFor="document" value="Signed Document (PDF/Image) - Optional" />
-                    <input
-                        id="document"
-                        type="file"
-                        className="mt-1 block w-full text-sm text-gray-500"
-                        onChange={(e) => setData('document', e.target.files[0])}
+                        invalid={!!errors.reason}
+                        invalidText={errors.reason}
                     />
-                    <InputError message={errors.document} className="mt-2" />
                 </div>
 
-                <div className="mt-6 flex justify-end">
-                    <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
-                    <PrimaryButton className="ms-3" disabled={processing}>
-                        Request Transfer
-                    </PrimaryButton>
+                <div style={{ marginTop: '1rem' }}>
+                    <FileUploader
+                        labelTitle="Signed Document (PDF/Image) — Optional"
+                        labelDescription="Max file size: 10MB"
+                        buttonLabel="Add file"
+                        accept={['.pdf', '.png', '.jpg', '.jpeg']}
+                        onChange={(e) => setData('document', e.target.files[0])}
+                        invalid={!!errors.document}
+                        invalidText={errors.document}
+                    />
                 </div>
-            </form>
-        </Modal>
+            </ModalBody>
+            <ModalFooter>
+                <Button kind="secondary" onClick={onClose}>Cancel</Button>
+                <Button kind="primary" onClick={submit} disabled={processing}>Request Transfer</Button>
+            </ModalFooter>
+        </ComposedModal>
     );
 }

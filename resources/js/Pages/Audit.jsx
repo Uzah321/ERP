@@ -1,10 +1,20 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import PrimaryButton from '@/Components/PrimaryButton';
-import InputError from '@/Components/InputError';
+import {
+    Form,
+    TextInput,
+    Button,
+    Tag,
+    InlineNotification,
+    Table,
+    TableHead,
+    TableRow,
+    TableHeader,
+    TableBody,
+    TableCell,
+    Tile,
+} from '@carbon/react';
 
 export default function Audit({ auth, recent_audits }) {
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
@@ -14,7 +24,7 @@ export default function Audit({ auth, recent_audits }) {
     const inputRef = useRef();
 
     useEffect(() => {
-        inputRef.current.focus();
+        inputRef.current?.focus();
     }, []);
 
     const submit = (e) => {
@@ -26,7 +36,7 @@ export default function Audit({ auth, recent_audits }) {
                 reset('barcode');
                 clearErrors();
                 setTimeout(() => setSuccessMsg(''), 3000);
-                inputRef.current.focus();
+                inputRef.current?.focus();
             },
         });
     };
@@ -39,76 +49,90 @@ export default function Audit({ auth, recent_audits }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 flex flex-col md:flex-row gap-6">
-                    
-                    <div className="w-full md:w-1/3 bg-white p-6 shadow-sm sm:rounded-lg h-fit">
-                        <h3 className="text-lg font-bold mb-4">Scan Barcode / Serial Number</h3>
-                        <p className="text-sm text-gray-600 mb-6">Use a barcode scanner or manually type the asset barcode or serial number to verify physical presence.</p>
-                        
-                        {successMsg && (
-                            <div className="mb-4 p-3 bg-green-100 text-green-700 rounded rounded-md text-sm font-bold">
-                                {successMsg}
-                            </div>
-                        )}
 
-                        <form onSubmit={submit}>
-                            <div className="mb-4">
-                                <InputLabel htmlFor="barcode" value="Asset Barcode or Serial Number" />
+                    <div className="w-full md:w-1/3">
+                        <Tile>
+                            <h3 className="text-lg font-bold mb-2">Scan Barcode / Serial Number</h3>
+                            <p className="text-sm text-gray-600 mb-6">
+                                Use a barcode scanner or manually type the asset barcode or serial number
+                                to verify physical presence.
+                            </p>
+
+                            {successMsg && (
+                                <InlineNotification
+                                    kind="success"
+                                    title={successMsg}
+                                    lowContrast
+                                    hideCloseButton
+                                    className="mb-4"
+                                />
+                            )}
+
+                            <Form onSubmit={submit}>
                                 <TextInput
                                     id="barcode"
-                                    type="text"
-                                    className="mt-1 block w-full text-lg p-3"
+                                    labelText="Asset Barcode or Serial Number"
                                     value={data.barcode}
                                     onChange={(e) => setData('barcode', e.target.value)}
                                     ref={inputRef}
                                     autoComplete="off"
                                     placeholder="Scan or type barcode / serial number"
+                                    invalid={!!errors.barcode}
+                                    invalidText={errors.barcode}
+                                    className="mb-4"
                                 />
-                                <InputError message={errors.barcode} className="mt-2" />
-                            </div>
-                            <PrimaryButton className="w-full justify-center py-3 text-lg" disabled={processing}>
-                                Verify Asset
-                            </PrimaryButton>
-                        </form>
+                                <Button type="submit" disabled={processing} className="w-full">
+                                    Verify Asset
+                                </Button>
+                            </Form>
+                        </Tile>
                     </div>
 
-                    <div className="w-full md:w-2/3 bg-white p-6 shadow-sm sm:rounded-lg">
-                        <h3 className="text-lg font-bold mb-4 border-b pb-2">Audited Today</h3>
-                        {recent_audits.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                        <tr>
-                                            <th className="py-2 px-3">Serial Number</th>
-                                            <th className="py-2 px-3">Barcode</th>
-                                            <th className="py-2 px-3">Name</th>
-                                            <th className="py-2 px-3">Location</th>
-                                            <th className="py-2 px-3">Status</th>
-                                            <th className="py-2 px-3">Time</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {recent_audits.map(asset => (
-                                            <tr key={asset.id} className="border-b">
-                                                <td className="py-2 px-3 font-mono font-bold text-indigo-600">{asset.serial_number || '-'}</td>
-                                                <td className="py-2 px-3 font-mono text-gray-700">{asset.barcode}</td>
-                                                <td className="py-2 px-3">{asset.name}</td>
-                                                <td className="py-2 px-3">{asset.location?.name}</td>
-                                                <td className="py-2 px-3">
-                                                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Verified</span>
-                                                </td>
-                                                <td className="py-2 px-3 text-xs text-gray-500">
+                    <div className="w-full md:w-2/3">
+                        <Tile>
+                            <h3 className="text-lg font-bold mb-4 border-b pb-2">Audited Today</h3>
+                            {recent_audits.length > 0 ? (
+                                <Table size="sm">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableHeader>Serial Number</TableHeader>
+                                            <TableHeader>Barcode</TableHeader>
+                                            <TableHeader>Name</TableHeader>
+                                            <TableHeader>Location</TableHeader>
+                                            <TableHeader>Status</TableHeader>
+                                            <TableHeader>Time</TableHeader>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {recent_audits.map((asset) => (
+                                            <TableRow key={asset.id}>
+                                                <TableCell>
+                                                    <span className="font-mono font-bold text-blue-700">
+                                                        {asset.serial_number || '-'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="font-mono">{asset.barcode}</span>
+                                                </TableCell>
+                                                <TableCell>{asset.name}</TableCell>
+                                                <TableCell>{asset.location?.name}</TableCell>
+                                                <TableCell>
+                                                    <Tag type="green">Verified</Tag>
+                                                </TableCell>
+                                                <TableCell>
                                                     {new Date(asset.last_audited_at).toLocaleTimeString()}
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <p className="text-gray-500 text-center py-8">No assets have been audited today.</p>
-                        )}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <p className="text-gray-500 text-center py-8">
+                                    No assets have been audited today.
+                                </p>
+                            )}
+                        </Tile>
                     </div>
-
                 </div>
             </div>
         </AuthenticatedLayout>

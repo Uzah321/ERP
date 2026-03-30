@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
+import {
+    Button, InlineNotification,
+    Modal, TextInput, TextArea,
+    Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
+} from '@carbon/react';
+import { Add, Edit, TrashCan } from '@carbon/icons-react';
 
 export default function Locations({ auth, locations, flash }) {
     const [modal, setModal] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmTarget, setConfirmTarget] = useState(null);
 
     const { data, setData, post, put, processing, errors, reset } = useForm({ name: '', address: '' });
 
@@ -21,66 +29,118 @@ export default function Locations({ auth, locations, flash }) {
     };
 
     const handleDelete = (loc) => {
-        if (confirm(`Delete location "${loc.name}"? Locations with assigned assets cannot be deleted.`)) {
-            router.delete(route('admin.locations.destroy', loc.id));
-        }
+        setConfirmTarget(loc);
+        setConfirmOpen(true);
+    };
+
+    const confirmDelete = () => {
+        router.delete(route('admin.locations.destroy', confirmTarget.id));
+        setConfirmOpen(false);
+        setConfirmTarget(null);
     };
 
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Asset Locations" />
 
-            <div className="flex-1 flex flex-col bg-slate-50 h-full overflow-hidden text-sm p-6">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold">Manage Locations</h2>
-                    <button onClick={openCreate} className="bg-purple-600 text-white px-4 py-2 rounded shadow">+ New Location</button>
-                </div>
-
-                {flash?.success && <div className="mb-4 bg-green-100 text-green-700 p-3 rounded">{flash.success}</div>}
-                {Object.keys(errors).length > 0 && <div className="mb-4 bg-red-100 text-red-700 p-3 rounded">{Object.values(errors)[0]}</div>}
-
-                <div className="bg-white rounded shadow text-left overflow-auto">
-                    <table className="w-full">
-                        <thead className="bg-slate-100/50">
-                            <tr>
-                                <th className="p-4 border-b">Name</th>
-                                <th className="p-4 border-b">Address / Details</th>
-                                <th className="p-4 w-24 border-b text-center">Assets</th>
-                                <th className="p-4 w-24 border-b text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {locations.map(loc => (
-                                <tr key={loc.id} className="border-b">
-                                    <td className="p-4 font-semibold">{loc.name}</td>
-                                    <td className="p-4 text-slate-500">{loc.address || '-'}</td>
-                                    <td className="p-4 text-center">{loc.assets_count || 0}</td>
-                                    <td className="p-4 text-right space-x-2">
-                                        <button onClick={() => openEdit(loc)} className="text-blue-500 hover:underline">Edit</button>
-                                        <button onClick={() => handleDelete(loc)} className="text-red-500 hover:underline hover:text-red-700 ml-2">Del</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {modal && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-                        <div className="bg-white p-6 rounded shadow-xl w-96">
-                            <h3 className="font-bold mb-4">{modal === 'create' ? 'New' : 'Edit'} Location</h3>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div><input className="w-full border p-2 rounded" placeholder="Location Name" value={data.name} onChange={e => setData('name', e.target.value)} required /></div>
-                                <div><textarea className="w-full border p-2 rounded" placeholder="Address / Description" value={data.address} onChange={e => setData('address', e.target.value)} /></div>
-                                <div className="flex justify-end space-x-2">
-                                    <button type="button" onClick={closeModal} className="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
-                                    <button type="submit" disabled={processing} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Save</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+            <div className="p-6 space-y-4">
+                {flash?.success && (
+                    <InlineNotification
+                        kind="success"
+                        title="Success"
+                        subtitle={flash.success}
+                        lowContrast
+                        onClose={() => {}}
+                    />
                 )}
+                {Object.keys(errors).length > 0 && (
+                    <InlineNotification
+                        kind="error"
+                        title="Error"
+                        subtitle={Object.values(errors)[0]}
+                        lowContrast
+                        onClose={() => {}}
+                    />
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Manage Locations</h2>
+                    <Button renderIcon={Add} onClick={openCreate} kind="primary" size="sm">
+                        New Location
+                    </Button>
+                </div>
+
+                <Table size="lg" useZebraStyles>
+                    <TableHead>
+                        <TableRow>
+                            <TableHeader>Name</TableHeader>
+                            <TableHeader>Address / Details</TableHeader>
+                            <TableHeader>Assets</TableHeader>
+                            <TableHeader>Actions</TableHeader>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {locations.map(loc => (
+                            <TableRow key={loc.id}>
+                                <TableCell><strong>{loc.name}</strong></TableCell>
+                                <TableCell>{loc.address || '—'}</TableCell>
+                                <TableCell>{loc.assets_count || 0}</TableCell>
+                                <TableCell>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <Button kind="ghost" size="sm" renderIcon={Edit} iconDescription="Edit" onClick={() => openEdit(loc)} hasIconOnly />
+                                        <Button kind="danger--ghost" size="sm" renderIcon={TrashCan} iconDescription="Delete" onClick={() => handleDelete(loc)} hasIconOnly />
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </div>
+
+            {/* Create / Edit Modal */}
+            <Modal
+                open={!!modal}
+                modalHeading={modal === 'create' ? 'New Location' : 'Edit Location'}
+                primaryButtonText={processing ? 'Saving…' : 'Save'}
+                secondaryButtonText="Cancel"
+                onRequestClose={closeModal}
+                onRequestSubmit={handleSubmit}
+                primaryButtonDisabled={processing}
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <TextInput
+                        id="loc-name"
+                        labelText="Location Name"
+                        value={data.name}
+                        onChange={e => setData('name', e.target.value)}
+                        invalid={!!errors.name}
+                        invalidText={errors.name}
+                        required
+                    />
+                    <TextArea
+                        id="loc-address"
+                        labelText="Address / Description"
+                        value={data.address}
+                        onChange={e => setData('address', e.target.value)}
+                        rows={3}
+                    />
+                </div>
+            </Modal>
+
+            {/* Delete confirmation modal */}
+            <Modal
+                open={confirmOpen}
+                danger
+                modalHeading="Delete Location"
+                primaryButtonText="Delete"
+                secondaryButtonText="Cancel"
+                onRequestClose={() => { setConfirmOpen(false); setConfirmTarget(null); }}
+                onRequestSubmit={confirmDelete}
+            >
+                {confirmTarget && (
+                    <p>Delete location &ldquo;<strong>{confirmTarget.name}</strong>&rdquo;? Locations with assigned assets cannot be deleted.</p>
+                )}
+            </Modal>
         </AuthenticatedLayout>
     );
 }

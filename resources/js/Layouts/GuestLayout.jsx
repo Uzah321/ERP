@@ -1,10 +1,6 @@
 import { Link } from '@inertiajs/react';
-
-const checkIcon = (
-    <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-);
+import { Theme, Tile } from '@carbon/react';
+import { Checkmark } from '@carbon/icons-react';
 
 const highlights = [
     'Full procurement chain tracking',
@@ -15,69 +11,92 @@ const highlights = [
 
 export default function GuestLayout({ children }) {
     return (
-        <div className="min-h-screen flex">
+        <div style={{ minHeight: '100vh', display: 'flex' }}>
+            {/* Left brand panel — Carbon g100 dark theme */}
+            <Theme theme="g100">
+                <div
+                    className="brand-panel"
+                    style={{
+                        display: 'none',
+                        width: '45%',
+                        background: 'var(--cds-background)',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        padding: '3rem',
+                    }}
+                >
+                    <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+                        <div style={{
+                            width: '2.25rem', height: '2.25rem', borderRadius: '4px',
+                            background: 'var(--cds-interactive)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                        </div>
+                        <span style={{ color: 'var(--cds-text-primary)', fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
+                            ASSET<span style={{ fontWeight: 300, color: 'var(--cds-link-primary)' }}>LINQ</span>
+                        </span>
+                    </Link>
 
-            {/* ── Left brand panel ── */}
-            <div className="hidden lg:flex lg:w-5/12 xl:w-1/2 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex-col justify-between p-12">
-                {/* Logo */}
-                <Link href="/" className="flex items-center gap-3 w-fit">
-                    <div className="w-9 h-9 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40">
-                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round"
-                                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
+                    <div>
+                        <h2 style={{ color: 'var(--cds-text-primary)', fontSize: '2.25rem', fontWeight: 700, lineHeight: 1.2, margin: 0 }}>
+                            Enterprise Asset<br />Management,<br />
+                            <span style={{ color: 'var(--cds-link-primary)', fontWeight: 300 }}>Simplified.</span>
+                        </h2>
+                        <p style={{ color: 'var(--cds-text-secondary)', marginTop: '1rem', fontSize: '0.875rem', lineHeight: 1.6, maxWidth: '22rem' }}>
+                            Track, manage, and optimise your entire asset portfolio from procurement to disposal — all in one place.
+                        </p>
+                        <ul style={{ marginTop: '2rem', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {highlights.map((item) => (
+                                <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
+                                    <Checkmark size={16} style={{ color: 'var(--cds-link-primary)', flexShrink: 0 }} />
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
-                    <span className="text-white text-xl font-bold tracking-tight">
-                        ASSET<span className="text-indigo-400">LINQ</span>
-                    </span>
-                </Link>
 
-                {/* Tagline */}
-                <div>
-                    <h2 className="text-white text-4xl font-extrabold leading-tight">
-                        Enterprise Asset<br />Management,<br />
-                        <span className="text-indigo-400">Simplified.</span>
-                    </h2>
-                    <p className="text-slate-400 mt-4 text-base leading-relaxed max-w-sm">
-                        Track, manage, and optimise your entire asset portfolio from
-                        procurement to disposal — all in one place.
+                    <p style={{ color: 'var(--cds-text-disabled)', fontSize: '0.75rem' }}>
+                        &copy; {new Date().getFullYear()} ASSETLINQ. All rights reserved.
                     </p>
-
-                    <ul className="mt-8 space-y-3">
-                        {highlights.map((item) => (
-                            <li key={item} className="flex items-center gap-3 text-slate-300 text-sm">
-                                {checkIcon}
-                                {item}
-                            </li>
-                        ))}
-                    </ul>
                 </div>
+            </Theme>
 
-                <p className="text-slate-600 text-xs">
-                    &copy; {new Date().getFullYear()} ASSETLINQ. All rights reserved.
-                </p>
-            </div>
-
-            {/* ── Right form panel ── */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-gray-50">
-
-                {/* Mobile logo */}
-                <Link href="/" className="lg:hidden flex items-center gap-3 mb-8">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round"
-                                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            {/* Right form panel */}
+            <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3rem 1.5rem',
+                background: 'var(--cds-background)',
+            }}>
+                {/* Mobile logo — hidden on large screens */}
+                <Link
+                    href="/"
+                    className="brand-panel-mobile"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', marginBottom: '2rem' }}
+                >
+                    <div style={{
+                        width: '2rem', height: '2rem', borderRadius: '4px',
+                        background: 'var(--cds-interactive)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                     </div>
-                    <span className="text-slate-800 text-lg font-bold tracking-tight">
-                        ASSET<span className="text-indigo-600">LINQ</span>
+                    <span style={{ color: 'var(--cds-text-primary)', fontSize: '1.125rem', fontWeight: 700 }}>
+                        ASSET<span style={{ fontWeight: 300, color: 'var(--cds-link-primary)' }}>LINQ</span>
                     </span>
                 </Link>
 
-                {/* Form card */}
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200 px-8 py-10">
+                <Tile style={{ width: '100%', maxWidth: '26rem', padding: '2.5rem 2rem' }}>
                     {children}
-                </div>
+                </Tile>
             </div>
         </div>
     );

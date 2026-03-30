@@ -1,12 +1,20 @@
-export default function Checkbox({ className = '', ...props }) {
+import { Checkbox as CarbonCheckbox } from '@carbon/react';
+
+export default function Checkbox({ className = '', onChange, id, name, ...props }) {
+    const handleChange = (_, { checked }) => {
+        if (onChange) {
+            onChange({ target: { checked } });
+        }
+    };
+
     return (
-        <input
+        <CarbonCheckbox
             {...props}
-            type="checkbox"
-            className={
-                'rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 ' +
-                className
-            }
+            id={id || name || 'checkbox'}
+            labelText=""
+            hideLabel
+            onChange={handleChange}
+            className={className}
         />
     );
 }

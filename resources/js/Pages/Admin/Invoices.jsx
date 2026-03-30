@@ -1,12 +1,28 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
+import {
+    Button, InlineNotification, Tag,
+    Modal, TextInput, TextArea,
+    Select, SelectItem,
+    Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
+    TableToolbar, TableToolbarContent, TableToolbarSearch,
+    Pagination,
+} from '@carbon/react';
+import { Add, CheckmarkFilled } from '@carbon/icons-react';
+
+const statusTagType = (s) => {
+    if (s === 'paid') return 'green';
+    if (s === 'pending') return 'blue';
+    if (s === 'overdue') return 'red';
+    return 'gray';
+};
 
 export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
     const [search, setSearch]           = useState(filters?.search ?? '');
     const [statusFilter, setStatusFilter] = useState(filters?.status ?? '');
     const [showForm, setShowForm]       = useState(false);
-    const [payModal, setPayModal]       = useState(null); // invoice object
+    const [payModal, setPayModal]       = useState(null);
     const [form, setForm] = useState({
         purchase_order_id: '',
         invoice_number: '',
@@ -56,242 +72,183 @@ export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
         });
     }
 
-    const statusBadge = (s) => {
-        const map = {
-            pending:  'bg-yellow-100 text-yellow-800',
-            paid:     'bg-green-100 text-green-800',
-            overdue:  'bg-red-100 text-red-800',
-            disputed: 'bg-orange-100 text-orange-800',
-        };
-        return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${map[s] ?? 'bg-gray-100 text-gray-700'}`}>{s}</span>;
-    };
-
     return (
         <AuthenticatedLayout>
             <Head title="Invoices & Payments" />
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-4">
 
-                {/* Flash */}
                 {flash?.success && (
-                    <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">{flash.success}</div>
+                    <InlineNotification kind="success" title="Success" subtitle={flash.success} lowContrast onClose={() => {}} />
                 )}
                 {flash?.error && (
                     <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">{flash.error}</div>
                 )}
 
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-bold text-gray-800">Invoices &amp; Payments</h1>
-                    <button onClick={() => setShowForm(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-                        + Record Invoice
-                    </button>
-                </div>
-
-                {/* Uninvoiced POs alert */}
                 {uninvoicedPos.length > 0 && (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
-                        <strong>{uninvoicedPos.length}</strong> delivered PO{uninvoicedPos.length > 1 ? 's' : ''} awaiting invoice: {uninvoicedPos.map(p => `PO #${p.po_number}`).join(', ')}
-                    </div>
+                    <InlineNotification
+                        kind="warning"
+                        title={`${uninvoicedPos.length} delivered PO${uninvoicedPos.length > 1 ? 's' : ''} awaiting invoice:`}
+                        subtitle={uninvoicedPos.map(p => `PO #${p.po_number}`).join(', ')}
+                        lowContrast
+                        onClose={() => {}}
+                    />
                 )}
 
-                {/* ── INVOICE FORM ──────────────────────────────────────────── */}
-                {showForm && (
-                    <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-blue-800">Record Invoice</h2>
-                            <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
-                        </div>
-                        <form onSubmit={submitInvoice} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Purchase Order *</label>
-                                    <select value={form.purchase_order_id} onChange={e => selectPo(e.target.value)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" required>
-                                        <option value="">— Select PO —</option>
-                                        {uninvoicedPos.map(p => (
-                                            <option key={p.id} value={p.id}>PO #{p.po_number} · {p.vendor_name} · {p.rtp_reference}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Invoice Number *</label>
-                                    <input type="text" value={form.invoice_number} placeholder="e.g. INV-2026-0042"
-                                        onChange={e => setForm(f => ({ ...f, invoice_number: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" required />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Invoice Date *</label>
-                                    <input type="date" value={form.invoice_date} onChange={e => setForm(f => ({ ...f, invoice_date: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" required />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Due Date</label>
-                                    <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Amount (excl. VAT, USD) *</label>
-                                    <input type="number" step="0.01" min="0" value={form.amount}
-                                        onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" required />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">VAT Amount (USD)</label>
-                                    <input type="number" step="0.01" min="0" value={form.vat_amount}
-                                        onChange={e => setForm(f => ({ ...f, vat_amount: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Notes</label>
-                                <textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none" />
-                            </div>
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={() => setShowForm(false)}
-                                    className="px-5 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                                    Cancel
-                                </button>
-                                <button type="submit"
-                                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors">
-                                    Save Invoice
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Invoices &amp; Payments</h1>
+                    <Button renderIcon={Add} onClick={() => setShowForm(true)} kind="primary" size="sm">Record Invoice</Button>
+                </div>
+
+                {/* Filters */}
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                    <TableToolbar style={{ flex: 1 }}>
+                        <TableToolbarContent>
+                            <TableToolbarSearch
+                                value={search}
+                                onChange={e => doSearch(e.target.value, statusFilter)}
+                                placeholder="Search invoice #, vendor or CAPEX ref…"
+                                persistent
+                            />
+                        </TableToolbarContent>
+                    </TableToolbar>
+                    <Select
+                        id="inv-status-filter"
+                        labelText=""
+                        hideLabel
+                        value={statusFilter}
+                        onChange={e => doSearch(search, e.target.value)}
+                        style={{ minWidth: '160px' }}
+                    >
+                        <SelectItem value="" text="All Statuses" />
+                        <SelectItem value="pending" text="Pending" />
+                        <SelectItem value="paid" text="Paid" />
+                        <SelectItem value="overdue" text="Overdue" />
+                        <SelectItem value="disputed" text="Disputed" />
+                    </Select>
+                </div>
+
+                {invoices.data.length === 0 ? (
+                    <p style={{ color: '#9ca3af', fontStyle: 'italic', fontSize: '0.875rem' }}>No invoices recorded yet.</p>
+                ) : (
+                    <>
+                        <Table size="lg" useZebraStyles>
+                            <TableHead>
+                                <TableRow>
+                                    <TableHeader>Invoice #</TableHeader>
+                                    <TableHeader>PO #</TableHeader>
+                                    <TableHeader>Vendor</TableHeader>
+                                    <TableHeader>CAPEX Ref</TableHeader>
+                                    <TableHeader>Date</TableHeader>
+                                    <TableHeader>Due</TableHeader>
+                                    <TableHeader>Amount (USD)</TableHeader>
+                                    <TableHeader>VAT (USD)</TableHeader>
+                                    <TableHeader>PO Match</TableHeader>
+                                    <TableHeader>Status</TableHeader>
+                                    <TableHeader>Action</TableHeader>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {invoices.data.map(inv => (
+                                    <TableRow key={inv.id}>
+                                        <TableCell><code>{inv.invoice_number}</code></TableCell>
+                                        <TableCell><code>{inv.po_number}</code></TableCell>
+                                        <TableCell>{inv.vendor_name}</TableCell>
+                                        <TableCell><small>{inv.rtp_reference}</small></TableCell>
+                                        <TableCell>{inv.invoice_date}</TableCell>
+                                        <TableCell>{inv.due_date || '—'}</TableCell>
+                                        <TableCell><strong>${Number(inv.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></TableCell>
+                                        <TableCell>${Number(inv.vat_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                                        <TableCell>
+                                            {inv.amount_mismatch
+                                                ? <Tag type="red" size="sm">Mismatch</Tag>
+                                                : <Tag type="green" size="sm">Match</Tag>
+                                            }
+                                        </TableCell>
+                                        <TableCell>
+                                            <Tag type={statusTagType(inv.status)} size="sm">{inv.status}</Tag>
+                                        </TableCell>
+                                        <TableCell>
+                                            {inv.status !== 'paid' ? (
+                                                <Button
+                                                    kind="primary"
+                                                    size="sm"
+                                                    renderIcon={CheckmarkFilled}
+                                                    onClick={() => { setPayModal(inv); setPayForm({ paid_at: new Date().toISOString().slice(0, 10), payment_reference: '', payment_method: 'EFT' }); }}
+                                                >
+                                                    Mark Paid
+                                                </Button>
+                                            ) : (
+                                                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Paid {inv.paid_at} via {inv.payment_method}</span>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        {invoices.last_page > 1 && (
+                            <Pagination
+                                totalItems={invoices.total}
+                                pageSize={invoices.per_page}
+                                page={invoices.current_page}
+                                pageSizes={[15, 25, 50]}
+                                onChange={({ page }) => router.get(route('invoices.index'), { page, search, status: statusFilter })}
+                            />
+                        )}
+                    </>
                 )}
 
-                {/* ── INVOICE TABLE ─────────────────────────────────────────── */}
-                <div>
-                    {/* Filters */}
-                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                        <input type="text" placeholder="Search invoice #, vendor or CAPEX ref…" value={search}
-                            onChange={e => doSearch(e.target.value, statusFilter)}
-                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-72 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                        <select value={statusFilter} onChange={e => doSearch(search, e.target.value)}
-                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
-                            <option value="">All Statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                            <option value="overdue">Overdue</option>
-                            <option value="disputed">Disputed</option>
-                        </select>
-                    </div>
-
-                    {invoices.data.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic">No invoices recorded yet.</p>
-                    ) : (
-                        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-                            <table className="min-w-full text-sm">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                            {['Invoice #', 'PO #', 'Vendor', 'CAPEX Ref', 'Date', 'Due', 'Amount (USD)', 'VAT (USD)', 'PO Match', 'Status', 'Action'].map(h => (
-                                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {invoices.data.map(inv => (
-                                        <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-gray-800">{inv.invoice_number}</td>
-                                            <td className="px-4 py-3 font-mono">{inv.po_number}</td>
-                                            <td className="px-4 py-3 text-gray-700">{inv.vendor_name}</td>
-                                            <td className="px-4 py-3 text-gray-600 text-xs">{inv.rtp_reference}</td>
-                                            <td className="px-4 py-3 text-gray-600">{inv.invoice_date}</td>
-                                            <td className="px-4 py-3 text-gray-600">{inv.due_date || '—'}</td>
-                                            <td className="px-4 py-3 font-semibold">${Number(inv.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                            <td className="px-4 py-3 text-gray-600">${Number(inv.vat_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                            <td className="px-4 py-3">
-                                                {inv.amount_mismatch
-                                                    ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800" title={`Invoice $${Number(inv.amount).toFixed(2)} ≠ PO net $${Number(inv.po_total_amount).toFixed(2)}`}>⚠ Mismatch</span>
-                                                    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">✓ Match</span>
-                                                }
-                                            </td>
-                                            <td className="px-4 py-3">{statusBadge(inv.status)}</td>
-                                            <td className="px-4 py-3">
-                                                {inv.status !== 'paid' && (
-                                                    <button onClick={() => { setPayModal(inv); setPayForm({ paid_at: new Date().toISOString().slice(0, 10), payment_reference: '', payment_method: 'EFT' }); }}
-                                                        className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors">
-                                                        Mark Paid
-                                                    </button>
-                                                )}
-                                                {inv.status === 'paid' && (
-                                                    <span className="text-xs text-gray-400">Paid {inv.paid_at} via {inv.payment_method}</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Pagination */}
-                    {invoices.links?.length > 3 && (
-                        <div className="flex justify-center mt-4 gap-1">
-                            {invoices.links.map((link, i) => (
-                                link.url ? (
-                                    <Link key={i} href={link.url}
-                                        className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ) : (
-                                    <span key={i} className="px-3 py-1.5 rounded text-xs border border-gray-200 text-gray-300"
-                                        dangerouslySetInnerHTML={{ __html: link.label }} />
-                                )
+                {/* Record Invoice Modal */}
+                <Modal
+                    open={showForm}
+                    modalHeading="Record Invoice"
+                    primaryButtonText="Save Invoice"
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => setShowForm(false)}
+                    onRequestSubmit={submitInvoice}
+                    size="lg"
+                >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <Select id="inv-po" labelText="Purchase Order *" value={form.purchase_order_id} onChange={e => selectPo(e.target.value)} required>
+                            <SelectItem value="" text="— Select PO —" />
+                            {uninvoicedPos.map(p => (
+                                <SelectItem key={p.id} value={p.id} text={`PO #${p.po_number} · ${p.vendor_name} · ${p.rtp_reference}`} />
                             ))}
+                        </Select>
+                        <TextInput id="inv-number" labelText="Invoice Number *" placeholder="e.g. INV-2026-0042" value={form.invoice_number} onChange={e => setForm(f => ({ ...f, invoice_number: e.target.value }))} required />
+                        <TextInput id="inv-date" labelText="Invoice Date *" type="date" value={form.invoice_date} onChange={e => setForm(f => ({ ...f, invoice_date: e.target.value }))} required />
+                        <TextInput id="inv-due" labelText="Due Date" type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
+                        <TextInput id="inv-amount" labelText="Amount (excl. VAT, USD) *" type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required />
+                        <TextInput id="inv-vat" labelText="VAT Amount (USD)" type="number" step="0.01" min="0" value={form.vat_amount} onChange={e => setForm(f => ({ ...f, vat_amount: e.target.value }))} />
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <TextArea id="inv-notes" labelText="Notes" rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* Mark Paid Modal */}
+                <Modal
+                    open={!!payModal}
+                    modalHeading="Mark Invoice as Paid"
+                    primaryButtonText="Confirm Payment"
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => setPayModal(null)}
+                    onRequestSubmit={submitPayment}
+                >
+                    {payModal && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <p style={{ fontSize: '0.875rem' }}>Invoice <strong>{payModal.invoice_number}</strong> — ${Number(payModal.amount).toLocaleString()} + VAT</p>
+                            <TextInput id="pay-date" labelText="Payment Date *" type="date" value={payForm.paid_at} onChange={e => setPayForm(f => ({ ...f, paid_at: e.target.value }))} required />
+                            <Select id="pay-method" labelText="Payment Method" value={payForm.payment_method} onChange={e => setPayForm(f => ({ ...f, payment_method: e.target.value }))}>
+                                <SelectItem value="EFT" text="EFT" />
+                                <SelectItem value="Cheque" text="Cheque" />
+                                <SelectItem value="Cash" text="Cash" />
+                                <SelectItem value="Card" text="Card" />
+                            </Select>
+                            <TextInput id="pay-ref" labelText="Payment Reference" placeholder="e.g. TRN-00123" value={payForm.payment_reference} onChange={e => setPayForm(f => ({ ...f, payment_reference: e.target.value }))} />
                         </div>
                     )}
-                </div>
-
+                </Modal>
             </div>
-
-            {/* ── PAY MODAL ──────────────────────────────────────────────── */}
-            {payModal && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-gray-800">Mark Invoice as Paid</h2>
-                            <button onClick={() => setPayModal(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-4">Invoice <strong>{payModal.invoice_number}</strong> — ${Number(payModal.amount).toLocaleString()} + VAT</p>
-                        <form onSubmit={submitPayment} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Payment Date *</label>
-                                <input type="date" value={payForm.paid_at} onChange={e => setPayForm(f => ({ ...f, paid_at: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" required />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Payment Method</label>
-                                <select value={payForm.payment_method} onChange={e => setPayForm(f => ({ ...f, payment_method: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
-                                    <option>EFT</option>
-                                    <option>Cheque</option>
-                                    <option>Cash</option>
-                                    <option>Card</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Payment Reference</label>
-                                <input type="text" value={payForm.payment_reference} placeholder="e.g. TRN-00123"
-                                    onChange={e => setPayForm(f => ({ ...f, payment_reference: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                            </div>
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button type="button" onClick={() => setPayModal(null)}
-                                    className="px-5 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                                    Cancel
-                                </button>
-                                <button type="submit"
-                                    className="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors">
-                                    Confirm Payment
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </AuthenticatedLayout>
     );
 }

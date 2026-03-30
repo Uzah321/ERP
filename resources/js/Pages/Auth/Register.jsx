@@ -1,32 +1,32 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import {
+    Form,
+    TextInput,
+    PasswordInput,
+    Select,
+    SelectItem,
+    Button,
+    InlineNotification,
+} from '@carbon/react';
+import { CheckmarkFilled, Email } from '@carbon/icons-react';
 
 function SuccessPanel() {
     return (
         <div className="text-center py-4">
-            {/* Checkmark circle */}
-            <div className="mx-auto mb-5 flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
-                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
+            <div className="mx-auto mb-5 flex items-center justify-center w-16 h-16 rounded-full" style={{ background: 'var(--cds-layer-01)' }}>
+                <CheckmarkFilled size={32} style={{ color: 'var(--cds-support-success)' }} />
             </div>
 
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Account Created!</h2>
-            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--cds-text-primary)' }}>Account Created!</h2>
+            <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--cds-text-secondary)' }}>
                 Your ASSETLINQ account has been set up successfully.<br />
                 We&apos;ve sent a welcome email to your inbox with a login link.
             </p>
 
-            {/* Email hint box */}
-            <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-left mb-8">
-                <svg className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                </svg>
-                <p className="text-sm text-indigo-700 leading-relaxed">
+            <div className="flex items-start gap-3 px-4 py-3 text-left mb-8" style={{ background: 'var(--cds-layer-01)', border: '1px solid var(--cds-border-subtle)' }}>
+                <Email size={20} className="shrink-0 mt-0.5" style={{ color: 'var(--cds-link-primary)' }} />
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--cds-link-primary)' }}>
                     Check your inbox for an email from <strong>ASSETLINQ</strong> with a{' '}
                     <strong>Log In to ASSETLINQ</strong> button inside.
                 </p>
@@ -34,12 +34,13 @@ function SuccessPanel() {
 
             <Link
                 href={route('login')}
-                className="inline-block w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition text-center"
+                className="inline-block w-full px-6 py-3 font-semibold text-sm transition text-center"
+                style={{ background: 'var(--cds-interactive)', color: 'var(--cds-text-inverse)' }}
             >
                 Go to Login
             </Link>
 
-            <p className="mt-4 text-xs text-slate-400">
+            <p className="mt-4 text-xs" style={{ color: 'var(--cds-text-secondary)' }}>
                 Didn&apos;t receive the email? Check your spam folder or contact your administrator.
             </p>
         </div>
@@ -59,7 +60,6 @@ export default function Register({ departments }) {
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route('register'), {
             onFinish: () => reset('password', 'password_confirmation'),
         });
@@ -74,129 +74,98 @@ export default function Register({ departments }) {
             ) : (
                 <>
                     <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-slate-800">Create an account</h1>
-                        <p className="text-sm text-slate-500 mt-1">Join ASSETLINQ to manage your assets</p>
+                        <h1 className="text-2xl font-bold" style={{ color: 'var(--cds-text-primary)' }}>Create an account</h1>
+                        <p className="text-sm mt-1" style={{ color: 'var(--cds-text-secondary)' }}>Join ASSETLINQ to manage your assets</p>
                     </div>
 
-                    <form onSubmit={submit}>
-                        <div>
-                            <InputLabel htmlFor="name" value="Name" />
+                    <Form onSubmit={submit}>
+                        <TextInput
+                            id="name"
+                            labelText="Name"
+                            value={data.name}
+                            autoComplete="name"
+                            autoFocus
+                            onChange={(e) => setData('name', e.target.value)}
+                            invalid={!!errors.name}
+                            invalidText={errors.name}
+                            required
+                            className="mb-4"
+                        />
 
-                            <TextInput
-                                id="name"
-                                name="name"
-                                value={data.name}
-                                className="mt-1 block w-full"
-                                autoComplete="name"
-                                isFocused={true}
-                                onChange={(e) => setData('name', e.target.value)}
-                                required
-                            />
+                        <TextInput
+                            id="email"
+                            type="email"
+                            labelText="Email"
+                            value={data.email}
+                            autoComplete="username"
+                            onChange={(e) => setData('email', e.target.value)}
+                            invalid={!!errors.email}
+                            invalidText={errors.email}
+                            required
+                            className="mb-4"
+                        />
 
-                            <InputError message={errors.name} className="mt-2" />
-                        </div>
+                        <Select
+                            id="department_id"
+                            labelText="Department"
+                            value={data.department_id}
+                            onChange={(e) => setData('department_id', e.target.value)}
+                            invalid={!!errors.department_id}
+                            invalidText={errors.department_id}
+                            required
+                            className="mb-4"
+                        >
+                            <SelectItem value="" text="Select a Department" />
+                            {departments && departments.map((dept) => (
+                                <SelectItem key={dept.id} value={dept.id} text={dept.name} />
+                            ))}
+                        </Select>
 
-                        <div className="mt-4">
-                            <InputLabel htmlFor="email" value="Email" />
+                        {(!departments || departments.length === 0) && (
+                            <p className="text-sm mb-4" style={{ color: 'var(--cds-support-error)' }}>
+                                No departments available. Please contact an administrator.
+                            </p>
+                        )}
 
-                            <TextInput
-                                id="email"
-                                type="email"
-                                name="email"
-                                value={data.email}
-                                className="mt-1 block w-full"
-                                autoComplete="username"
-                                onChange={(e) => setData('email', e.target.value)}
-                                required
-                            />
+                        <PasswordInput
+                            id="password"
+                            labelText="Password"
+                            value={data.password}
+                            autoComplete="new-password"
+                            onChange={(e) => setData('password', e.target.value)}
+                            invalid={!!errors.password}
+                            invalidText={errors.password}
+                            required
+                            className="mb-4"
+                        />
 
-                            <InputError message={errors.email} className="mt-2" />
-                        </div>
+                        <PasswordInput
+                            id="password_confirmation"
+                            labelText="Confirm Password"
+                            value={data.password_confirmation}
+                            autoComplete="new-password"
+                            onChange={(e) => setData('password_confirmation', e.target.value)}
+                            invalid={!!errors.password_confirmation}
+                            invalidText={errors.password_confirmation}
+                            required
+                            className="mb-6"
+                        />
 
-                        <div className="mt-4">
-                            <InputLabel htmlFor="department_id" value="Department" />
-
-                            <select
-                                id="department_id"
-                                name="department_id"
-                                value={data.department_id}
-                                className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                onChange={(e) => setData('department_id', e.target.value)}
-                                required
-                            >
-                                <option value="">Select a Department</option>
-                                {departments && departments.map((dept) => (
-                                    <option key={dept.id} value={dept.id}>
-                                        {dept.name}
-                                    </option>
-                                ))}
-                            </select>
-
-                            {(!departments || departments.length === 0) && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    No departments available. Please contact an administrator.
-                                </p>
-                            )}
-
-                            <InputError message={errors.department_id} className="mt-2" />
-                        </div>
-
-                        <div className="mt-4">
-                            <InputLabel htmlFor="password" value="Password" />
-
-                            <TextInput
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={data.password}
-                                className="mt-1 block w-full"
-                                autoComplete="new-password"
-                                onChange={(e) => setData('password', e.target.value)}
-                                required
-                            />
-
-                            <InputError message={errors.password} className="mt-2" />
-                        </div>
-
-                        <div className="mt-4">
-                            <InputLabel
-                                htmlFor="password_confirmation"
-                                value="Confirm Password"
-                            />
-
-                            <TextInput
-                                id="password_confirmation"
-                                type="password"
-                                name="password_confirmation"
-                                value={data.password_confirmation}
-                                className="mt-1 block w-full"
-                                autoComplete="new-password"
-                                onChange={(e) =>
-                                    setData('password_confirmation', e.target.value)
-                                }
-                                required
-                            />
-
-                            <InputError
-                                message={errors.password_confirmation}
-                                className="mt-2"
-                            />
-                        </div>
-
-                        <div className="mt-6 flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                             <Link
                                 href={route('login')}
-                                className="text-sm text-slate-500 hover:text-slate-700"
+                                className="text-sm"
+                                style={{ color: 'var(--cds-text-secondary)' }}
                             >
                                 Already registered?{' '}
-                                <span className="text-indigo-600 font-medium">Sign in</span>
+                                <span className="font-medium" style={{ color: 'var(--cds-link-primary)' }}>Sign in</span>
                             </Link>
 
-                            <PrimaryButton disabled={processing}>
+                            <Button type="submit" disabled={processing}>
                                 Register
-                            </PrimaryButton>
+                            </Button>
                         </div>
-                    </form>
+                    </Form>
                 </>
             )}
         </GuestLayout>

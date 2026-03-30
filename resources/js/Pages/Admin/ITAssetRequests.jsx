@@ -1,56 +1,68 @@
 import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import {
+    InlineNotification, Tag,
+    Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
+} from '@carbon/react';
+
+const statusTagType = (status) => {
+    if (status === 'approved') return 'green';
+    if (status === 'pending') return 'blue';
+    if (status === 'rejected') return 'red';
+    return 'gray';
+};
 
 export default function ITAssetRequests({ auth, requests, flash }) {
-    const statusBadge = (status) => {
-        const styles = {
-            pending: 'bg-yellow-100 text-yellow-800',
-            approved: 'bg-green-100 text-green-800',
-            rejected: 'bg-red-100 text-red-800',
-        };
-        return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-700'}`}>{status}</span>;
-    };
-
     return (
-        <AuthenticatedLayout user={auth.user} header={<h2 className="text-2xl font-bold text-gray-800">IT Asset Requests (from Other Departments)</h2>}>
+        <AuthenticatedLayout user={auth.user}>
             <Head title="IT Asset Requests" />
-            <div className="p-6 space-y-6">
-                {flash?.success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">{flash.success}</div>}
+            <div className="p-6 space-y-4">
+                {flash?.success && (
+                    <InlineNotification kind="success" title="Success" subtitle={flash.success} lowContrast onClose={() => {}} />
+                )}
 
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
-                            <tr>
-                                <th className="px-4 py-3">Requested By</th>
-                                <th className="px-4 py-3">From Dept</th>
-                                <th className="px-4 py-3">Asset Category</th>
-                                <th className="px-4 py-3">Asset Type</th>
-                                <th className="px-4 py-3">For Whom</th>
-                                <th className="px-4 py-3">Requirements</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Date</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {requests.length === 0 && (
-                                <tr><td colSpan="8" className="px-4 py-8 text-center text-gray-400">No asset requests found.</td></tr>
-                            )}
-                            {requests.map(req => (
-                                <tr key={req.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-medium text-gray-900">{req.user_name}</td>
-                                    <td className="px-4 py-3 text-gray-600">{req.department_name}</td>
-                                    <td className="px-4 py-3 text-gray-600">{req.asset_category}</td>
-                                    <td className="px-4 py-3 text-gray-600">{req.asset_type}</td>
-                                    <td className="px-4 py-3 text-gray-600">{req.for_whom}</td>
-                                    <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{req.requirements}</td>
-                                    <td className="px-4 py-3">{statusBadge(req.status)}</td>
-                                    <td className="px-4 py-3 text-gray-500">{req.created_at}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>IT Asset Requests (from Other Departments)</h2>
+
+                <Table size="lg" useZebraStyles>
+                    <TableHead>
+                        <TableRow>
+                            <TableHeader>Requested By</TableHeader>
+                            <TableHeader>From Dept</TableHeader>
+                            <TableHeader>Asset Category</TableHeader>
+                            <TableHeader>Asset Type</TableHeader>
+                            <TableHeader>For Whom</TableHeader>
+                            <TableHeader>Requirements</TableHeader>
+                            <TableHeader>Status</TableHeader>
+                            <TableHeader>Date</TableHeader>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {requests.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={8} style={{ textAlign: 'center', color: 'var(--cds-text-placeholder)' }}>No asset requests found.</TableCell>
+                            </TableRow>
+                        )}
+                        {requests.map(req => (
+                            <TableRow key={req.id}>
+                                <TableCell><strong>{req.user_name}</strong></TableCell>
+                                <TableCell>{req.department_name}</TableCell>
+                                <TableCell>{req.asset_category}</TableCell>
+                                <TableCell>{req.asset_type}</TableCell>
+                                <TableCell>{req.for_whom}</TableCell>
+                                <TableCell>
+                                    <span style={{ maxWidth: '12rem', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {req.requirements}
+                                    </span>
+                                </TableCell>
+                                <TableCell>
+                                    <Tag type={statusTagType(req.status)} size="sm">{req.status}</Tag>
+                                </TableCell>
+                                <TableCell>{req.created_at}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </div>
         </AuthenticatedLayout>
     );
