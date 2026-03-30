@@ -1,30 +1,36 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect } from 'react';
+import { TextInput as CarbonTextInput, PasswordInput } from '@carbon/react';
 
 export default forwardRef(function TextInput(
-    { type = 'text', className = '', isFocused = false, ...props },
+    { type = 'text', className = '', isFocused = false, labelText = '', hideLabel = true, ...props },
     ref,
 ) {
-    const localRef = useRef(null);
-
-    useImperativeHandle(ref, () => ({
-        focus: () => localRef.current?.focus(),
-    }));
-
     useEffect(() => {
         if (isFocused) {
-            localRef.current?.focus();
+            ref?.current?.focus?.();
         }
-    }, [isFocused]);
+    }, [isFocused, ref]);
+
+    if (type === 'password') {
+        return (
+            <PasswordInput
+                {...props}
+                labelText={labelText}
+                hideLabel={hideLabel}
+                className={className}
+                ref={ref}
+            />
+        );
+    }
 
     return (
-        <input
+        <CarbonTextInput
             {...props}
             type={type}
-            className={
-                'rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ' +
-                className
-            }
-            ref={localRef}
+            labelText={labelText}
+            hideLabel={hideLabel}
+            className={className}
+            ref={ref}
         />
     );
 });

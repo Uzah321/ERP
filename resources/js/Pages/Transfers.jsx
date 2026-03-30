@@ -1,18 +1,32 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
+import { useState } from 'react';
+import {
+    Table,
+    TableHead,
+    TableRow,
+    TableHeader,
+    TableBody,
+    TableCell,
+    Button,
+    Modal,
+    Tag,
+} from '@carbon/react';
 
 export default function Transfers({ auth, transfers }) {
     const { patch, processing } = useForm();
+    const [confirmModal, setConfirmModal] = useState({ open: false, id: null, status: null });
 
     const handleAction = (transferId, newStatus) => {
-        if(confirm('Are you sure you want to ' + newStatus + ' this transfer request?')) {
-            patch(route('transfers.update', transferId), {
-                data: { status: newStatus },
-                preserveScroll: true,
-            });
-        }
+        setConfirmModal({ open: true, id: transferId, status: newStatus });
+    };
+
+    const confirmAction = () => {
+        patch(route('transfers.update', confirmModal.id), {
+            data: { status: confirmModal.status },
+            preserveScroll: true,
+            onFinish: () => setConfirmModal({ open: false, id: null, status: null }),
+        });
     };
 
     return (
@@ -27,71 +41,75 @@ export default function Transfers({ auth, transfers }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6 bg-white border-b border-gray-200">
-                            {transfers.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="text-xs text-gray-700 uppercase bg-gray-100">
-                                            <tr>
-                                                <th className="py-3 px-4">Asset</th>
-                                                <th className="py-3 px-4">Requested By</th>
-                                                <th className="py-3 px-4">Target Dept</th>
-                                                <th className="py-3 px-4">Target Location</th>
-                                                <th className="py-3 px-4">Reason</th>
-                                                <th className="py-3 px-4 text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {transfers.map((transfer) => (
-                                                <tr key={transfer.id} className="border-b hover:bg-gray-50">
-                                                    <td className="py-3 px-4 font-semibold text-indigo-600">
-                                                        {transfer.asset?.name} <br/>
-                                                        <span className="text-xs text-gray-500 font-mono">{transfer.asset?.barcode}</span>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        {transfer.requester?.name}
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        {transfer.target_department?.name || '-'}
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        {transfer.target_location?.name || '-'}
-                                                    </td>
-                                                    <td className="py-3 px-4 italic text-gray-600">
-                                                        "{transfer.reason}"
-                                                    </td>
-                                                    <td className="py-3 px-4 flex justify-center space-x-2">
-                                                        <PrimaryButton 
-                                                            onClick={() => handleAction(transfer.id, 'approved')}
-                                                            disabled={processing}
-                                                            className="bg-green-600 hover:bg-green-700 focus:bg-green-700"
-                                                        >
-                                                            Approve
-                                                        </PrimaryButton>
-                                                        <SecondaryButton 
-                                                            onClick={() => handleAction(transfer.id, 'rejected')}
-                                                            disabled={processing}
-                                                            className="text-red-600 border-red-300 hover:bg-red-50"
-                                                        >
-                                                            Reject
-                                                        </SecondaryButton>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                                    No pending transfer requests at this time.
-                                </div>
-                            )}
+                    {transfers.length > 0 ? (
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableHeader>Asset</TableHeader>
+                                    <TableHeader>Requested By</TableHeader>
+                                    <TableHeader>Target Dept</TableHeader>
+                                    <TableHeader>Target Location</TableHeader>
+                                    <TableHeader>Reason</TableHeader>
+                                    <TableHeader>Action</TableHeader>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {transfers.map((transfer) => (
+                                    <TableRow key={transfer.id}>
+                                        <TableCell>
+                                            <div className="font-semibold text-blue-700">{transfer.asset?.name}</div>
+                                            <div className="text-xs text-gray-500 font-mono">{transfer.asset?.barcode}</div>
+                                        </TableCell>
+                                        <TableCell>{transfer.requester?.name}</TableCell>
+                                        <TableCell>{transfer.target_department?.name || '-'}</TableCell>
+                                        <TableCell>{transfer.target_location?.name || '-'}</TableCell>
+                                        <TableCell>
+                                            <em className="text-gray-600">&ldquo;{transfer.reason}&rdquo;</em>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    kind="primary"
+                                                    size="sm"
+                                                    onClick={() => handleAction(transfer.id, 'approved')}
+                                                    disabled={processing}
+                                                >
+                                                    Approve
+                                                </Button>
+                                                <Button
+                                                    kind="danger--ghost"
+                                                    size="sm"
+                                                    onClick={() => handleAction(transfer.id, 'rejected')}
+                                                    disabled={processing}
+                                                >
+                                                    Reject
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="p-8 text-center text-gray-500 bg-gray-50 border border-dashed">
+                            No pending transfer requests at this time.
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
+
+            <Modal
+                open={confirmModal.open}
+                danger={confirmModal.status === 'rejected'}
+                modalHeading={`Confirm ${confirmModal.status === 'approved' ? 'Approval' : 'Rejection'}`}
+                primaryButtonText={`Yes, ${confirmModal.status === 'approved' ? 'Approve' : 'Reject'}`}
+                secondaryButtonText="Cancel"
+                onRequestClose={() => setConfirmModal({ open: false, id: null, status: null })}
+                onRequestSubmit={confirmAction}
+                primaryButtonDisabled={processing}
+            >
+                <p>Are you sure you want to {confirmModal.status} this transfer request?</p>
+            </Modal>
         </AuthenticatedLayout>
     );
 }
-

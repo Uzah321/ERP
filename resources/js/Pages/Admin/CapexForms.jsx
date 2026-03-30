@@ -1,28 +1,26 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import {
+    Button, InlineNotification, Tag,
+    Select, SelectItem, TextInput, TextArea, Checkbox,
+    Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
+    TableToolbar, TableToolbarContent, TableToolbarSearch,
+    Pagination,
+} from '@carbon/react';
+import { DocumentDownload, Add, TrashCan } from '@carbon/icons-react';
 
-// Compute a badge from the form's current_stage_label and status
-const getStatusBadge = (f) => {
-    if (f.status === 'approved') return { label: 'Fully Approved', cls: 'bg-green-100 text-green-700' };
-    if (f.status === 'declined') return { label: 'Declined', cls: 'bg-red-100 text-red-700' };
-    // Determine colour intensity by chain progress
-    const colours = [
-        'bg-yellow-100 text-yellow-800',
-        'bg-orange-100 text-orange-800',
-        'bg-blue-100 text-blue-800',
-        'bg-purple-100 text-purple-800',
-        'bg-indigo-100 text-indigo-800',
-    ];
-    const idx = f.chain_length > 0 ? Math.min(f.current_stage_index ?? 0, colours.length - 1) : 0;
-    return { label: f.current_stage_label || 'Pending', cls: colours[idx] };
+const getStatusTag = (f) => {
+    if (f.status === 'approved') return { label: 'Fully Approved', type: 'green' };
+    if (f.status === 'declined') return { label: 'Declined', type: 'red' };
+    return { label: f.current_stage_label || 'Pending', type: 'blue' };
 };
 
 export default function CapexForms({ auth, forms, assetRequests, users = [], filters = {}, flash }) {
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['forms', 'assetRequests'], preserveScroll: true, preserveState: true });
-        }, 30000); // Poll every 30 seconds
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -32,7 +30,6 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
     const [search, setSearch]           = useState(filters.search ?? '');
     const [statusFilter, setStatusFilter] = useState(filters.status ?? '');
 
-    // Approval chain state—each entry: { user_id, label }
     const [approvalChain, setApprovalChain] = useState([
         { user_id: '', label: 'IT Manager' },
     ]);
@@ -94,7 +91,6 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
             updated[index] = file;
             return updated;
         });
-        // Sync all non-null files to form data
         setData(d => ({
             ...d,
             quotations: quotationFiles
@@ -110,12 +106,10 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
             alert('Please upload at least 3 vendor quotations before submitting.');
             return;
         }
-        // Validate approval chain
         if (approvalChain.some(s => !s.user_id || !s.label.trim())) {
             alert('Please fill in every stage in the Approval Chain (select a user and enter a role label).');
             return;
         }
-        // Build FormData manually so files are included
         const fd = new FormData();
         fd.append('asset_request_id', data.asset_request_id);
         fd.append('request_type', data.request_type);
@@ -147,29 +141,22 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
     };
 
     return (
-        <AuthenticatedLayout user={auth.user} header={<h2 className="text-2xl font-bold text-gray-800">CAPEX Forms</h2>}>
+        <AuthenticatedLayout user={auth.user}>
             <Head title="CAPEX Forms" />
             <div className="p-6 space-y-6">
 
-                {flash?.success && (
-                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                        {flash.success}
-                    </div>
-                )}
-                {flash?.error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                        {flash.error}
-                    </div>
-                )}
+                {flash?.success && <InlineNotification kind="success" title="Success" subtitle={flash.success} lowContrast onClose={() => {}} />}
+                {flash?.error && <InlineNotification kind="error" title="Error" subtitle={flash.error} lowContrast onClose={() => {}} />}
 
                 {/* Create CAPEX Form */}
                 {assetRequests?.length > 0 && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                        <h3 className="text-base font-semibold text-gray-800 mb-4">Create New CAPEX Form</h3>
-                        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Asset Request *</label>
-                                <select
+                    <div className="bg-white border border-gray-200 p-5 shadow-sm">
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Create New CAPEX Form</h3>
+                        <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <Select
+                                    id="capex-request"
+                                    labelText="Asset Request *"
                                     value={data.asset_request_id}
                                     onChange={e => {
                                         const req = assetRequests.find(r => String(r.id) === String(e.target.value)) ?? null;
@@ -184,74 +171,70 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                                             total_amount: computedTotal > 0 ? computedTotal.toFixed(2) : '',
                                         }));
                                     }}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                    invalid={!!formErrors.asset_request_id}
+                                    invalidText={formErrors.asset_request_id}
                                     required
                                 >
-                                    <option value="">Select an approved asset request…</option>
+                                    <SelectItem value="" text="Select an approved asset request…" />
                                     {assetRequests.map(r => (
-                                        <option key={r.id} value={r.id}>
-                                            SRQ-{new Date().getFullYear()}-{String(r.id).padStart(4,'0')} — {r.asset_type} ({r.department_name})
-                                        </option>
+                                        <SelectItem key={r.id} value={r.id} text={`SRQ-${new Date().getFullYear()}-${String(r.id).padStart(4,'0')} — ${r.asset_type} (${r.department_name})`} />
                                     ))}
-                                </select>
-                                {formErrors.asset_request_id && <p className="text-red-500 text-xs mt-1">{formErrors.asset_request_id}</p>}
+                                </Select>
 
-                                {/* Editable items table with unit price inputs */}
+                                {/* Editable items table */}
                                 {editableItems.length > 0 && (() => {
                                     const computedTotal = editableItems.reduce(
                                         (s, i) => s + parseFloat(i.unit_price || 0) * (parseInt(i.quantity ?? 1, 10)), 0
                                     );
                                     return (
-                                        <div className="mt-3 border border-blue-200 rounded-lg overflow-hidden">
-                                            <div className="bg-blue-50 px-3 py-2 border-b border-blue-200 text-xs text-blue-700 font-medium">
+                                        <div style={{ marginTop: '0.75rem', border: '1px solid var(--cds-border-subtle)', overflow: 'hidden' }}>
+                                            <div style={{ background: 'var(--cds-layer-01)', padding: '8px 12px', borderBottom: '1px solid var(--cds-border-subtle)', fontSize: '0.75rem', color: 'var(--cds-link-primary)', fontWeight: 500 }}>
                                                 Enter the unit price for each item — the total will be calculated automatically.
                                             </div>
-                                            <table className="w-full text-xs">
-                                                <thead className="bg-blue-700 text-white">
+                                            <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse' }}>
+                                                <thead style={{ background: 'var(--cds-interactive)', color: 'var(--cds-text-inverse)' }}>
                                                     <tr>
-                                                        <th className="px-3 py-1.5 text-left">Item</th>
-                                                        <th className="px-3 py-1.5 text-center w-12">Qty</th>
-                                                        <th className="px-3 py-2 text-right w-32">Unit Price ($) *</th>
-                                                        <th className="px-3 py-1.5 text-right w-28">Line Total</th>
+                                                        <th style={{ padding: '6px 12px', textAlign: 'left' }}>Item</th>
+                                                        <th style={{ padding: '6px 12px', textAlign: 'center', width: '3rem' }}>Qty</th>
+                                                        <th style={{ padding: '6px 12px', textAlign: 'right', width: '8rem' }}>Unit Price ($) *</th>
+                                                        <th style={{ padding: '6px 12px', textAlign: 'right', width: '7rem' }}>Line Total</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {editableItems.map((item, i) => {
-                                                        const qty      = parseInt(item.quantity ?? 1, 10);
-                                                        const up       = parseFloat(item.unit_price || 0);
+                                                        const qty = parseInt(item.quantity ?? 1, 10);
+                                                        const up = parseFloat(item.unit_price || 0);
                                                         const lineTotal = qty * up;
                                                         return (
-                                                            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                                                                <td className="px-3 py-2 font-medium text-gray-800">
+                                                            <tr key={i} style={{ background: i % 2 === 0 ? 'var(--cds-layer-02)' : 'var(--cds-layer-01)' }}>
+                                                                <td style={{ padding: '8px 12px', fontWeight: 500 }}>
                                                                     {item.asset_type ?? item.description ?? '—'}
-                                                                    {item.requirements && (
-                                                                        <div className="text-gray-400 font-normal mt-0.5">{item.requirements}</div>
-                                                                    )}
+                                                                    {item.requirements && <div style={{ color: 'var(--cds-text-placeholder)', fontWeight: 400 }}>{item.requirements}</div>}
                                                                 </td>
-                                                                <td className="px-3 py-2 text-center text-gray-600">{qty}</td>
-                                                                <td className="px-3 py-2 text-right">
+                                                                <td style={{ padding: '8px 12px', textAlign: 'center' }}>{qty}</td>
+                                                                <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                                                                     <input
                                                                         type="number"
                                                                         step="0.01"
                                                                         min="0"
                                                                         value={item.unit_price ?? ''}
                                                                         onChange={e => updateItemPrice(i, e.target.value)}
-                                                                        className="w-28 border border-gray-300 rounded px-2 py-1 text-right text-xs focus:ring-1 focus:ring-blue-400 focus:border-blue-400 outline-none"
+                                                                        style={{ width: '7rem', border: '1px solid var(--cds-border-subtle)', padding: '2px 6px', textAlign: 'right', fontSize: '0.75rem', outline: 'none' }}
                                                                         placeholder="0.00"
                                                                         required
                                                                     />
                                                                 </td>
-                                                                <td className="px-3 py-2 text-right font-semibold text-gray-800">
-                                                                    {lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : <span className="text-gray-400">—</span>}
+                                                                <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>
+                                                                    {lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : <span style={{ color: 'var(--cds-text-placeholder)' }}>—</span>}
                                                                 </td>
                                                             </tr>
                                                         );
                                                     })}
                                                 </tbody>
                                                 <tfoot>
-                                                    <tr className="bg-blue-700 text-white">
-                                                        <td colSpan="3" className="px-3 py-2 text-right font-semibold">Total Order Amount</td>
-                                                        <td className="px-3 py-2 text-right font-bold">
+                                                    <tr style={{ background: 'var(--cds-interactive)', color: 'var(--cds-text-inverse)' }}>
+                                                        <td colSpan="3" style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>Total Order Amount</td>
+                                                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700 }}>
                                                             {computedTotal > 0 ? `$${computedTotal.toFixed(2)}` : '—'}
                                                         </td>
                                                     </tr>
@@ -262,301 +245,203 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                                 })()}
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Request Type *</label>
-                                <input
-                                    type="text"
-                                    value={data.request_type}
-                                    onChange={e => setData('request_type', e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                    required
-                                />
-                            </div>
+                            <TextInput id="capex-type" labelText="Request Type *" value={data.request_type} onChange={e => setData('request_type', e.target.value)} required />
+                            <TextInput id="capex-life" labelText="Asset Life *" value={data.asset_life} onChange={e => setData('asset_life', e.target.value)} placeholder="e.g. 4 Years" required />
+                            <TextInput id="capex-alloc" labelText="Department / Cost Allocation" value={data.cost_allocation} onChange={e => setData('cost_allocation', e.target.value)} placeholder="e.g. Central Kitchen Bulawayo" />
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Asset Life *</label>
-                                <input
-                                    type="text"
-                                    value={data.asset_life}
-                                    onChange={e => setData('asset_life', e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                    placeholder="e.g. 4 Years"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Department / Cost Allocation</label>
-                                <input
-                                    type="text"
-                                    value={data.cost_allocation}
-                                    onChange={e => setData('cost_allocation', e.target.value)}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                    placeholder="e.g. Central Kitchen Bulawayo"
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-3 pt-5">
-                                <input
-                                    type="checkbox"
-                                    id="insurance_status"
+                            <div style={{ display: 'flex', alignItems: 'center', paddingTop: '1.5rem' }}>
+                                <Checkbox
+                                    id="capex-insurance"
+                                    labelText="Insurance Status — Yes"
                                     checked={data.insurance_status}
-                                    onChange={e => setData('insurance_status', e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                                />
-                                <label htmlFor="insurance_status" className="text-sm font-medium text-gray-700">
-                                    Insurance Status — Yes
-                                </label>
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Asset Purchase</label>
-                                <textarea
-                                    value={data.reason_for_purchase}
-                                    onChange={e => setData('reason_for_purchase', e.target.value)}
-                                    rows={3}
-                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                    placeholder="Describe why these assets are needed…"
+                                    onChange={(_, { checked }) => setData('insurance_status', checked)}
                                 />
                             </div>
 
-                            {/* Approval Chain Builder */}
-                            <div className="md:col-span-2">
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Approval Chain
-                                        <span className="ml-2 text-xs text-gray-400 font-normal">Who approves this CAPEX, in order</span>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <TextArea id="capex-reason" labelText="Reason for Asset Purchase" value={data.reason_for_purchase} onChange={e => setData('reason_for_purchase', e.target.value)} rows={3} placeholder="Describe why these assets are needed…" />
+                            </div>
+
+                            {/* Approval Chain */}
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                                        Approval Chain <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)', fontWeight: 400 }}>Who approves this CAPEX, in order</span>
                                     </label>
-                                    <button
-                                        type="button"
-                                        onClick={addChainStage}
-                                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                                    >
-                                        + Add Stage
-                                    </button>
+                                    <Button kind="ghost" size="sm" renderIcon={Add} onClick={addChainStage}>Add Stage</Button>
                                 </div>
-                                <div className="space-y-2">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {approvalChain.map((stage, i) => (
-                                        <div key={i} className="flex items-center gap-2">
-                                            <span className="text-xs text-gray-500 w-16 shrink-0">Stage {i + 1}</span>
-                                            <select
-                                                value={stage.user_id}
-                                                onChange={e => updateChainItem(i, 'user_id', e.target.value)}
-                                                className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm"
-                                                required
-                                            >
-                                                <option value="">Select approver…</option>
-                                                {users.map(u => (
-                                                    <option key={u.id} value={u.id}>{u.name}</option>
-                                                ))}
-                                            </select>
-                                            <input
-                                                type="text"
-                                                value={stage.label}
-                                                onChange={e => updateChainItem(i, 'label', e.target.value)}
-                                                placeholder="Role label (e.g. IT Manager)"
-                                                className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm"
-                                                required
-                                            />
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', width: '4rem', flexShrink: 0 }}>Stage {i + 1}</span>
+                                            <Select id={`chain-user-${i}`} labelText="" hideLabel value={stage.user_id} onChange={e => updateChainItem(i, 'user_id', e.target.value)} required style={{ flex: 1 }}>
+                                                <SelectItem value="" text="Select approver…" />
+                                                {users.map(u => <SelectItem key={u.id} value={u.id} text={u.name} />)}
+                                            </Select>
+                                            <TextInput id={`chain-label-${i}`} labelText="" hideLabel value={stage.label} onChange={e => updateChainItem(i, 'label', e.target.value)} placeholder="Role label (e.g. IT Manager)" required style={{ flex: 1 }} />
                                             {approvalChain.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeChainStage(i)}
-                                                    className="text-red-500 hover:text-red-700 text-lg leading-none px-1"
-                                                    title="Remove stage"
-                                                >
-                                                    &times;
-                                                </button>
+                                                <Button kind="ghost" size="sm" renderIcon={TrashCan} iconDescription="Remove stage" onClick={() => removeChainStage(i)} hasIconOnly />
                                             )}
                                         </div>
                                     ))}
                                 </div>
-                                {formErrors.approval_chain && (
-                                    <p className="text-red-500 text-xs mt-1">{formErrors.approval_chain}</p>
-                                )}
+                                {formErrors.approval_chain && <p style={{ color: 'var(--cds-support-error)', fontSize: '0.75rem', marginTop: '4px' }}>{formErrors.approval_chain}</p>}
                             </div>
 
-                            {/* Vendor Quotations */}
-                            <div className="md:col-span-2">
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Vendor Quotations
-                                        <span className="ml-1 text-red-500">*</span>
-                                        <span className="ml-2 text-xs text-gray-400 font-normal">minimum 3 required (PDF, Word, or image)</span>
+                            {/* Quotations */}
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                                        Vendor Quotations <span style={{ color: 'var(--cds-support-error)' }}>*</span>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)', fontWeight: 400, marginLeft: '0.5rem' }}>minimum 3 required (PDF, Word, or image)</span>
                                     </label>
-                                    <button
-                                        type="button"
-                                        onClick={addQuotationSlot}
-                                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                                    >
-                                        + Add another
-                                    </button>
+                                    <Button kind="ghost" size="sm" renderIcon={Add} onClick={addQuotationSlot}>Add another</Button>
                                 </div>
-                                <div className="bg-green-50 border border-green-200 rounded-md px-3 py-2 mb-2 text-xs text-green-800">
-                                    <strong>Quotation 1</strong> must be the <strong>cheapest / recommended</strong> quote — it will be marked as the selected quotation on the CAPEX PDF.
-                                </div>
-                                <div className="space-y-2">
+                                <InlineNotification
+                                    kind="success"
+                                    title="Quotation 1"
+                                    subtitle="must be the cheapest / recommended quote — it will be marked as the selected quotation on the CAPEX PDF."
+                                    lowContrast
+                                    onClose={() => {}}
+                                    style={{ marginBottom: '0.5rem' }}
+                                />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {quotationFiles.map((file, i) => (
-                                        <div key={i} className="flex items-center gap-3">
-                                            <span className="text-xs text-gray-500 w-24 shrink-0">Quotation {i + 1}{i < 3 ? ' *' : ''}</span>
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', width: '6rem', flexShrink: 0 }}>Quotation {i + 1}{i < 3 ? ' *' : ''}</span>
                                             <input
                                                 type="file"
                                                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                                 onChange={e => handleQuotationChange(i, e.target.files[0] || null)}
-                                                className="flex-1 text-xs border border-gray-300 rounded-md px-2 py-1.5 file:mr-2 file:text-xs file:bg-blue-50 file:text-blue-700 file:border-0 file:rounded file:px-2 file:py-1"
+                                                style={{ flex: 1, fontSize: '0.75rem', border: '1px solid var(--cds-border-subtle)', padding: '6px 8px' }}
                                                 required={i < 3}
                                             />
-                                            {file && (
-                                                <span className="text-green-600 text-xs shrink-0">✓ {file.name}</span>
-                                            )}
+                                            {file && <span style={{ fontSize: '0.75rem', color: 'var(--cds-support-success)', flexShrink: 0 }}>✓ {file.name}</span>}
                                         </div>
                                     ))}
                                 </div>
-                                {formErrors.quotations && <p className="text-red-500 text-xs mt-1">{formErrors.quotations}</p>}
+                                {formErrors.quotations && <p style={{ color: 'var(--cds-support-error)', fontSize: '0.75rem', marginTop: '4px' }}>{formErrors.quotations}</p>}
                                 {[...Array(quotationFiles.length)].map((_, i) =>
                                     formErrors[`quotations.${i}`] ? (
-                                        <p key={i} className="text-red-500 text-xs mt-0.5">Quotation {i + 1}: {formErrors[`quotations.${i}`]}</p>
+                                        <p key={i} style={{ color: 'var(--cds-support-error)', fontSize: '0.75rem', marginTop: '2px' }}>Quotation {i + 1}: {formErrors[`quotations.${i}`]}</p>
                                     ) : null
                                 )}
                             </div>
 
-                            {/* Total Order Amount */}
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Total Order Amount <span className="text-red-500">*</span>
+                            {/* Total */}
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '4px' }}>
+                                    Total Order Amount <span style={{ color: 'var(--cds-support-error)' }}>*</span>
                                     {editableItems.length > 0 && (
-                                        <span className="ml-2 text-xs text-blue-600 font-normal">auto-calculated from item prices above — adjust if quotation differs</span>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--cds-link-primary)', fontWeight: 400, marginLeft: '0.5rem' }}>auto-calculated from item prices above — adjust if quotation differs</span>
                                     )}
                                 </label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">$</span>
+                                <div style={{ position: 'relative' }}>
+                                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--cds-text-secondary)', fontWeight: 500 }}>$</span>
                                     <input
                                         type="number"
                                         step="0.01"
                                         min="0"
                                         value={data.total_amount}
                                         onChange={e => setData('total_amount', e.target.value)}
-                                        className="w-full border border-gray-300 rounded-md pl-7 pr-3 py-2 text-sm"
+                                        style={{ width: '100%', border: '1px solid var(--cds-border-subtle)', paddingLeft: '28px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '0.875rem', outline: 'none' }}
                                         placeholder="0.00"
                                         required
                                     />
                                 </div>
-                                {formErrors.total_amount && <p className="text-red-500 text-xs mt-1">{formErrors.total_amount}</p>}
+                                {formErrors.total_amount && <p style={{ color: 'var(--cds-support-error)', fontSize: '0.75rem', marginTop: '4px' }}>{formErrors.total_amount}</p>}
                             </div>
 
-                            <div className="md:col-span-2 flex justify-end">
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-800 disabled:opacity-50"
-                                >
+                            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
+                                <Button kind="primary" type="submit" disabled={submitting}>
                                     {submitting ? 'Creating…' : 'Create & Send for Approval'}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>
                 )}
 
-                {/* CAPEX Forms Table */}
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    {/* Search + Filter Bar */}
-                    <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3">
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={e => { setSearch(e.target.value); doSearch(e.target.value, statusFilter); }}
-                            placeholder="Search reference, department, requester…"
-                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-72 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
-                        />
-                        <select
-                            value={statusFilter}
-                            onChange={e => { setStatusFilter(e.target.value); doSearch(search, e.target.value); }}
-                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
-                        >
-                            <option value="">All Statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="declined">Declined</option>
-                        </select>
-                        <span className="text-xs text-gray-400 ml-auto">{forms.total} total</span>
-                    </div>
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
-                            <tr>
-                                <th className="px-4 py-3">Reference</th>
-                                <th className="px-4 py-3">Department</th>
-                                <th className="px-4 py-3">Requested By</th>
-                                <th className="px-4 py-3">Type</th>
-                                <th className="px-4 py-3">Items</th>
-                                <th className="px-4 py-3">Order Total</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Date</th>
-                                <th className="px-4 py-3 text-right">PDF</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
+                {/* CAPEX Table */}
+                <div>
+                    <TableToolbar>
+                        <TableToolbarContent>
+                            <TableToolbarSearch
+                                value={search}
+                                onChange={e => { setSearch(e.target.value); doSearch(e.target.value, statusFilter); }}
+                                placeholder="Search reference, department, requester…"
+                                persistent
+                            />
+                            <Select
+                                id="capex-status-filter"
+                                labelText=""
+                                hideLabel
+                                value={statusFilter}
+                                onChange={e => { setStatusFilter(e.target.value); doSearch(search, e.target.value); }}
+                                style={{ minWidth: '160px' }}
+                            >
+                                <SelectItem value="" text="All Statuses" />
+                                <SelectItem value="pending" text="Pending" />
+                                <SelectItem value="approved" text="Approved" />
+                                <SelectItem value="declined" text="Declined" />
+                            </Select>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)', margin: 'auto 1rem auto auto' }}>{forms.total} total</span>
+                        </TableToolbarContent>
+                    </TableToolbar>
+
+                    <Table size="lg" useZebraStyles>
+                        <TableHead>
+                            <TableRow>
+                                <TableHeader>Reference</TableHeader>
+                                <TableHeader>Department</TableHeader>
+                                <TableHeader>Requested By</TableHeader>
+                                <TableHeader>Type</TableHeader>
+                                <TableHeader>Items</TableHeader>
+                                <TableHeader>Order Total</TableHeader>
+                                <TableHeader>Status</TableHeader>
+                                <TableHeader>Date</TableHeader>
+                                <TableHeader>PDF</TableHeader>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
                             {forms.data.length === 0 && (
-                                <tr>
-                                    <td colSpan="9" className="px-4 py-8 text-center text-gray-400">
-                                        No CAPEX forms found.
-                                    </td>
-                                </tr>
+                                <TableRow>
+                                    <TableCell colSpan={9} style={{ textAlign: 'center', color: 'var(--cds-text-placeholder)' }}>No CAPEX forms found.</TableCell>
+                                </TableRow>
                             )}
-                            {forms.data.map(f => (
-                                <tr key={f.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-mono font-medium text-blue-700">{f.rtp_reference}</td>
-                                    <td className="px-4 py-3 text-gray-700">{f.department}</td>
-                                    <td className="px-4 py-3 text-gray-700">{f.requested_by}</td>
-                                    <td className="px-4 py-3 text-gray-600">{f.request_type}</td>
-                                    <td className="px-4 py-3 text-gray-600">{f.items_count}</td>
-                                    <td className="px-4 py-3 font-semibold text-gray-800">
-                                        {f.total_amount ? `$${parseFloat(f.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(f).cls}`}>
-                                            {getStatusBadge(f).label}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-500">{f.created_at}</td>
-                                    <td className="px-4 py-3 text-right space-x-3">
-                                        <a
-                                            href={route('capex.pdf', f.id)}
-                                            target="_blank"
-                                            className="text-blue-600 hover:text-blue-800 text-xs font-medium underline"
-                                        >
-                                            Download PDF
-                                        </a>
-                                        {f.status === 'approved' && (
-                                            <a
-                                                href={route('purchase-orders.index')}
-                                                className="text-green-600 hover:text-green-800 text-xs font-medium underline"
-                                            >
-                                                Generate PO
-                                            </a>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {/* Pagination */}
+                            {forms.data.map(f => {
+                                const { label, type } = getStatusTag(f);
+                                return (
+                                    <TableRow key={f.id}>
+                                        <TableCell><code style={{ color: 'var(--cds-link-primary)', fontWeight: 500 }}>{f.rtp_reference}</code></TableCell>
+                                        <TableCell>{f.department}</TableCell>
+                                        <TableCell>{f.requested_by}</TableCell>
+                                        <TableCell>{f.request_type}</TableCell>
+                                        <TableCell>{f.items_count}</TableCell>
+                                        <TableCell><strong>{f.total_amount ? `$${parseFloat(f.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</strong></TableCell>
+                                        <TableCell><Tag type={type} size="sm">{label}</Tag></TableCell>
+                                        <TableCell>{f.created_at}</TableCell>
+                                        <TableCell>
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                <Button kind="ghost" size="sm" renderIcon={DocumentDownload} as="a" href={route('capex.pdf', f.id)} target="_blank">PDF</Button>
+                                                {f.status === 'approved' && (
+                                                    <Button kind="ghost" size="sm" as="a" href={route('purchase-orders.index')}>Generate PO</Button>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+
                     {forms.last_page > 1 && (
-                        <div className="flex justify-center items-center gap-1 px-4 py-3 border-t border-gray-100 flex-wrap">
-                            {forms.links.map((link, i) => (
-                                <Link
-                                    key={i}
-                                    href={link.url ?? '#'}
-                                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                                        link.active
-                                            ? 'bg-blue-600 text-white'
-                                            : link.url
-                                                ? 'text-gray-600 hover:bg-gray-100 border border-gray-200'
-                                                : 'text-gray-300 cursor-not-allowed pointer-events-none'
-                                    }`}
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                />
-                            ))}
-                        </div>
+                        <Pagination
+                            totalItems={forms.total}
+                            pageSize={forms.per_page}
+                            page={forms.current_page}
+                            pageSizes={[15, 25, 50]}
+                            onChange={({ page }) => router.get(route('admin.capex.index'), { page, search, status: statusFilter })}
+                        />
                     )}
                 </div>
             </div>

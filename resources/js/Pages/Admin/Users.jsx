@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
+import {
+    Button, InlineNotification, Tag,
+    Modal, TextInput,
+    Select, SelectItem,
+    Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
+} from '@carbon/react';
+import { Add, Edit, TrashCan } from '@carbon/icons-react';
 
 export default function Users({ auth, users, departments, flash }) {
     const [editing, setEditing] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmTarget, setConfirmTarget] = useState(null);
 
     const createForm = useForm({
         name: '', email: '', password: '', department_id: '', role: 'user', approval_position: '',
@@ -38,9 +47,14 @@ export default function Users({ auth, users, departments, flash }) {
     };
 
     const handleDelete = (id) => {
-        if (confirm('Are you sure you want to delete this user?')) {
-            router.delete(route('admin.users.destroy', id));
-        }
+        setConfirmTarget(id);
+        setConfirmOpen(true);
+    };
+
+    const confirmDelete = () => {
+        router.delete(route('admin.users.destroy', confirmTarget));
+        setConfirmOpen(false);
+        setConfirmTarget(null);
     };
 
     const handleToggleActive = (id) => {
@@ -57,140 +71,229 @@ export default function Users({ auth, users, departments, flash }) {
         return labels[pos] || null;
     };
 
-    const roleBadge = (role) => {
-        const styles = role === 'admin'
-            ? 'bg-purple-100 text-purple-800'
-            : 'bg-gray-100 text-gray-700';
-        return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles}`}>{role}</span>;
-    };
-
     return (
-        <AuthenticatedLayout user={auth.user} header={<h2 className="text-2xl font-bold text-gray-800">User Management</h2>}>
+        <AuthenticatedLayout user={auth.user}>
             <Head title="Users" />
-            <div className="p-6 space-y-6">
-                {flash?.success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">{flash.success}</div>}
-
-                <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500">{users.length} user(s) registered</p>
-                    <button onClick={() => setShowCreate(!showCreate)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                        + Add User
-                    </button>
-                </div>
-
-                {showCreate && (
-                    <form onSubmit={handleCreate} className="bg-gray-50 border border-gray-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" placeholder="Full Name *" value={createForm.data.name} onChange={e => createForm.setData('name', e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" required />
-                        <input type="email" placeholder="Email *" value={createForm.data.email} onChange={e => createForm.setData('email', e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" required />
-                        <input type="password" placeholder="Password *" value={createForm.data.password} onChange={e => createForm.setData('password', e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" required />
-                        <select value={createForm.data.department_id} onChange={e => createForm.setData('department_id', e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" required>
-                            <option value="">Select Department *</option>
-                            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                        </select>
-                        <select value={createForm.data.role} onChange={e => createForm.setData('role', e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                        <select value={createForm.data.approval_position} onChange={e => createForm.setData('approval_position', e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
-                            <option value="">No Approval Role</option>
-                            <option value="it_manager">IT Manager</option>
-                            <option value="finance_operations">Finance Operations</option>
-                            <option value="it_head">IT Head of Technology</option>
-                            <option value="finance_director">Finance Director</option>
-                        </select>
-                        <div className="flex items-end gap-2">
-                            <button type="submit" disabled={createForm.processing} className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 disabled:opacity-50">Create</button>
-                            <button type="button" onClick={() => setShowCreate(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300">Cancel</button>
-                        </div>
-                        {createForm.errors.email && <p className="text-red-500 text-xs col-span-3">{createForm.errors.email}</p>}
-                        {createForm.errors.password && <p className="text-red-500 text-xs col-span-3">{createForm.errors.password}</p>}
-                    </form>
+            <div className="p-6 space-y-4">
+                {flash?.success && (
+                    <InlineNotification kind="success" title="Success" subtitle={flash.success} lowContrast onClose={() => {}} />
                 )}
 
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
-                            <tr>
-                                <th className="px-4 py-3">Name</th>
-                                <th className="px-4 py-3">Email</th>
-                                <th className="px-4 py-3">Department</th>
-                                <th className="px-4 py-3">Role</th>
-                                <th className="px-4 py-3">Approval Position</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3">Joined</th>
-                                <th className="px-4 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {users.length === 0 && (
-                                <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-400">No users found.</td></tr>
-                            )}
-                            {users.map(user => (
-                                <tr key={user.id} className="hover:bg-gray-50">
-                                    {editing === user.id ? (
-                                        <td colSpan="8" className="px-4 py-3">
-                                            <form onSubmit={(e) => handleUpdate(e, user.id)} className="grid grid-cols-6 gap-2 items-center">
-                                                <input type="text" value={editForm.data.name} onChange={e => editForm.setData('name', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm" required />
-                                                <input type="email" value={editForm.data.email} onChange={e => editForm.setData('email', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm" required />
-                                                <select value={editForm.data.department_id} onChange={e => editForm.setData('department_id', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm" required>
-                                                    <option value="">Department</option>
-                                                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                                </select>
-                                                <select value={editForm.data.role} onChange={e => editForm.setData('role', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
-                                                    <option value="user">User</option>
-                                                    <option value="admin">Admin</option>
-                                                </select>
-                                                <select value={editForm.data.approval_position} onChange={e => editForm.setData('approval_position', e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm">
-                                                    <option value="">No Approval Role</option>
-                                                    <option value="it_manager">IT Manager</option>
-                                                    <option value="finance_operations">Finance Operations</option>
-                                                    <option value="it_head">IT Head of Technology</option>
-                                                    <option value="finance_director">Finance Director</option>
-                                                </select>
-                                                <div className="flex gap-1 justify-end">
-                                                    <button type="submit" className="text-green-600 hover:text-green-800 font-medium text-xs">Save</button>
-                                                    <button type="button" onClick={() => setEditing(null)} className="text-gray-500 hover:text-gray-700 font-medium text-xs">Cancel</button>
-                                                </div>
-                                            </form>
-                                        </td>
-                                    ) : (
-                                        <>
-                                            <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
-                                            <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                                            <td className="px-4 py-3 text-gray-600">{user.department_name}</td>
-                                            <td className="px-4 py-3">{roleBadge(user.role)}</td>
-                                            <td className="px-4 py-3">
-                                                {user.approval_position ? (
-                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        {approvalPositionLabel(user.approval_position)}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-400 text-xs">—</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {user.is_active ? 'Active' : 'Disabled'}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-500">{user.created_at}</td>
-                                            <td className="px-4 py-3 text-right space-x-2">
-                                                <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Edit</button>
-                                                {user.id !== auth.user.id && (
-                                                    <>
-                                                        <button onClick={() => handleToggleActive(user.id)} className={`text-xs font-medium ${user.is_active ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}`}>
-                                                            {user.is_active ? 'Disable' : 'Enable'}
-                                                        </button>
-                                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
-                                                    </>
-                                                )}
-                                            </td>
-                                        </>
-                                    )}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>{users.length} user(s) registered</p>
+                    <Button renderIcon={Add} onClick={() => setShowCreate(!showCreate)} kind="primary" size="sm">
+                        Add User
+                    </Button>
                 </div>
+
+                {/* Create form modal */}
+                <Modal
+                    open={showCreate}
+                    modalHeading="Add New User"
+                    primaryButtonText={createForm.processing ? 'Creating…' : 'Create User'}
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => setShowCreate(false)}
+                    onRequestSubmit={handleCreate}
+                    primaryButtonDisabled={createForm.processing}
+                >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <TextInput
+                            id="user-name"
+                            labelText="Full Name"
+                            value={createForm.data.name}
+                            onChange={e => createForm.setData('name', e.target.value)}
+                            invalid={!!createForm.errors.name}
+                            invalidText={createForm.errors.name}
+                            required
+                        />
+                        <TextInput
+                            id="user-email"
+                            labelText="Email"
+                            type="email"
+                            value={createForm.data.email}
+                            onChange={e => createForm.setData('email', e.target.value)}
+                            invalid={!!createForm.errors.email}
+                            invalidText={createForm.errors.email}
+                            required
+                        />
+                        <TextInput
+                            id="user-password"
+                            labelText="Password"
+                            type="password"
+                            value={createForm.data.password}
+                            onChange={e => createForm.setData('password', e.target.value)}
+                            invalid={!!createForm.errors.password}
+                            invalidText={createForm.errors.password}
+                            required
+                        />
+                        <Select
+                            id="user-department"
+                            labelText="Department"
+                            value={createForm.data.department_id}
+                            onChange={e => createForm.setData('department_id', e.target.value)}
+                            required
+                        >
+                            <SelectItem value="" text="Select Department" />
+                            {departments.map(d => <SelectItem key={d.id} value={d.id} text={d.name} />)}
+                        </Select>
+                        <Select
+                            id="user-role"
+                            labelText="Role"
+                            value={createForm.data.role}
+                            onChange={e => createForm.setData('role', e.target.value)}
+                        >
+                            <SelectItem value="user" text="User" />
+                            <SelectItem value="admin" text="Admin" />
+                        </Select>
+                        <Select
+                            id="user-approval"
+                            labelText="Approval Position"
+                            value={createForm.data.approval_position}
+                            onChange={e => createForm.setData('approval_position', e.target.value)}
+                        >
+                            <SelectItem value="" text="No Approval Role" />
+                            <SelectItem value="it_manager" text="IT Manager" />
+                            <SelectItem value="finance_operations" text="Finance Operations" />
+                            <SelectItem value="it_head" text="IT Head of Technology" />
+                            <SelectItem value="finance_director" text="Finance Director" />
+                        </Select>
+                    </div>
+                </Modal>
+
+                <Table size="lg" useZebraStyles>
+                    <TableHead>
+                        <TableRow>
+                            <TableHeader>Name</TableHeader>
+                            <TableHeader>Email</TableHeader>
+                            <TableHeader>Department</TableHeader>
+                            <TableHeader>Role</TableHeader>
+                            <TableHeader>Approval Position</TableHeader>
+                            <TableHeader>Status</TableHeader>
+                            <TableHeader>Joined</TableHeader>
+                            <TableHeader>Actions</TableHeader>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {users.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={8} style={{ textAlign: 'center', color: '#9ca3af' }}>No users found.</TableCell>
+                            </TableRow>
+                        )}
+                        {users.map(user => (
+                            <TableRow key={user.id}>
+                                <TableCell><strong>{user.name}</strong></TableCell>
+                                <TableCell>{user.email}</TableCell>
+                                <TableCell>{user.department_name}</TableCell>
+                                <TableCell>
+                                    <Tag type={user.role === 'admin' ? 'purple' : 'gray'} size="sm">{user.role}</Tag>
+                                </TableCell>
+                                <TableCell>
+                                    {user.approval_position
+                                        ? <Tag type="blue" size="sm">{approvalPositionLabel(user.approval_position)}</Tag>
+                                        : <span style={{ color: '#9ca3af' }}>—</span>
+                                    }
+                                </TableCell>
+                                <TableCell>
+                                    <Tag type={user.is_active ? 'green' : 'red'} size="sm">
+                                        {user.is_active ? 'Active' : 'Disabled'}
+                                    </Tag>
+                                </TableCell>
+                                <TableCell>{user.created_at}</TableCell>
+                                <TableCell>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <Button kind="ghost" size="sm" renderIcon={Edit} iconDescription="Edit" onClick={() => handleEdit(user)} hasIconOnly />
+                                        {user.id !== auth.user.id && (
+                                            <>
+                                                <Button
+                                                    kind="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleToggleActive(user.id)}
+                                                    title={user.is_active ? 'Disable' : 'Enable'}
+                                                >
+                                                    {user.is_active ? 'Disable' : 'Enable'}
+                                                </Button>
+                                                <Button kind="danger--ghost" size="sm" renderIcon={TrashCan} iconDescription="Delete" onClick={() => handleDelete(user.id)} hasIconOnly />
+                                            </>
+                                        )}
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+
+                {/* Edit user modal */}
+                <Modal
+                    open={!!editing}
+                    modalHeading="Edit User"
+                    primaryButtonText={editForm.processing ? 'Saving…' : 'Save'}
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => setEditing(null)}
+                    onRequestSubmit={(e) => handleUpdate(e, editing)}
+                    primaryButtonDisabled={editForm.processing}
+                >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <TextInput
+                            id="edit-name"
+                            labelText="Full Name"
+                            value={editForm.data.name}
+                            onChange={e => editForm.setData('name', e.target.value)}
+                            required
+                        />
+                        <TextInput
+                            id="edit-email"
+                            labelText="Email"
+                            type="email"
+                            value={editForm.data.email}
+                            onChange={e => editForm.setData('email', e.target.value)}
+                            required
+                        />
+                        <Select
+                            id="edit-department"
+                            labelText="Department"
+                            value={editForm.data.department_id}
+                            onChange={e => editForm.setData('department_id', e.target.value)}
+                            required
+                        >
+                            <SelectItem value="" text="Department" />
+                            {departments.map(d => <SelectItem key={d.id} value={d.id} text={d.name} />)}
+                        </Select>
+                        <Select
+                            id="edit-role"
+                            labelText="Role"
+                            value={editForm.data.role}
+                            onChange={e => editForm.setData('role', e.target.value)}
+                        >
+                            <SelectItem value="user" text="User" />
+                            <SelectItem value="admin" text="Admin" />
+                        </Select>
+                        <Select
+                            id="edit-approval"
+                            labelText="Approval Position"
+                            value={editForm.data.approval_position}
+                            onChange={e => editForm.setData('approval_position', e.target.value)}
+                        >
+                            <SelectItem value="" text="No Approval Role" />
+                            <SelectItem value="it_manager" text="IT Manager" />
+                            <SelectItem value="finance_operations" text="Finance Operations" />
+                            <SelectItem value="it_head" text="IT Head of Technology" />
+                            <SelectItem value="finance_director" text="Finance Director" />
+                        </Select>
+                    </div>
+                </Modal>
+
+                {/* Delete confirmation */}
+                <Modal
+                    open={confirmOpen}
+                    danger
+                    modalHeading="Delete User"
+                    primaryButtonText="Delete"
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => { setConfirmOpen(false); setConfirmTarget(null); }}
+                    onRequestSubmit={confirmDelete}
+                >
+                    <p>Are you sure you want to delete this user?</p>
+                </Modal>
             </div>
         </AuthenticatedLayout>
     );

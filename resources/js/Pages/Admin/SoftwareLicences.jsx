@@ -1,6 +1,14 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
+import {
+    Button, InlineNotification, Tag,
+    Modal, TextInput, TextArea,
+    Select, SelectItem,
+    Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
+    TableToolbar, TableToolbarContent, TableToolbarSearch,
+} from '@carbon/react';
+import { Add, Edit, TrashCan } from '@carbon/icons-react';
 
 const EMPTY_FORM = {
     software_name: '', vendor_name: '', licence_key: '', licence_type: 'subscription',
@@ -8,11 +16,33 @@ const EMPTY_FORM = {
     purchase_cost: '', annual_cost: '', status: 'active', notes: '',
 };
 
+const expiryTagType = (s) => {
+    if (s === 'expired') return 'red';
+    if (s === 'expiring_soon') return 'yellow';
+    if (s === 'active') return 'green';
+    return 'gray';
+};
+
+const expiryLabel = (s) => {
+    if (s === 'expired') return 'Expired';
+    if (s === 'expiring_soon') return 'Expiring Soon';
+    if (s === 'active') return 'Active';
+    return 'No Expiry';
+};
+
+const statusTagType = (s) => {
+    if (s === 'active') return 'green';
+    if (s === 'expired') return 'red';
+    return 'gray';
+};
+
 export default function SoftwareLicences({ licences, filters, flash }) {
     const [search, setSearch]     = useState(filters?.search ?? '');
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing]   = useState(null);
     const [form, setForm]         = useState(EMPTY_FORM);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmTarget, setConfirmTarget] = useState(null);
 
     function openNew() { setEditing(null); setForm(EMPTY_FORM); setShowForm(true); }
     function openEdit(lic) {
@@ -20,7 +50,7 @@ export default function SoftwareLicences({ licences, filters, flash }) {
         setForm({
             software_name: lic.software_name ?? '',
             vendor_name:   lic.vendor_name ?? '',
-            licence_key:   '', // don't pre-fill sensitive key
+            licence_key:   '',
             licence_type:  lic.licence_type ?? 'subscription',
             seat_count:    lic.seat_count ?? '',
             seats_used:    lic.seats_used ?? '',
@@ -55,168 +85,161 @@ export default function SoftwareLicences({ licences, filters, flash }) {
     }
 
     function deleteLicence(lic) {
-        if (confirm(`Delete licence for "${lic.software_name}"?`)) {
-            router.delete(route('admin.software-licences.destroy', lic.id));
-        }
+        setConfirmTarget(lic);
+        setConfirmOpen(true);
     }
 
-    const expiryBadge = (s) => {
-        if (s === 'expired')       return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Expired</span>;
-        if (s === 'expiring_soon') return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Expiring Soon</span>;
-        if (s === 'active')        return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Active</span>;
-        return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">No Expiry</span>;
-    };
+    function confirmDelete() {
+        router.delete(route('admin.software-licences.destroy', confirmTarget.id));
+        setConfirmOpen(false);
+        setConfirmTarget(null);
+    }
 
-    const statusBadge = (s) => {
-        const map = { active: 'bg-green-100 text-green-700', expired: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-600' };
-        return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${map[s] ?? 'bg-gray-100 text-gray-600'}`}>{s}</span>;
-    };
-
-    const F = (label, key, type = 'text', opts = {}) => (
-        <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
-            <input type={type} value={form[key]} placeholder={opts.placeholder ?? ''}
-                onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                required={opts.required} />
-        </div>
-    );
+    const expiringSoon = licences.filter(l => l.expiry_status === 'expiring_soon');
+    const expired = licences.filter(l => l.expiry_status === 'expired');
 
     return (
         <AuthenticatedLayout>
             <Head title="Software Licences" />
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-4">
 
                 {flash?.success && (
-                    <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">{flash.success}</div>
+                    <InlineNotification kind="success" title="Success" subtitle={flash.success} lowContrast onClose={() => {}} />
+                )}
+                {expiringSoon.length > 0 && (
+                    <InlineNotification
+                        kind="warning"
+                        title={`${expiringSoon.length} licence(s) expiring within 30 days:`}
+                        subtitle={expiringSoon.map(l => l.software_name).join(', ')}
+                        lowContrast
+                        onClose={() => {}}
+                    />
+                )}
+                {expired.length > 0 && (
+                    <InlineNotification
+                        kind="error"
+                        title={`${expired.length} expired licence(s):`}
+                        subtitle={expired.map(l => l.software_name).join(', ')}
+                        lowContrast
+                        onClose={() => {}}
+                    />
                 )}
 
-                <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-bold text-gray-800">Software Licence Tracking</h1>
-                    <button onClick={openNew}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-                        + Add Licence
-                    </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Software Licence Tracking</h1>
+                    <Button renderIcon={Add} onClick={openNew} kind="primary" size="sm">Add Licence</Button>
                 </div>
 
-                {/* Expiry alerts */}
-                {licences.filter(l => l.expiry_status === 'expiring_soon').length > 0 && (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
-                        ⚠ <strong>{licences.filter(l => l.expiry_status === 'expiring_soon').length}</strong> licence(s) expiring within 30 days: {licences.filter(l => l.expiry_status === 'expiring_soon').map(l => l.software_name).join(', ')}
-                    </div>
-                )}
-                {licences.filter(l => l.expiry_status === 'expired').length > 0 && (
-                    <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
-                        ✕ <strong>{licences.filter(l => l.expiry_status === 'expired').length}</strong> expired licence(s): {licences.filter(l => l.expiry_status === 'expired').map(l => l.software_name).join(', ')}
-                    </div>
-                )}
+                <TableToolbar>
+                    <TableToolbarContent>
+                        <TableToolbarSearch
+                            value={search}
+                            onChange={e => doSearch(e.target.value)}
+                            placeholder="Search software or vendor…"
+                            persistent
+                        />
+                    </TableToolbarContent>
+                </TableToolbar>
 
-                {/* Form */}
-                {showForm && (
-                    <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-blue-800">{editing ? 'Edit Licence' : 'Add Software Licence'}</h2>
-                            <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
-                        </div>
-                        <form onSubmit={submitForm} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {F('Software Name *', 'software_name', 'text', { required: true })}
-                                {F('Vendor / Publisher', 'vendor_name')}
-                                {F('Licence Key', 'licence_key', 'text', { placeholder: editing ? '(leave blank to keep unchanged)' : '' })}
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Licence Type *</label>
-                                    <select value={form.licence_type} onChange={e => setForm(f => ({ ...f, licence_type: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" required>
-                                        <option value="subscription">Subscription</option>
-                                        <option value="perpetual">Perpetual</option>
-                                        <option value="per-seat">Per-Seat</option>
-                                    </select>
-                                </div>
-                                {F('Total Seats', 'seat_count', 'number', { placeholder: 'leave blank if unlimited' })}
-                                {F('Seats In Use', 'seats_used', 'number')}
-                                {F('Purchase Date', 'purchase_date', 'date')}
-                                {F('Expiry Date', 'expiry_date', 'date')}
-                                {F('Purchase Cost ($)', 'purchase_cost', 'number')}
-                                {F('Annual Renewal Cost ($)', 'annual_cost', 'number')}
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Status *</label>
-                                    <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" required>
-                                        <option value="active">Active</option>
-                                        <option value="expired">Expired</option>
-                                        <option value="cancelled">Cancelled</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Notes</label>
-                                <textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none" />
-                            </div>
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={() => setShowForm(false)}
-                                    className="px-5 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
-                                <button type="submit"
-                                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors">
-                                    {editing ? 'Save Changes' : 'Add Licence'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                )}
-
-                {/* Search */}
-                <div className="flex gap-3">
-                    <input type="text" placeholder="Search software or vendor…" value={search}
-                        onChange={e => doSearch(e.target.value)}
-                        className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-72 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                </div>
-
-                {/* Table */}
                 {licences.length === 0 ? (
-                    <p className="text-sm text-gray-400 italic">No software licences recorded yet.</p>
+                    <p style={{ color: '#9ca3af', fontStyle: 'italic', fontSize: '0.875rem' }}>No software licences recorded yet.</p>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    {['Software', 'Vendor', 'Type', 'Seats', 'Expiry', 'Expiry Status', 'Cost / Year', 'Status', 'Actions'].map(h => (
-                                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {licences.map(lic => (
-                                    <tr key={lic.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-3 font-medium text-gray-900">{lic.software_name}</td>
-                                        <td className="px-4 py-3 text-gray-600">{lic.vendor_name || '—'}</td>
-                                        <td className="px-4 py-3 text-gray-600 capitalize">{lic.licence_type}</td>
-                                        <td className="px-4 py-3 text-gray-600">
-                                            {lic.seat_count
-                                                ? <span>{lic.seats_used}/{lic.seat_count} <span className="text-xs text-gray-400">({lic.seats_available} free)</span></span>
-                                                : <span className="text-gray-400">Unlimited</span>
-                                            }
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-600">{lic.expiry_date || '—'}</td>
-                                        <td className="px-4 py-3">{expiryBadge(lic.expiry_status)}</td>
-                                        <td className="px-4 py-3 text-gray-600">
-                                            {lic.annual_cost ? `$${Number(lic.annual_cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
-                                        </td>
-                                        <td className="px-4 py-3">{statusBadge(lic.status)}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex gap-2">
-                                                <button onClick={() => openEdit(lic)}
-                                                    className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg transition-colors">Edit</button>
-                                                <button onClick={() => deleteLicence(lic)}
-                                                    className="text-xs bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg transition-colors">Delete</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <Table size="lg" useZebraStyles>
+                        <TableHead>
+                            <TableRow>
+                                <TableHeader>Software</TableHeader>
+                                <TableHeader>Vendor</TableHeader>
+                                <TableHeader>Type</TableHeader>
+                                <TableHeader>Seats</TableHeader>
+                                <TableHeader>Expiry</TableHeader>
+                                <TableHeader>Expiry Status</TableHeader>
+                                <TableHeader>Cost / Year</TableHeader>
+                                <TableHeader>Status</TableHeader>
+                                <TableHeader>Actions</TableHeader>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {licences.map(lic => (
+                                <TableRow key={lic.id}>
+                                    <TableCell><strong>{lic.software_name}</strong></TableCell>
+                                    <TableCell>{lic.vendor_name || '—'}</TableCell>
+                                    <TableCell style={{ textTransform: 'capitalize' }}>{lic.licence_type}</TableCell>
+                                    <TableCell>
+                                        {lic.seat_count
+                                            ? <span>{lic.seats_used}/{lic.seat_count} <small style={{ color: '#9ca3af' }}>({lic.seats_available} free)</small></span>
+                                            : <span style={{ color: '#9ca3af' }}>Unlimited</span>
+                                        }
+                                    </TableCell>
+                                    <TableCell>{lic.expiry_date || '—'}</TableCell>
+                                    <TableCell>
+                                        <Tag type={expiryTagType(lic.expiry_status)} size="sm">{expiryLabel(lic.expiry_status)}</Tag>
+                                    </TableCell>
+                                    <TableCell>
+                                        {lic.annual_cost ? `$${Number(lic.annual_cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Tag type={statusTagType(lic.status)} size="sm">{lic.status}</Tag>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <Button kind="ghost" size="sm" renderIcon={Edit} iconDescription="Edit" onClick={() => openEdit(lic)} hasIconOnly />
+                                            <Button kind="danger--ghost" size="sm" renderIcon={TrashCan} iconDescription="Delete" onClick={() => deleteLicence(lic)} hasIconOnly />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 )}
+
+                {/* Add / Edit Form Modal */}
+                <Modal
+                    open={showForm}
+                    modalHeading={editing ? 'Edit Licence' : 'Add Software Licence'}
+                    primaryButtonText={editing ? 'Save Changes' : 'Add Licence'}
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => { setShowForm(false); setEditing(null); }}
+                    onRequestSubmit={submitForm}
+                    size="lg"
+                >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <TextInput id="sl-name" labelText="Software Name *" value={form.software_name} onChange={e => setForm(f => ({ ...f, software_name: e.target.value }))} required />
+                        <TextInput id="sl-vendor" labelText="Vendor / Publisher" value={form.vendor_name} onChange={e => setForm(f => ({ ...f, vendor_name: e.target.value }))} />
+                        <TextInput id="sl-key" labelText="Licence Key" placeholder={editing ? '(leave blank to keep unchanged)' : ''} value={form.licence_key} onChange={e => setForm(f => ({ ...f, licence_key: e.target.value }))} />
+                        <Select id="sl-type" labelText="Licence Type *" value={form.licence_type} onChange={e => setForm(f => ({ ...f, licence_type: e.target.value }))}>
+                            <SelectItem value="subscription" text="Subscription" />
+                            <SelectItem value="perpetual" text="Perpetual" />
+                            <SelectItem value="per-seat" text="Per-Seat" />
+                        </Select>
+                        <TextInput id="sl-seats" labelText="Total Seats" type="number" placeholder="leave blank if unlimited" value={form.seat_count} onChange={e => setForm(f => ({ ...f, seat_count: e.target.value }))} />
+                        <TextInput id="sl-used" labelText="Seats In Use" type="number" value={form.seats_used} onChange={e => setForm(f => ({ ...f, seats_used: e.target.value }))} />
+                        <TextInput id="sl-purchase-date" labelText="Purchase Date" type="date" value={form.purchase_date} onChange={e => setForm(f => ({ ...f, purchase_date: e.target.value }))} />
+                        <TextInput id="sl-expiry" labelText="Expiry Date" type="date" value={form.expiry_date} onChange={e => setForm(f => ({ ...f, expiry_date: e.target.value }))} />
+                        <TextInput id="sl-cost" labelText="Purchase Cost ($)" type="number" value={form.purchase_cost} onChange={e => setForm(f => ({ ...f, purchase_cost: e.target.value }))} />
+                        <TextInput id="sl-annual" labelText="Annual Renewal Cost ($)" type="number" value={form.annual_cost} onChange={e => setForm(f => ({ ...f, annual_cost: e.target.value }))} />
+                        <Select id="sl-status" labelText="Status *" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                            <SelectItem value="active" text="Active" />
+                            <SelectItem value="expired" text="Expired" />
+                            <SelectItem value="cancelled" text="Cancelled" />
+                        </Select>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <TextArea id="sl-notes" labelText="Notes" rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* Delete confirmation */}
+                <Modal
+                    open={confirmOpen}
+                    danger
+                    modalHeading="Delete Licence"
+                    primaryButtonText="Delete"
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => { setConfirmOpen(false); setConfirmTarget(null); }}
+                    onRequestSubmit={confirmDelete}
+                >
+                    {confirmTarget && <p>Delete licence for &ldquo;<strong>{confirmTarget.software_name}</strong>&rdquo;?</p>}
+                </Modal>
             </div>
         </AuthenticatedLayout>
     );

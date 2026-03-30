@@ -1,4 +1,12 @@
 import { useForm } from '@inertiajs/react';
+import {
+    ComposedModal, ModalHeader, ModalBody, ModalFooter,
+    TextInput, Select, SelectItem, TextArea,
+    FileUploader, Button, Grid, Column, InlineNotification,
+} from '@carbon/react';
+
+const CONDITIONS = ['New', 'Good', 'Fair', 'Poor'];
+const STATUSES = ['Purchased', 'Available', 'Allocated', 'Registered', 'Deployed', 'Active Use', 'Under Maintenance', 'Audit', 'Retired', 'Decommissioned', 'Disposed', 'Archived'];
 
 export default function EditAssetModal({ asset, onClose, categories, locations }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -20,199 +28,148 @@ export default function EditAssetModal({ asset, onClose, categories, locations }
         photo: null,
     });
 
-    const submit = (e) => {
-        e.preventDefault();
+    const submit = () => {
         post(route('assets.update', asset.id), {
             forceFormData: true,
-            onSuccess: () => {
-                reset();
-                onClose();
-            }
+            onSuccess: () => { reset(); onClose(); },
         });
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity p-4">
-            <div className="bg-white w-[680px] max-h-[90vh] shadow-2xl rounded-xl flex flex-col overflow-hidden">
-                {/* Title Bar */}
-                <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
-                    <h3 className="text-lg font-semibold text-gray-800">Edit Asset: {asset?.barcode}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
+        <ComposedModal open onClose={onClose} size="md">
+            <ModalHeader title={`Edit Asset: ${asset?.barcode}`} />
+            <ModalBody>
+                <Grid narrow>
+                    <Column sm={4} md={4} lg={8}>
+                        <TextInput id="name" labelText="Asset Name *" value={data.name}
+                            onChange={e => setData('name', e.target.value)} required
+                            invalid={!!errors.name} invalidText={errors.name} />
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <TextInput id="serial_number" labelText="Serial Number" value={data.serial_number}
+                            onChange={e => setData('serial_number', e.target.value)}
+                            invalid={!!errors.serial_number} invalidText={errors.serial_number} />
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <Select id="category_id" labelText="Category *" value={data.category_id}
+                            onChange={e => setData('category_id', e.target.value)} required
+                            invalid={!!errors.category_id} invalidText={errors.category_id}>
+                            <SelectItem value="" text="-- Select Category --" />
+                            {categories.map(c => <SelectItem key={c.id} value={String(c.id)} text={c.name} />)}
+                        </Select>
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <Select id="location_id" labelText="Location *" value={data.location_id}
+                            onChange={e => setData('location_id', e.target.value)} required
+                            invalid={!!errors.location_id} invalidText={errors.location_id}>
+                            <SelectItem value="" text="-- Select Location --" />
+                            {locations.map(l => <SelectItem key={l.id} value={String(l.id)} text={l.name} />)}
+                        </Select>
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <TextInput id="purchase_cost" labelText="Purchase Cost" type="number" step="0.01"
+                            value={data.purchase_cost} onChange={e => setData('purchase_cost', e.target.value)}
+                            invalid={!!errors.purchase_cost} invalidText={errors.purchase_cost} />
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <TextInput id="purchase_date" labelText="Purchase Date" type="date"
+                            value={data.purchase_date} onChange={e => setData('purchase_date', e.target.value)}
+                            invalid={!!errors.purchase_date} invalidText={errors.purchase_date} />
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <Select id="condition" labelText="Condition" value={data.condition}
+                            onChange={e => setData('condition', e.target.value)}>
+                            {CONDITIONS.map(c => <SelectItem key={c} value={c} text={c} />)}
+                        </Select>
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <Select id="status" labelText="Status" value={data.status}
+                            onChange={e => setData('status', e.target.value)}>
+                            {STATUSES.map(s => <SelectItem key={s} value={s} text={s} />)}
+                        </Select>
+                    </Column>
+                    <Column sm={4} md={8} lg={16}>
+                        <TextArea id="description" labelText="Description" rows={3}
+                            value={data.description} onChange={e => setData('description', e.target.value)} />
+                    </Column>
 
-                <form onSubmit={submit} className="p-6 text-sm text-gray-700 overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-6">
-                        {/* Column 1 */}
-                        <div className="space-y-4">
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Asset Name <span className="text-red-500">*</span></label>
-                                <input required type="text" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
-                                    value={data.name} onChange={e => setData('name', e.target.value)} />
-                                {errors.name && <div className="text-red-600 text-xs mt-1">{errors.name}</div>}
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Serial Number</label>
-                                <input type="text" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
-                                    value={data.serial_number} onChange={e => setData('serial_number', e.target.value)} />
-                                {errors.serial_number && <div className="text-red-600 text-xs mt-1">{errors.serial_number}</div>}
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Category <span className="text-red-500">*</span></label>
-                                <select required className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.category_id} onChange={e => setData('category_id', e.target.value)}>
-                                    <option value="">-- Select Category --</option>
-                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                                {errors.category_id && <div className="text-red-600 text-xs mt-1">{errors.category_id}</div>}
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Location <span className="text-red-500">*</span></label>
-                                <select required className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.location_id} onChange={e => setData('location_id', e.target.value)}>
-                                    <option value="">-- Select Location --</option>
-                                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                                </select>
-                                {errors.location_id && <div className="text-red-600 text-xs mt-1">{errors.location_id}</div>}
-                            </div>
-                        </div>
-
-                        {/* Column 2 */}
-                        <div className="space-y-4">
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Purchase Cost</label>
-                                <input type="number" step="0.01" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
-                                    value={data.purchase_cost} onChange={e => setData('purchase_cost', e.target.value)} />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Purchase Date</label>
-                                <input type="date" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
-                                    value={data.purchase_date} onChange={e => setData('purchase_date', e.target.value)} />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Condition</label>
-                                <select className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.condition} onChange={e => setData('condition', e.target.value)}>
-                                    <option>New</option>
-                                    <option>Good</option>
-                                    <option>Fair</option>
-                                    <option>Poor</option>
-                                </select>
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Status</label>
-                                <select className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.status} onChange={e => setData('status', e.target.value)}>
-                                    <option>Purchased</option>
-                                    <option>Available</option>
-                                    <option>Allocated</option>
-                                    <option>Registered</option>
-                                    <option>Deployed</option>
-                                    <option>Active Use</option>
-                                    <option>Under Maintenance</option>
-                                    <option>Audit</option>
-                                    <option>Retired</option>
-                                    <option>Decommissioned</option>
-                                    <option>Disposed</option>
-                                    <option>Archived</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-6 flex flex-col">
-                        <label className="mb-1.5 font-medium text-gray-700">Description</label>
-                        <textarea rows="3" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none"
-                            value={data.description} onChange={e => setData('description', e.target.value)}></textarea>
-                    </div>
-
-                    {/* Photo Upload */}
-                    <div className="mt-4">
-                        <label className="mb-1.5 font-medium text-gray-700 block">Asset Photo <span className="text-gray-400 font-normal text-xs">(leave blank to keep existing)</span></label>
+                    {/* Photo */}
+                    <Column sm={4} md={8} lg={16}>
                         {asset?.photo_path && (
-                            <div className="mb-2">
-                                <img
-                                    src={`/storage/${asset.photo_path}`}
-                                    alt="Asset"
-                                    className="h-24 w-auto rounded-lg border border-gray-200 object-cover shadow-sm"
-                                />
+                            <div style={{ marginBottom: '0.75rem' }}>
+                                <img src={`/storage/${asset.photo_path}`} alt="Asset"
+                                    style={{ height: '6rem', width: 'auto', borderRadius: '4px', border: '1px solid var(--cds-border-subtle)', objectFit: 'cover' }} />
                             </div>
                         )}
-                        <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/jpg,image/webp"
-                            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
+                        <FileUploader
+                            labelTitle="Asset Photo (leave blank to keep existing)"
+                            labelDescription="JPEG, PNG, WebP"
+                            buttonLabel="Replace photo"
+                            accept={['image/jpeg', 'image/png', 'image/jpg', 'image/webp']}
                             onChange={e => setData('photo', e.target.files[0] || null)}
+                            invalid={!!errors.photo}
+                            invalidText={errors.photo}
                         />
-                    </div>
+                    </Column>
 
-                    {/* ── Depreciation ─────────────────────────────────────── */}
-                    <div className="mt-6 border-t border-gray-100 pt-5">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Depreciation</p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Method</label>
-                                <select className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.depreciation_method} onChange={e => setData('depreciation_method', e.target.value)}>
-                                    <option value="straight_line">Straight Line</option>
-                                    <option value="reducing_balance">Reducing Balance</option>
-                                </select>
-                                {errors.depreciation_method && <div className="text-red-600 text-xs mt-1">{errors.depreciation_method}</div>}
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Depreciation % Per Year</label>
-                                <input type="number" min="0" max="100" step="0.01" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.annual_depreciation_rate} onChange={e => setData('annual_depreciation_rate', e.target.value)} />
-                                <p className="mt-1 text-xs text-gray-500">Defaults to 25% per year and is used by the overnight depreciation job.</p>
-                                {errors.annual_depreciation_rate && <div className="text-red-600 text-xs mt-1">{errors.annual_depreciation_rate}</div>}
-                            </div>
-                        </div>
-                        <div className="mt-3 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-lg p-3">
-                            <svg className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <div className="text-xs text-blue-700 leading-relaxed">
-                                <span className="font-semibold">Depreciation is applied automatically overnight by the system scheduler.</span>
-                                {asset?.book_value != null && (
-                                    <span className="block mt-1">Current book value: <strong>${Number(asset.book_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    {/* Depreciation */}
+                    <Column sm={4} md={8} lg={16}>
+                        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0.5rem 0' }}>
+                            Depreciation
+                        </p>
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <Select id="depreciation_method" labelText="Method" value={data.depreciation_method}
+                            onChange={e => setData('depreciation_method', e.target.value)}
+                            invalid={!!errors.depreciation_method} invalidText={errors.depreciation_method}>
+                            <SelectItem value="straight_line" text="Straight Line" />
+                            <SelectItem value="reducing_balance" text="Reducing Balance" />
+                        </Select>
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <TextInput id="annual_depreciation_rate" labelText="Depreciation % Per Year"
+                            type="number" min="0" max="100" step="0.01"
+                            value={data.annual_depreciation_rate}
+                            onChange={e => setData('annual_depreciation_rate', e.target.value)}
+                            helperText="Defaults to 25% per year"
+                            invalid={!!errors.annual_depreciation_rate} invalidText={errors.annual_depreciation_rate} />
+                    </Column>
+                    {asset?.book_value != null && (
+                        <Column sm={4} md={8} lg={16}>
+                            <InlineNotification kind="info" title="Current book value:"
+                                subtitle={`$${Number(asset.book_value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                                lowContrast hideCloseButton />
+                        </Column>
+                    )}
 
-                    {/* ── Warranty ─────────────────────────────────────────── */}
-                    <div className="mt-4 border-t border-gray-100 pt-5">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Warranty</p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Warranty Expiry Date</label>
-                                <input type="date" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    value={data.warranty_expiry_date} onChange={e => setData('warranty_expiry_date', e.target.value)} />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="mb-1.5 font-medium text-gray-700">Warranty Provider</label>
-                                <input type="text" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder="e.g. Dell, HP, Logitech..."
-                                    value={data.warranty_provider} onChange={e => setData('warranty_provider', e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="mt-3 flex flex-col">
-                            <label className="mb-1.5 font-medium text-gray-700">Warranty Notes</label>
-                            <textarea rows="2" className="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none"
-                                placeholder="Claim process, terms, etc."
-                                value={data.warranty_notes} onChange={e => setData('warranty_notes', e.target.value)}></textarea>
-                        </div>
-                    </div>
-
-                    <div className="mt-8 flex justify-end gap-3 pt-5 border-t border-gray-100">
-                        <button type="button" onClick={onClose} className="px-5 py-2 font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" disabled={processing} className="px-5 py-2 font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50">
-                            {processing ? 'Saving...' : 'Update Record'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                    {/* Warranty */}
+                    <Column sm={4} md={8} lg={16}>
+                        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0.5rem 0' }}>
+                            Warranty
+                        </p>
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <TextInput id="warranty_expiry_date" labelText="Warranty Expiry Date" type="date"
+                            value={data.warranty_expiry_date} onChange={e => setData('warranty_expiry_date', e.target.value)} />
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <TextInput id="warranty_provider" labelText="Warranty Provider"
+                            placeholder="e.g. Dell, HP, Logitech..."
+                            value={data.warranty_provider} onChange={e => setData('warranty_provider', e.target.value)} />
+                    </Column>
+                    <Column sm={4} md={8} lg={16}>
+                        <TextArea id="warranty_notes" labelText="Warranty Notes" rows={2}
+                            placeholder="Claim process, terms, etc."
+                            value={data.warranty_notes} onChange={e => setData('warranty_notes', e.target.value)} />
+                    </Column>
+                </Grid>
+            </ModalBody>
+            <ModalFooter>
+                <Button kind="secondary" onClick={onClose}>Cancel</Button>
+                <Button kind="primary" onClick={submit} disabled={processing}>
+                    {processing ? 'Saving...' : 'Update Record'}
+                </Button>
+            </ModalFooter>
+        </ComposedModal>
     );
 }

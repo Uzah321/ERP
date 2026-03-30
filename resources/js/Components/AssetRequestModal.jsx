@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '@/Components/Modal';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
-import InputError from '@/Components/InputError';
 import { useForm } from '@inertiajs/react';
+import {
+    ComposedModal, ModalHeader, ModalBody, ModalFooter,
+    Select, SelectItem, TextInput, TextArea, NumberInput, Button,
+} from '@carbon/react';
+import { Add, TrashCan } from '@carbon/icons-react';
 
 const defaultItem = () => ({
     asset_type: '',
@@ -14,6 +13,18 @@ const defaultItem = () => ({
     requirements: '',
     quantity: 1,
 });
+
+const fallbackSpecs = {
+    manager: { laptop: '32GB RAM, 1TB storage, Core i7' },
+    hod:     { laptop: '32GB RAM, 1TB storage, Core i7' },
+    staff:   { laptop: '16GB RAM, 500GB storage, Core i5' },
+};
+const fallbackPositions = [
+    { value: 'manager', label: 'Manager' },
+    { value: 'hod',     label: 'Head of Department (HOD)' },
+    { value: 'staff',   label: 'Staff' },
+    { value: 'other',   label: 'Other' },
+];
 
 export default function AssetRequestModal({ show, onClose, departments, vendorCategories }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -25,18 +36,6 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
     const [positionSpecs, setPositionSpecs] = useState({});
     const [availablePositions, setAvailablePositions] = useState([]);
 
-    const fallbackSpecs = {
-        manager: { laptop: '32GB RAM, 1TB storage, Core i7' },
-        hod: { laptop: '32GB RAM, 1TB storage, Core i7' },
-        staff: { laptop: '16GB RAM, 500GB storage, Core i5' },
-    };
-    const fallbackPositions = [
-        { value: 'manager', label: 'Manager' },
-        { value: 'hod', label: 'Head of Department (HOD)' },
-        { value: 'staff', label: 'Staff' },
-        { value: 'other', label: 'Other' },
-    ];
-
     useEffect(() => {
         if (show) {
             fetch(route('position-specs.all'))
@@ -44,238 +43,188 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
                 .then(fetched => {
                     setPositionSpecs(fetched);
                     const positions = Object.keys(fetched);
-                    if (positions.length > 0) {
-                        setAvailablePositions(positions.map(p => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) })));
-                    } else {
-                        setAvailablePositions(fallbackPositions);
-                    }
+                    setAvailablePositions(
+                        positions.length > 0
+                            ? positions.map(p => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) }))
+                            : fallbackPositions
+                    );
                 })
                 .catch(() => setAvailablePositions(fallbackPositions));
         }
     }, [show]);
 
-    const getSpecsForPositionAndType = (position, assetType) => {
+    const getSpecs = (position, assetType) => {
         if (!position) return null;
-        const typeLower = assetType ? assetType.toLowerCase().trim() : '';
-
-        // Check DB specs first
-        if (positionSpecs[position]) {
-            if (typeLower) {
-                for (const [dbType, specs] of Object.entries(positionSpecs[position])) {
-                    if (typeLower.includes(dbType.toLowerCase()) || dbType.toLowerCase().includes(typeLower)) {
-                        return specs;
-                    }
-                }
-            }
-            // No asset type yet (or no match) — return first available spec for this position
-            const firstDbSpecs = Object.values(positionSpecs[position])[0];
-            if (firstDbSpecs) return firstDbSpecs;
+        const typeLower = (assetType ?? '').toLowerCase().trim();
+        const src = positionSpecs[position] ?? fallbackSpecs[position];
+        if (!src) return null;
+        for (const [k, v] of Object.entries(src)) {
+            if (!typeLower || typeLower.includes(k.toLowerCase()) || k.toLowerCase().includes(typeLower)) return v;
         }
-
-        // Fallback hardcoded specs
-        if (fallbackSpecs[position]) {
-            if (typeLower) {
-                for (const [fbType, specs] of Object.entries(fallbackSpecs[position])) {
-                    if (typeLower.includes(fbType) || fbType.includes(typeLower)) {
-                        return specs;
-                    }
-                }
-            }
-            const firstFallback = Object.values(fallbackSpecs[position])[0];
-            if (firstFallback) return firstFallback;
-        }
-
-        return null;
+        return Object.values(src)[0] ?? null;
     };
 
     const updateItem = (index, field, value) => {
-        const updatedItems = data.items.map((item, i) => {
+        setData('items', data.items.map((item, i) => {
             if (i !== index) return item;
             const updated = { ...item, [field]: value };
             if (field === 'position' || field === 'asset_type') {
-                const pos = field === 'position' ? value : item.position;
-                const type = field === 'asset_type' ? value : item.asset_type;
-                const specs = getSpecsForPositionAndType(pos, type);
+                const specs = getSpecs(
+                    field === 'position' ? value : item.position,
+                    field === 'asset_type' ? value : item.asset_type,
+                );
                 if (specs) updated.requirements = specs;
             }
             return updated;
-        });
-        setData('items', updatedItems);
+        }));
     };
 
-    const addItem = () => setData('items', [...data.items, defaultItem()]);
-
-    const removeItem = (index) => {
-        if (data.items.length === 1) return;
-        setData('items', data.items.filter((_, i) => i !== index));
-    };
-
-    const submit = (e) => {
-        e.preventDefault();
+    const submit = () => {
         post(route('asset-requests.store'), {
-            onSuccess: () => {
-                reset();
-                onClose();
-            },
+            onSuccess: () => { reset(); onClose(); },
         });
     };
 
     return (
-        <Modal show={show} onClose={onClose}>
-            <form onSubmit={submit} className="p-6" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">
-                    Submit New Asset Request
-                </h2>
+        <ComposedModal open={show} onClose={onClose} size="md">
+            <ModalHeader title="Submit New Asset Request" />
+            <ModalBody style={{ paddingBottom: '1rem' }}>
 
-                {/* Shared fields */}
-                <div className="mt-4">
-                    <InputLabel htmlFor="target_department_id" value="Responsible Department (e.g., IT, Operations)" />
-                    <select
-                        id="target_department_id"
-                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                        value={data.target_department_id}
-                        onChange={(e) => setData('target_department_id', e.target.value)}
-                        required
-                    >
-                        <option value="">Select Department...</option>
-                        {departments.map((dept) => (
-                            <option key={dept.id} value={dept.id}>{dept.name}</option>
-                        ))}
-                    </select>
-                    <InputError message={errors.target_department_id} className="mt-2" />
-                </div>
+                <Select
+                    id="target_department_id"
+                    labelText="Responsible Department"
+                    value={data.target_department_id}
+                    onChange={(e) => setData('target_department_id', e.target.value)}
+                    required
+                    invalid={!!errors.target_department_id}
+                    invalidText={errors.target_department_id}
+                >
+                    <SelectItem value="" text="Select Department..." />
+                    {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={String(dept.id)} text={dept.name} />
+                    ))}
+                </Select>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="asset_category" value="Asset Category" />
-                    <select
+                <div style={{ marginTop: '1rem' }}>
+                    <Select
                         id="asset_category"
-                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                        labelText="Asset Category"
                         value={data.asset_category}
                         onChange={(e) => setData('asset_category', e.target.value)}
                         required
+                        invalid={!!errors.asset_category}
+                        invalidText={errors.asset_category}
                     >
-                        <option value="">Select Asset Category...</option>
-                        {vendorCategories?.map((category, index) => (
-                            <option key={index} value={category}>{category}</option>
+                        <SelectItem value="" text="Select Asset Category..." />
+                        {vendorCategories?.map((cat, i) => (
+                            <SelectItem key={i} value={cat} text={cat} />
                         ))}
-                    </select>
-                    <InputError message={errors.asset_category} className="mt-2" />
+                    </Select>
                 </div>
 
-                {/* Dynamic item list */}
-                <div className="mt-6">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-gray-700">
-                            Asset Items
-                            <span className="ml-2 text-xs font-normal text-gray-500">
-                                ({data.items.length} item{data.items.length !== 1 ? 's' : ''})
-                            </span>
-                        </h3>
-                        <button
-                            type="button"
-                            onClick={addItem}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-300 rounded-md hover:bg-indigo-100 transition-colors"
-                        >
-                            + Add Item
-                        </button>
+                {/* Dynamic line items */}
+                <div style={{ marginTop: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                        <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                            Asset Items ({data.items.length})
+                        </p>
+                        <Button kind="ghost" size="sm" renderIcon={Add} onClick={() => setData('items', [...data.items, defaultItem()])}>
+                            Add Item
+                        </Button>
                     </div>
 
                     {data.items.map((item, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
+                        <div key={index} style={{
+                            border: '1px solid var(--cds-border-subtle)',
+                            borderRadius: '4px',
+                            padding: '1rem',
+                            marginBottom: '1rem',
+                            background: 'var(--cds-layer-02)',
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-link-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     Item {index + 1}
                                 </span>
                                 {data.items.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => removeItem(index)}
-                                        className="text-xs text-red-600 hover:text-red-800 font-medium"
-                                    >
-                                        Remove
-                                    </button>
+                                    <Button kind="ghost" size="sm" hasIconOnly renderIcon={TrashCan} iconDescription="Remove item"
+                                        onClick={() => setData('items', data.items.filter((_, i) => i !== index))} />
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <InputLabel value="Asset Type" />
-                                    <TextInput
-                                        className="mt-1 block w-full text-sm"
-                                        value={item.asset_type}
-                                        onChange={(e) => updateItem(index, 'asset_type', e.target.value)}
-                                        placeholder="e.g. Laptop, Printer"
-                                        required
-                                    />
-                                    <InputError message={errors[`items.${index}.asset_type`]} className="mt-1" />
-                                </div>
-                                <div>
-                                    <InputLabel value="Quantity" />
-                                    <TextInput
-                                        type="number"
-                                        className="mt-1 block w-full text-sm"
-                                        value={item.quantity}
-                                        onChange={(e) => updateItem(index, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
-                                        min="1"
-                                        required
-                                    />
-                                    <InputError message={errors[`items.${index}.quantity`]} className="mt-1" />
-                                </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <TextInput
+                                    id={`asset_type_${index}`}
+                                    labelText="Asset Type"
+                                    value={item.asset_type}
+                                    onChange={(e) => updateItem(index, 'asset_type', e.target.value)}
+                                    placeholder="e.g. Laptop, Printer"
+                                    required
+                                    invalid={!!errors[`items.${index}.asset_type`]}
+                                    invalidText={errors[`items.${index}.asset_type`]}
+                                />
+                                <NumberInput
+                                    id={`quantity_${index}`}
+                                    label="Quantity"
+                                    value={item.quantity}
+                                    min={1}
+                                    onChange={(e, { value }) => updateItem(index, 'quantity', value)}
+                                    required
+                                    invalid={!!errors[`items.${index}.quantity`]}
+                                    invalidText={errors[`items.${index}.quantity`]}
+                                />
                             </div>
 
-                            <div className="mt-3">
-                                <InputLabel value="Who is this asset for?" />
+                            <div style={{ marginTop: '0.75rem' }}>
                                 <TextInput
-                                    className="mt-1 block w-full text-sm"
+                                    id={`for_whom_${index}`}
+                                    labelText="Who is this asset for?"
                                     value={item.for_whom}
                                     onChange={(e) => updateItem(index, 'for_whom', e.target.value)}
                                     placeholder="Person's name, team, or role"
                                     required
+                                    invalid={!!errors[`items.${index}.for_whom`]}
+                                    invalidText={errors[`items.${index}.for_whom`]}
                                 />
-                                <InputError message={errors[`items.${index}.for_whom`]} className="mt-1" />
                             </div>
 
-                            <div className="mt-3">
-                                <InputLabel value="Position (for IT asset restrictions)" />
-                                <select
-                                    className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm"
+                            <div style={{ marginTop: '0.75rem' }}>
+                                <Select
+                                    id={`position_${index}`}
+                                    labelText="Position"
                                     value={item.position}
                                     onChange={(e) => updateItem(index, 'position', e.target.value)}
                                     required
+                                    invalid={!!errors[`items.${index}.position`]}
+                                    invalidText={errors[`items.${index}.position`]}
                                 >
-                                    <option value="">Select Position...</option>
+                                    <SelectItem value="" text="Select Position..." />
                                     {availablePositions.map((pos, idx) => (
-                                        <option key={idx} value={pos.value}>{pos.label}</option>
+                                        <SelectItem key={idx} value={pos.value} text={pos.label} />
                                     ))}
-                                </select>
-                                <InputError message={errors[`items.${index}.position`]} className="mt-1" />
+                                </Select>
                             </div>
 
-                            <div className="mt-3">
-                                <InputLabel value="Specifications / Reason" />
-                                <textarea
-                                    className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm"
-                                    rows="3"
+                            <div style={{ marginTop: '0.75rem' }}>
+                                <TextArea
+                                    id={`requirements_${index}`}
+                                    labelText="Specifications / Reason"
                                     value={item.requirements}
                                     onChange={(e) => updateItem(index, 'requirements', e.target.value)}
                                     placeholder="Detailed specifications and justification"
+                                    rows={3}
                                     required
-                                ></textarea>
-                                <InputError message={errors[`items.${index}.requirements`]} className="mt-1" />
+                                    invalid={!!errors[`items.${index}.requirements`]}
+                                    invalidText={errors[`items.${index}.requirements`]}
+                                />
                             </div>
                         </div>
                     ))}
                 </div>
-
-                <div className="mt-6 flex justify-end">
-                    <SecondaryButton onClick={onClose} disabled={processing}>
-                        Cancel
-                    </SecondaryButton>
-                    <PrimaryButton className="ml-3" disabled={processing}>
-                        Send Request
-                    </PrimaryButton>
-                </div>
-            </form>
-        </Modal>
+            </ModalBody>
+            <ModalFooter>
+                <Button kind="secondary" onClick={onClose} disabled={processing}>Cancel</Button>
+                <Button kind="primary" onClick={submit} disabled={processing}>Send Request</Button>
+            </ModalFooter>
+        </ComposedModal>
     );
 }

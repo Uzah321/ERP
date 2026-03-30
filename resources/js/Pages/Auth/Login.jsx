@@ -1,10 +1,13 @@
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import {
+    Form,
+    TextInput,
+    PasswordInput,
+    Button,
+    Checkbox,
+    InlineNotification,
+} from '@carbon/react';
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -15,7 +18,6 @@ export default function Login({ status, canResetPassword }) {
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route('login'), {
             onFinish: () => reset('password'),
         });
@@ -25,88 +27,80 @@ export default function Login({ status, canResetPassword }) {
         <GuestLayout>
             <Head title="Log In" />
 
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Welcome back</h1>
-                <p className="text-sm text-slate-500 mt-1">Sign in to your ASSETLINQ account</p>
+            <div style={{ marginBottom: '1.5rem' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--cds-text-primary)', margin: 0 }}>Welcome back</h1>
+                <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginTop: '0.25rem', marginBottom: 0 }}>
+                    Sign in to your ASSETLINQ account
+                </p>
             </div>
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    {status}
-                </div>
+                <InlineNotification
+                    kind="success"
+                    title={status}
+                    lowContrast
+                    hideCloseButton
+                    style={{ marginBottom: '1rem' }}
+                />
             )}
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
+            <Form onSubmit={submit}>
+                <div style={{ marginBottom: '1rem' }}>
                     <TextInput
                         id="email"
                         type="email"
-                        name="email"
+                        labelText="Email address"
                         value={data.email}
-                        className="mt-1 block w-full"
                         autoComplete="username"
-                        isFocused={true}
+                        autoFocus
                         onChange={(e) => setData('email', e.target.value)}
+                        invalid={!!errors.email}
+                        invalidText={errors.email}
                     />
-
-                    <InputError message={errors.email} className="mt-2" />
                 </div>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
+                <div style={{ marginBottom: '1rem' }}>
+                    <PasswordInput
                         id="password"
-                        type="password"
-                        name="password"
+                        labelText="Password"
                         value={data.password}
-                        className="mt-1 block w-full"
                         autoComplete="current-password"
                         onChange={(e) => setData('password', e.target.value)}
+                        invalid={!!errors.password}
+                        invalidText={errors.password}
                     />
-
-                    <InputError message={errors.password} className="mt-2" />
                 </div>
 
-                <div className="mt-4 block">
-                    <label className="flex items-center">
-                        <Checkbox
-                            name="remember"
-                            checked={data.remember}
-                            onChange={(e) =>
-                                setData('remember', e.target.checked)
-                            }
-                        />
-                        <span className="ms-2 text-sm text-gray-600">
-                            Remember me
-                        </span>
-                    </label>
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <Checkbox
+                        id="remember"
+                        labelText="Remember me"
+                        checked={data.remember}
+                        onChange={(e) => setData('remember', e.target.checked)}
+                    />
                 </div>
 
-                <div className="mt-4 flex items-center justify-between">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {canResetPassword && (
                         <Link
                             href={route('password.request')}
-                            className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                            style={{ fontSize: '0.875rem', color: 'var(--cds-link-primary)', textDecoration: 'none' }}
                         >
-                            Forgot your password?
+                            Forgot password?
                         </Link>
                     )}
-
-                    <PrimaryButton className="ms-auto" disabled={processing}>
+                    <Button type="submit" disabled={processing} style={{ marginLeft: 'auto' }}>
                         Sign In
-                    </PrimaryButton>
+                    </Button>
                 </div>
 
-                <p className="mt-6 text-center text-sm text-slate-500">
+                <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
                     Don&apos;t have an account?{' '}
-                    <Link href={route('register')} className="text-indigo-600 font-medium hover:text-indigo-500">
+                    <Link href={route('register')} style={{ color: 'var(--cds-link-primary)', fontWeight: 500, textDecoration: 'none' }}>
                         Register
                     </Link>
                 </p>
-            </form>
+            </Form>
         </GuestLayout>
     );
 }

@@ -1,117 +1,183 @@
 import { Head, Link } from '@inertiajs/react';
+import { Theme, Button, Tile } from '@carbon/react';
+import { ArrowRight, Checkmark } from '@carbon/icons-react';
 
 const features = [
-    { label: 'Asset Register',      desc: 'Full lifecycle tracking from acquisition to disposal' },
-    { label: 'Procurement Chain',   desc: 'CAPEX, Purchase Orders, Goods Receipts & Invoices' },
-    { label: 'Maintenance Tracking',desc: 'Preventive schedules and warranty reminders' },
-    { label: 'Reports & Exports',   desc: 'CSV, Sage and executive summary exports' },
-    { label: 'Two-Factor Auth',     desc: 'TOTP-based 2FA for every user account' },
-    { label: 'Audit Trail',         desc: 'Per-asset history timeline with change diffs' },
-    { label: 'Software Licences',   desc: 'Seat tracking with expiry alerts' },
-    { label: 'Department Rollup',   desc: 'Asset counts and values by department' },
+    { label: 'Asset Register',       desc: 'Full lifecycle tracking from acquisition to disposal' },
+    { label: 'Procurement Chain',    desc: 'CAPEX, Purchase Orders, Goods Receipts & Invoices' },
+    { label: 'Maintenance Tracking', desc: 'Preventive schedules and warranty reminders' },
+    { label: 'Reports & Exports',    desc: 'CSV, Sage and executive summary exports' },
+    { label: 'Two-Factor Auth',      desc: 'TOTP-based 2FA for every user account' },
+    { label: 'Audit Trail',          desc: 'Per-asset history timeline with change diffs' },
+    { label: 'Software Licences',    desc: 'Seat tracking with expiry alerts' },
+    { label: 'Department Rollup',    desc: 'Asset counts and values by department' },
 ];
 
 export default function Welcome({ auth }) {
     return (
-        <>
-            <Head title="ASSETLINQ - Enterprise Asset Management" />
-            <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+        <Theme theme="g100">
+            <Head title="ASSETLINQ — Enterprise Asset Management" />
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--cds-background)' }}>
 
-                {/* -- Header -- */}
-                <header className="flex items-center justify-between px-8 py-5 border-b border-white/10">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40">
-                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round"
-                                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                {/* Header */}
+                <header style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0 2rem',
+                    height: '3rem',
+                    borderBottom: '1px solid var(--cds-border-subtle)',
+                    background: 'var(--cds-layer-01)',
+                }}>
+                    <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+                        <div style={{
+                            width: '1.5rem', height: '1.5rem',
+                            background: 'var(--cds-interactive)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                             </svg>
                         </div>
-                        <span className="text-white text-xl font-bold tracking-tight">
-                            ASSET<span className="text-indigo-400">LINQ</span>
+                        <span style={{ color: 'var(--cds-text-primary)', fontSize: '0.875rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+                            ASSET<span style={{ fontWeight: 300, color: 'var(--cds-link-primary)' }}>LINQ</span>
                         </span>
-                    </div>
+                    </Link>
 
-                    <nav className="flex items-center gap-2">
+                    <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {auth.user ? (
-                            <Link
+                            <Button
+                                kind="primary"
+                                size="sm"
+                                renderIcon={ArrowRight}
                                 href={route('dashboard')}
-                                className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition shadow-lg shadow-indigo-500/30"
+                                as={Link}
                             >
                                 Go to Dashboard
-                            </Link>
+                            </Button>
                         ) : (
                             <>
-                                <Link
-                                    href={route('login')}
-                                    className="px-4 py-2 text-white/80 hover:text-white text-sm font-medium rounded-lg hover:bg-white/10 transition"
-                                >
+                                <Button kind="ghost" size="sm" href={route('login')} as={Link}>
                                     Log In
-                                </Link>
-                                <Link
-                                    href={route('register')}
-                                    className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition shadow-lg shadow-indigo-500/30"
-                                >
+                                </Button>
+                                <Button kind="primary" size="sm" href={route('register')} as={Link}>
                                     Register
-                                </Link>
+                                </Button>
                             </>
                         )}
                     </nav>
                 </header>
 
-                {/* -- Hero -- */}
-                <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-medium mb-6">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                {/* Hero */}
+                <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 2rem 4rem', textAlign: 'center' }}>
+
+                    {/* Eyebrow */}
+                    <p style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        color: 'var(--cds-link-primary)',
+                        marginBottom: '1.5rem',
+                    }}>
                         Enterprise Asset Management System
-                    </div>
-
-                    <h1 className="text-white text-5xl sm:text-6xl font-extrabold tracking-tight max-w-3xl leading-tight">
-                        Manage Every Asset.<br />
-                        <span className="text-indigo-400">End to End.</span>
-                    </h1>
-
-                    <p className="text-slate-300 text-lg mt-6 max-w-2xl leading-relaxed">
-                        ASSETLINQ streamlines the full asset lifecycle, from procurement and allocation
-                        to maintenance, auditing, and disposal, in one unified platform.
                     </p>
 
-                    {/* CTA buttons */}
-                    <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
-                        <Link
+                    <h1 style={{
+                        fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+                        fontWeight: 300,
+                        lineHeight: 1.1,
+                        color: 'var(--cds-text-primary)',
+                        maxWidth: '44rem',
+                        margin: '0 0 1.5rem',
+                        letterSpacing: '-0.02em',
+                    }}>
+                        Manage Every Asset.<br />
+                        <strong style={{ fontWeight: 700, color: 'var(--cds-text-primary)' }}>End to End.</strong>
+                    </h1>
+
+                    <p style={{
+                        fontSize: '1rem',
+                        color: 'var(--cds-text-secondary)',
+                        maxWidth: '36rem',
+                        lineHeight: 1.6,
+                        margin: '0 0 2.5rem',
+                    }}>
+                        ASSETLINQ streamlines the full asset lifecycle — from procurement and allocation
+                        to maintenance, auditing, and disposal — in one unified platform.
+                    </p>
+
+                    {/* CTA */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
+                        <Button
+                            kind="primary"
+                            size="lg"
+                            renderIcon={ArrowRight}
                             href={auth.user ? route('dashboard') : route('login')}
-                            className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-xl shadow-xl shadow-indigo-500/40 transition text-base"
+                            as={Link}
                         >
                             {auth.user ? 'Go to Dashboard' : 'Sign In'}
-                        </Link>
+                        </Button>
                         {!auth.user && (
-                            <Link
+                            <Button
+                                kind="tertiary"
+                                size="lg"
                                 href={route('register')}
-                                className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl border border-white/20 transition text-base"
+                                as={Link}
                             >
                                 Create Account
-                            </Link>
+                            </Button>
                         )}
                     </div>
 
                     {/* Feature grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-20 w-full max-w-5xl">
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
+                        gap: '1px',
+                        marginTop: '5rem',
+                        width: '100%',
+                        maxWidth: '64rem',
+                        border: '1px solid var(--cds-border-subtle)',
+                        background: 'var(--cds-border-subtle)',
+                    }}>
                         {features.map((f) => (
                             <div
                                 key={f.label}
-                                className="flex flex-col items-start gap-2 p-4 rounded-xl bg-white/5 border border-white/10 text-left hover:bg-white/10 transition"
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.5rem',
+                                    padding: '1.5rem',
+                                    background: 'var(--cds-layer-01)',
+                                    textAlign: 'left',
+                                }}
                             >
-                                    <span className="text-white text-sm font-semibold">{f.label}</span>
-                                <span className="text-slate-400 text-xs leading-relaxed">{f.desc}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Checkmark size={16} style={{ color: 'var(--cds-link-primary)', flexShrink: 0 }} />
+                                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+                                        {f.label}
+                                    </span>
+                                </div>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', lineHeight: 1.5, margin: 0, paddingLeft: '1.5rem' }}>
+                                    {f.desc}
+                                </p>
                             </div>
                         ))}
                     </div>
                 </main>
 
-                {/* -- Footer -- */}
-                <footer className="px-8 py-5 border-t border-white/10 text-center text-slate-500 text-xs">
+                {/* Footer */}
+                <footer style={{
+                    padding: '1rem 2rem',
+                    borderTop: '1px solid var(--cds-border-subtle)',
+                    textAlign: 'center',
+                    fontSize: '0.75rem',
+                    color: 'var(--cds-text-disabled)',
+                }}>
                     &copy; {new Date().getFullYear()} ASSETLINQ. All rights reserved.
                 </footer>
             </div>
-        </>
+        </Theme>
     );
 }

@@ -1,6 +1,22 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
+import {
+    Button, InlineNotification, Tag,
+    Modal, TextInput, TextArea,
+    Select, SelectItem,
+    Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
+    TableToolbar, TableToolbarContent, TableToolbarSearch,
+    Pagination,
+} from '@carbon/react';
+import { DocumentAdd } from '@carbon/icons-react';
+
+const statusTagType = (s) => {
+    if (s === 'complete') return 'green';
+    if (s === 'partial') return 'yellow';
+    if (s === 'delivered') return 'blue';
+    return 'gray';
+};
 
 export default function GoodsReceipts({ pendingPos, receipts, filters, flash }) {
     const [search, setSearch] = useState(filters?.search ?? '');
@@ -48,227 +64,193 @@ export default function GoodsReceipts({ pendingPos, receipts, filters, flash }) 
         });
     }
 
-    const statusBadge = (s) => {
-        const map = {
-            partial:  'bg-yellow-100 text-yellow-800',
-            complete: 'bg-green-100 text-green-800',
-            open:     'bg-gray-100 text-gray-700',
-            delivered:'bg-blue-100 text-blue-800',
-        };
-        return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${map[s] ?? 'bg-gray-100 text-gray-700'}`}>{s}</span>;
-    };
-
     return (
         <AuthenticatedLayout>
             <Head title="Goods Receipts" />
-            <div className="p-6 space-y-8">
+            <div className="p-6 space-y-6">
 
-                {/* Flash */}
                 {flash?.success && (
-                    <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">{flash.success}</div>
+                    <InlineNotification kind="success" title="Success" subtitle={flash.success} lowContrast onClose={() => {}} />
                 )}
 
-                {/* ── PENDING POs ──────────────────────────────────────────── */}
+                {/* Pending POs */}
                 <div>
-                    <h2 className="text-lg font-bold text-gray-800 mb-3">Open Purchase Orders Awaiting Delivery</h2>
+                    <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.75rem' }}>Open Purchase Orders Awaiting Delivery</h2>
                     {pendingPos.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic">All purchase orders have been fully delivered.</p>
+                        <p style={{ color: 'var(--cds-text-placeholder)', fontStyle: 'italic', fontSize: '0.875rem' }}>All purchase orders have been fully delivered.</p>
                     ) : (
-                        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-                            <table className="min-w-full text-sm">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        {['PO #', 'CAPEX Ref', 'Vendor', 'Total (USD)', 'Delivery Status', 'Action'].map(h => (
-                                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {pendingPos.map(po => (
-                                        <tr key={po.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 font-mono font-semibold text-gray-800">{po.po_number}</td>
-                                            <td className="px-4 py-3 text-gray-600">{po.rtp_reference}</td>
-                                            <td className="px-4 py-3 text-gray-700">{po.vendor_name}</td>
-                                            <td className="px-4 py-3 font-semibold">${Number(po.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                            <td className="px-4 py-3">{statusBadge(po.delivery_status)}</td>
-                                            <td className="px-4 py-3">
-                                                <button
-                                                    onClick={() => selectPo(po)}
-                                                    className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                                                >
-                                                    Record Receipt
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        <Table size="lg" useZebraStyles>
+                            <TableHead>
+                                <TableRow>
+                                    <TableHeader>PO #</TableHeader>
+                                    <TableHeader>CAPEX Ref</TableHeader>
+                                    <TableHeader>Vendor</TableHeader>
+                                    <TableHeader>Total (USD)</TableHeader>
+                                    <TableHeader>Delivery Status</TableHeader>
+                                    <TableHeader>Action</TableHeader>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {pendingPos.map(po => (
+                                    <TableRow key={po.id}>
+                                        <TableCell><code><strong>{po.po_number}</strong></code></TableCell>
+                                        <TableCell>{po.rtp_reference}</TableCell>
+                                        <TableCell>{po.vendor_name}</TableCell>
+                                        <TableCell><strong>${Number(po.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></TableCell>
+                                        <TableCell>
+                                            <Tag type={statusTagType(po.delivery_status)} size="sm">{po.delivery_status}</Tag>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button kind="primary" size="sm" renderIcon={DocumentAdd} onClick={() => selectPo(po)}>
+                                                Record Receipt
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     )}
                 </div>
 
-                {/* ── RECEIPT FORM ─────────────────────────────────────────── */}
-                {selectedPo && (
-                    <div className="bg-white border border-blue-200 rounded-xl shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-base font-bold text-blue-800">
-                                Record Delivery — PO #{selectedPo.po_number} · {selectedPo.vendor_name}
-                            </h2>
-                            <button onClick={() => setSelectedPo(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
-                        </div>
-
-                        <form onSubmit={submit} className="space-y-5">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Date Received *</label>
-                                    <input type="date" value={form.received_at} onChange={e => setForm(f => ({ ...f, received_at: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none" required />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Delivery Note No.</label>
-                                    <input type="text" value={form.delivery_note_no} placeholder="e.g. DN-20260324-001"
-                                        onChange={e => setForm(f => ({ ...f, delivery_note_no: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Receipt Status *</label>
-                                    <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none" required>
-                                        <option value="complete">Complete Delivery</option>
-                                        <option value="partial">Partial Delivery</option>
-                                    </select>
-                                </div>
+                {/* Receipt Form Modal */}
+                <Modal
+                    open={!!selectedPo}
+                    modalHeading={selectedPo ? `Record Delivery — PO #${selectedPo.po_number} · ${selectedPo.vendor_name}` : ''}
+                    primaryButtonText="Save Receipt"
+                    secondaryButtonText="Cancel"
+                    onRequestClose={() => setSelectedPo(null)}
+                    onRequestSubmit={submit}
+                    size="lg"
+                >
+                    {selectedPo && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                <TextInput id="gr-date" labelText="Date Received *" type="date" value={form.received_at} onChange={e => setForm(f => ({ ...f, received_at: e.target.value }))} required />
+                                <TextInput id="gr-dn" labelText="Delivery Note No." placeholder="e.g. DN-20260324-001" value={form.delivery_note_no} onChange={e => setForm(f => ({ ...f, delivery_note_no: e.target.value }))} />
+                                <Select id="gr-status" labelText="Receipt Status *" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} required>
+                                    <SelectItem value="complete" text="Complete Delivery" />
+                                    <SelectItem value="partial" text="Partial Delivery" />
+                                </Select>
                             </div>
 
                             {/* Items */}
                             <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-2">Items Received</label>
-                                <div className="overflow-x-auto rounded-lg border border-gray-200">
-                                    <table className="min-w-full text-sm">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
-                                            <tr>
-                                                {['Description', 'Qty Ordered', 'Qty Received', 'Unit Price (USD)'].map(h => (
-                                                    <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {form.items.map((it, idx) => (
-                                                <tr key={idx}>
-                                                    <td className="px-3 py-2 text-gray-700">{it.description}</td>
-                                                    <td className="px-3 py-2 text-center">{it.qty_ordered}</td>
-                                                    <td className="px-3 py-2 w-28">
-                                                        <input type="number" min={0} max={it.qty_ordered}
-                                                            value={it.qty_received}
-                                                            onChange={e => setItemQty(idx, e.target.value)}
-                                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none" />
-                                                    </td>
-                                                    <td className="px-3 py-2 text-gray-600">${Number(it.unit_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cds-text-secondary)', marginBottom: '0.5rem' }}>Items Received</p>
+                                <Table size="sm">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableHeader>Description</TableHeader>
+                                            <TableHeader>Qty Ordered</TableHeader>
+                                            <TableHeader>Qty Received</TableHeader>
+                                            <TableHeader>Unit Price (USD)</TableHeader>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {form.items.map((it, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell>{it.description}</TableCell>
+                                                <TableCell>{it.qty_ordered}</TableCell>
+                                                <TableCell>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={it.qty_ordered}
+                                                        value={it.qty_received}
+                                                        onChange={e => setItemQty(idx, e.target.value)}
+                                                        style={{ width: '5rem', border: '1px solid var(--cds-border-subtle)', padding: '2px 6px', textAlign: 'center', fontSize: '0.875rem' }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>${Number(it.unit_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Condition Notes</label>
-                                    <textarea value={form.condition_notes} rows={2}
-                                        placeholder="e.g. packaging damaged, item in good condition..."
-                                        onChange={e => setForm(f => ({ ...f, condition_notes: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none resize-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Additional Notes</label>
-                                    <textarea value={form.notes} rows={2}
-                                        placeholder="Any other notes..."
-                                        onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none resize-none" />
-                                </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <TextArea id="gr-condition" labelText="Condition Notes" rows={2} placeholder="e.g. packaging damaged, item in good condition..." value={form.condition_notes} onChange={e => setForm(f => ({ ...f, condition_notes: e.target.value }))} />
+                                <TextArea id="gr-notes" labelText="Additional Notes" rows={2} placeholder="Any other notes..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
                             </div>
 
                             {form.status === 'complete' && (
-                                <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs rounded-lg px-4 py-3">
-                                    <strong>Auto-create assets:</strong> On complete delivery, one asset record will be created per unit received and linked to the relevant department.
-                                </div>
+                                <InlineNotification
+                                    kind="info"
+                                    title="Auto-create assets:"
+                                    subtitle="On complete delivery, one asset record will be created per unit received and linked to the relevant department."
+                                    lowContrast
+                                    onClose={() => {}}
+                                />
                             )}
+                        </div>
+                    )}
+                </Modal>
 
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={() => setSelectedPo(null)}
-                                    className="px-5 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                                    Cancel
-                                </button>
-                                <button type="submit"
-                                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors">
-                                    Save Receipt
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                )}
-
-                {/* ── PAST RECEIPTS ─────────────────────────────────────────── */}
+                {/* Receipt History */}
                 <div>
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-lg font-bold text-gray-800">Receipt History</h2>
-                        <input
-                            type="text"
-                            placeholder="Search vendor or CAPEX ref…"
-                            value={search}
-                            onChange={e => doSearch(e.target.value)}
-                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-64 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none"
-                        />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h2 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Receipt History</h2>
                     </div>
+                    <TableToolbar>
+                        <TableToolbarContent>
+                            <TableToolbarSearch
+                                value={search}
+                                onChange={e => doSearch(e.target.value)}
+                                placeholder="Search vendor or CAPEX ref…"
+                                persistent
+                            />
+                        </TableToolbarContent>
+                    </TableToolbar>
 
                     {receipts.data.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic">No receipts recorded yet.</p>
+                        <p style={{ color: 'var(--cds-text-placeholder)', fontStyle: 'italic', fontSize: '0.875rem' }}>No receipts recorded yet.</p>
                     ) : (
-                        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-                            <table className="min-w-full text-sm">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        {['PO #', 'CAPEX Ref', 'Vendor', 'Received Date', 'Delivery Note', 'Status', 'Received By', 'Conditions'].map(h => (
-                                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
+                        <>
+                            <Table size="lg" useZebraStyles>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableHeader>PO #</TableHeader>
+                                        <TableHeader>CAPEX Ref</TableHeader>
+                                        <TableHeader>Vendor</TableHeader>
+                                        <TableHeader>Received Date</TableHeader>
+                                        <TableHeader>Delivery Note</TableHeader>
+                                        <TableHeader>Status</TableHeader>
+                                        <TableHeader>Received By</TableHeader>
+                                        <TableHeader>Conditions</TableHeader>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
                                     {receipts.data.map(r => (
-                                        <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 font-mono font-semibold text-gray-800">{r.po_number}</td>
-                                            <td className="px-4 py-3 text-gray-600">{r.rtp_reference}</td>
-                                            <td className="px-4 py-3 text-gray-700">{r.vendor_name}</td>
-                                            <td className="px-4 py-3 text-gray-600">{r.received_at}</td>
-                                            <td className="px-4 py-3 text-gray-600">{r.delivery_note_no || '—'}</td>
-                                            <td className="px-4 py-3">{statusBadge(r.status)}</td>
-                                            <td className="px-4 py-3 text-gray-600">{r.received_by_name}</td>
-                                            <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate">{r.condition_notes || '—'}</td>
-                                        </tr>
+                                        <TableRow key={r.id}>
+                                            <TableCell><code><strong>{r.po_number}</strong></code></TableCell>
+                                            <TableCell>{r.rtp_reference}</TableCell>
+                                            <TableCell>{r.vendor_name}</TableCell>
+                                            <TableCell>{r.received_at}</TableCell>
+                                            <TableCell>{r.delivery_note_no || '—'}</TableCell>
+                                            <TableCell>
+                                                <Tag type={statusTagType(r.status)} size="sm">{r.status}</Tag>
+                                            </TableCell>
+                                            <TableCell>{r.received_by_name}</TableCell>
+                                            <TableCell>
+                                                <span style={{ maxWidth: '12rem', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                                                    {r.condition_notes || '—'}
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* Pagination */}
-                    {receipts.links?.length > 3 && (
-                        <div className="flex justify-center mt-4 gap-1">
-                            {receipts.links.map((link, i) => (
-                                link.url ? (
-                                    <Link key={i} href={link.url}
-                                        className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ) : (
-                                    <span key={i} className="px-3 py-1.5 rounded text-xs border border-gray-200 text-gray-300"
-                                        dangerouslySetInnerHTML={{ __html: link.label }} />
-                                )
-                            ))}
-                        </div>
+                                </TableBody>
+                            </Table>
+                            {receipts.last_page > 1 && (
+                                <Pagination
+                                    totalItems={receipts.total}
+                                    pageSize={receipts.per_page}
+                                    page={receipts.current_page}
+                                    pageSizes={[15, 25, 50]}
+                                    onChange={({ page }) => router.get(route('goods-receipts.index'), { page, search })}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
-
             </div>
         </AuthenticatedLayout>
     );
