@@ -62,8 +62,8 @@ ssh administrator@77.93.154.83
 cd /var/www/simbisa
 cp .env.production .env
 
-# Generate APP_KEY (important!)
-docker-compose run --rm app php artisan key:generate
+# Verify APP_KEY exists in .env (important!)
+grep '^APP_KEY=base64:' .env
 
 # Start all services
 docker-compose up -d
@@ -75,6 +75,7 @@ Start-Sleep -Seconds 15
 docker-compose exec -T app php artisan migrate --force
 
 # Cache configuration
+docker-compose exec -T app php artisan optimize:clear
 docker-compose exec -T app php artisan config:cache
 docker-compose exec -T app php artisan route:cache
 docker-compose exec -T app php artisan view:cache

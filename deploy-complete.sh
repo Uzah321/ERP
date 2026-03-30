@@ -65,8 +65,10 @@ echo "✓ Waiting 20 seconds for database initialization..."
 sleep 20
 
 echo ""
-echo "🔑 Generating APP_KEY..."
-docker-compose exec -T app php artisan key:generate || true
+if ! grep -q '^APP_KEY=base64:' .env; then
+    echo "✗ APP_KEY is missing in .env. Refusing to generate a new key during deployment."
+    exit 1
+fi
 
 echo ""
 echo "🗄 Running database migrations..."
@@ -74,6 +76,7 @@ docker-compose exec -T app php artisan migrate --force
 
 echo ""
 echo "⚡ Caching configuration..."
+docker-compose exec -T app php artisan optimize:clear
 docker-compose exec -T app php artisan config:cache
 docker-compose exec -T app php artisan route:cache
 docker-compose exec -T app php artisan view:cache

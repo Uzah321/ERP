@@ -6,6 +6,8 @@ use App\Models\Invoice;
 use App\Models\PurchaseOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
@@ -15,6 +17,17 @@ class InvoiceController extends Controller
     {
         $search = $request->input('search', '');
         $status = $request->input('status', '');
+
+        if (!Schema::hasTable('purchase_orders')) {
+            return Inertia::render('Admin/Invoices', [
+                'invoices' => $this->emptyPaginator($request),
+                'uninvoicedPos' => [],
+                'filters' => ['search' => $search, 'status' => $status],
+                'flash' => array_merge(session('flash', []), [
+                    'error' => 'Purchase orders are not available yet. Run the latest migrations, then reload this page.',
+                ]),
+            ]);
+        }
 
         $invoices = Invoice::with(['purchaseOrder.capexForm'])
             ->when($search, fn ($q) =>
@@ -73,6 +86,12 @@ class InvoiceController extends Controller
 
     public function store(Request $request)
     {
+        if (!Schema::hasTable('purchase_orders')) {
+            return back()->withErrors([
+                'error' => 'Purchase orders are not available yet. Run the latest migrations before recording invoices.',
+            ]);
+        }
+
         $data = $request->validate([
             'purchase_order_id' => 'required|exists:purchase_orders,id',
             'invoice_number'    => 'required|string|max:100|unique:invoices,invoice_number',
@@ -138,5 +157,19 @@ class InvoiceController extends Controller
 
         return redirect()->route('invoices.index')
             ->with('flash', ['success' => "Invoice {$invoice->invoice_number} marked as paid."]);
+    }
+
+    private function emptyPaginator(Request $request): LengthAwarePaginator
+    {
+        return new LengthAwarePaginator(
+            [],
+            0,
+            15,
+            LengthAwarePaginator::resolveCurrentPage(),
+            [
+                'path' => $request->url(),
+                'pageName' => 'page',
+            ]
+        );
     }
 }

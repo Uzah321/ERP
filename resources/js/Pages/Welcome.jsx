@@ -11,7 +11,9 @@ const features = [
     { label: 'Department Rollup',   desc: 'Asset counts and values by department' },
 ];
 
-export default function Welcome({ auth }) {
+export default function Welcome({ auth, canLogin, canRegister }) {
+    const user = auth?.user;
+
     return (
         <>
             <Head title="ASSETLINQ - Enterprise Asset Management" />
@@ -32,7 +34,7 @@ export default function Welcome({ auth }) {
                     </div>
 
                     <nav className="flex items-center gap-2">
-                        {auth.user ? (
+                        {user ? (
                             <Link
                                 href={route('dashboard')}
                                 className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition shadow-lg shadow-indigo-500/30"
@@ -41,18 +43,22 @@ export default function Welcome({ auth }) {
                             </Link>
                         ) : (
                             <>
-                                <Link
-                                    href={route('login')}
-                                    className="px-4 py-2 text-white/80 hover:text-white text-sm font-medium rounded-lg hover:bg-white/10 transition"
-                                >
-                                    Log In
-                                </Link>
-                                <Link
-                                    href={route('register')}
-                                    className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition shadow-lg shadow-indigo-500/30"
-                                >
-                                    Register
-                                </Link>
+                                {canLogin && (
+                                    <Link
+                                        href={route('login')}
+                                        className="px-4 py-2 text-white/80 hover:text-white text-sm font-medium rounded-lg hover:bg-white/10 transition"
+                                    >
+                                        Log In
+                                    </Link>
+                                )}
+                                {canRegister && (
+                                    <Link
+                                        href={route('register')}
+                                        className="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition shadow-lg shadow-indigo-500/30"
+                                    >
+                                        Register
+                                    </Link>
+                                )}
                             </>
                         )}
                     </nav>
@@ -77,13 +83,15 @@ export default function Welcome({ auth }) {
 
                     {/* CTA buttons */}
                     <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
-                        <Link
-                            href={auth.user ? route('dashboard') : route('login')}
-                            className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-xl shadow-xl shadow-indigo-500/40 transition text-base"
-                        >
-                            {auth.user ? 'Go to Dashboard' : 'Sign In'}
-                        </Link>
-                        {!auth.user && (
+                        {(user || canLogin) && (
+                            <Link
+                                href={user ? route('dashboard') : route('login')}
+                                className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-xl shadow-xl shadow-indigo-500/40 transition text-base"
+                            >
+                                {user ? 'Go to Dashboard' : 'Sign In'}
+                            </Link>
+                        )}
+                        {!user && canRegister && (
                             <Link
                                 href={route('register')}
                                 className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl border border-white/20 transition text-base"

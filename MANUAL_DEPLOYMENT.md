@@ -63,12 +63,12 @@ docker-compose ps
 
 All containers should show **Up** status.
 
-## Step 7: Generate Laravel APP_KEY
+## Step 7: Verify Laravel APP_KEY
 ```bash
-docker-compose exec -T app php artisan key:generate
+grep '^APP_KEY=base64:' .env
 ```
 
-You should see: `Application key [base64:XXXXX...] set successfully.`
+You should see your existing base64 application key. If not, stop and fix `.env.production` before continuing.
 
 ## Step 8: Run Database Migrations
 ```bash
@@ -79,6 +79,7 @@ Wait for migrations to complete.
 
 ## Step 9: Cache Configuration
 ```bash
+docker-compose exec -T app php artisan optimize:clear
 docker-compose exec -T app php artisan config:cache
 docker-compose exec -T app php artisan route:cache
 docker-compose exec -T app php artisan view:cache

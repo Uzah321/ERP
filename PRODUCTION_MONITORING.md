@@ -231,7 +231,7 @@ sudo apt-get install curl
 
 # Create alert script
 #!/bin/bash
-if ! docker-compose ps | grep -q "simbisa_app.*Up"; then
+if ! docker-compose ps app | grep -q "Up"; then
     echo "Application container is down!" | mail -s "Alert: App Container Failed" admin@example.com
     docker-compose restart app
 fi

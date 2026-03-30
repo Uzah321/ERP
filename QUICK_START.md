@@ -26,6 +26,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 - ✅ Connect to your server
 - ✅ Upload all files
 - ✅ Configure environment
+- ✅ Verify APP_KEY already exists
 - ✅ Start Docker containers
 - ✅ Run database migrations
 - ✅ Set up caching
@@ -87,10 +88,11 @@ scp -r "c:\Users\dingulwazi.zondo\Desktop\LARAVEL\first-app\*" administrator@77.
 ssh administrator@77.93.154.83 << 'EOF'
 cd /var/www/simbisa
 cp .env.production .env
-docker-compose run --rm app php artisan key:generate
+grep '^APP_KEY=base64:' .env
 docker-compose up -d --build
 sleep 15
 docker-compose exec -T app php artisan migrate --force
+docker-compose exec -T app php artisan optimize:clear
 docker-compose exec -T app php artisan config:cache
 EOF
 ```
@@ -106,9 +108,10 @@ ssh administrator@77.93.154.83 "cd /var/www/simbisa && docker-compose ps"
 You should see:
 ```
 NAME                COMMAND             STATUS
-simbisa_postgres    postgres...         Up (healthy)
-simbisa_redis       redis-server...     Up (healthy)  
-simbisa_app         php-fpm...          Up
+assetlinq_app       /entrypoint.sh ...  Up
+simbisa_nginx       nginx...            Up
+...postgres         postgres...         Up (healthy)
+...redis            redis-server...     Up (healthy)
 ```
 
 All containers should be **Up**!
@@ -197,7 +200,7 @@ Check the detailed guides:
 
 ## 🚨 Important Notes
 
-1. **APP_KEY** is auto-generated during deployment - this is critical!
+1. **APP_KEY** must already exist in `.env.production` before deployment.
 2. **Database credentials** are in `.env.production` - keep them secure
 3. **First login** may be slow - it's running migrations
 4. **Logs** are in `storage/logs/laravel.log` on the server

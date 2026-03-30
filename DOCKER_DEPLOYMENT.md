@@ -18,10 +18,12 @@ This guide covers dockerization and deployment of the Simbisa Asset Management s
    cp .env.docker .env
    ```
 
-2. **Generate APP_KEY:**
+2. **Generate APP_KEY for local Docker only if missing:**
    ```bash
    docker compose run --rm app php artisan key:generate
    ```
+
+   For production deployment, do not generate a new key on the server. Ship the existing key in `.env.production`.
 
 3. **Start the services:**
    ```bash
