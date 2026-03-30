@@ -8,7 +8,7 @@ import CreateAssetModal from '@/Components/CreateAssetModal';
 import EditAssetModal from '@/Components/EditAssetModal';
 import AssetRequestModal from '@/Components/AssetRequestModal';
 
-export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, selected_department_id, filters }) {
+export default function Dashboard({ auth, assets, department, categories, locations, all_departments, request_categories, selected_department_id, filters }) {
         const [bulkTransferData, setBulkTransferData] = useState({ target_department_id: '', reason: '' });
         const [bulkTransferErrors, setBulkTransferErrors] = useState({});
         const [bulkTransferProcessing, setBulkTransferProcessing] = useState(false);
@@ -441,7 +441,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                     show={showRequestModal}
                     onClose={() => setShowRequestModal(false)}
                     departments={all_departments || []}
-                    vendorCategories={vendor_categories || []}
+                    assetCategories={request_categories || []}
                 />
             )}
         </AuthenticatedLayout>

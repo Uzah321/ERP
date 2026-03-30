@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Collection;
 
 class AssetController extends Controller
 {
@@ -60,7 +61,17 @@ class AssetController extends Controller
 
         $assets = $query->latest()->paginate(25)->withQueryString();
 
-        $vendorCategories = cache()->remember('vendor_categories-dropdown', now()->minutes(30), fn() => \App\Models\Vendor::select('product_category')->distinct()->pluck('product_category'));
+        $vendorCategories = cache()->remember(
+            'vendor_categories-dropdown',
+            now()->minutes(30),
+            fn() => \App\Models\Vendor::query()
+                ->whereNotNull('product_category')
+                ->where('product_category', '!=', '')
+                ->distinct()
+                ->pluck('product_category')
+        );
+
+        $requestCategories = $this->requestCategories($categories, $vendorCategories);
 
         return Inertia::render('Dashboard', [
             'assets' => $assets,
@@ -70,8 +81,30 @@ class AssetController extends Controller
             'selected_department_id' => $selectedDepartmentId,
             'categories' => $categories,
             'locations' => $locations,
-            'vendor_categories' => $vendorCategories
+            'vendor_categories' => $vendorCategories,
+            'request_categories' => $requestCategories,
         ]);
+    }
+
+    private function requestCategories(Collection $categories, Collection $vendorCategories): Collection
+    {
+        $defaultCategories = collect([
+            'Laptops',
+            'Desktops',
+            'Vehicles',
+            'Office Furniture',
+            'POS Machines',
+            'Networking Equipment',
+        ]);
+
+        return $categories
+            ->pluck('name')
+            ->merge($vendorCategories)
+            ->merge($defaultCategories)
+            ->map(static fn ($category) => is_string($category) ? trim($category) : $category)
+            ->filter()
+            ->unique()
+            ->values();
     }
 
     public function store(Request $request)

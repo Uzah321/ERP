@@ -15,7 +15,7 @@ const defaultItem = () => ({
     quantity: 1,
 });
 
-export default function AssetRequestModal({ show, onClose, departments, vendorCategories }) {
+export default function AssetRequestModal({ show, onClose, departments, assetCategories }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         target_department_id: '',
         asset_category: '',
@@ -155,7 +155,7 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
                         required
                     >
                         <option value="">Select Asset Category...</option>
-                        {vendorCategories?.map((category, index) => (
+                        {assetCategories?.map((category, index) => (
                             <option key={index} value={category}>{category}</option>
                         ))}
                     </select>
