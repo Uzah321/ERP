@@ -8,12 +8,13 @@ import {
 const CONDITIONS = ['New', 'Good', 'Fair', 'Poor'];
 const STATUSES = ['Purchased', 'Available', 'Allocated', 'Registered', 'Deployed', 'Active Use', 'Under Maintenance', 'Audit', 'Retired', 'Decommissioned', 'Disposed', 'Archived'];
 
-export default function CreateAssetModal({ onClose, categories, locations }) {
+export default function CreateAssetModal({ onClose, categories, complexes, initialComplexId = '', initialStoreId = '', redirectTo = '' }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         serial_number: '',
         category_id: '',
-        location_id: '',
+        complex_id: initialComplexId ? String(initialComplexId) : '',
+        store_id: initialStoreId ? String(initialStoreId) : '',
         purchase_cost: '',
         purchase_date: '',
         condition: 'New',
@@ -22,6 +23,7 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
         depreciation_method: 'straight_line',
         annual_depreciation_rate: '25',
         photo: null,
+        redirect_to: redirectTo,
     });
 
     const submit = () => {
@@ -30,6 +32,9 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
             onSuccess: () => { reset(); onClose(); },
         });
     };
+
+    const selectedComplex = complexes.find((complex) => String(complex.id) === String(data.complex_id));
+    const availableStores = selectedComplex?.stores ?? [];
 
     return (
         <ComposedModal open onClose={onClose} size="md">
@@ -55,11 +60,20 @@ export default function CreateAssetModal({ onClose, categories, locations }) {
                         </Select>
                     </Column>
                     <Column sm={4} md={4} lg={8}>
-                        <Select id="location_id" labelText="Location *" value={data.location_id}
-                            onChange={e => setData('location_id', e.target.value)} required
-                            invalid={!!errors.location_id} invalidText={errors.location_id}>
-                            <SelectItem value="" text="-- Select Location --" />
-                            {locations.map(l => <SelectItem key={l.id} value={String(l.id)} text={l.name} />)}
+                        <Select id="complex_id" labelText="Complex *" value={data.complex_id}
+                            onChange={e => setData((current) => ({ ...current, complex_id: e.target.value, store_id: '' }))} required
+                            invalid={!!errors.complex_id} invalidText={errors.complex_id}>
+                            <SelectItem value="" text="-- Select Complex --" />
+                            {complexes.map((complex) => <SelectItem key={complex.id} value={String(complex.id)} text={complex.name} />)}
+                        </Select>
+                    </Column>
+                    <Column sm={4} md={4} lg={8}>
+                        <Select id="store_id" labelText="Store / Shop"
+                            value={data.store_id}
+                            onChange={e => setData('store_id', e.target.value)}
+                            invalid={!!errors.store_id} invalidText={errors.store_id}>
+                            <SelectItem value="" text={selectedComplex ? '-- Select Store --' : 'Select a complex first'} />
+                            {availableStores.map((store) => <SelectItem key={store.id} value={String(store.id)} text={store.name} />)}
                         </Select>
                     </Column>
                     <Column sm={4} md={4} lg={8}>

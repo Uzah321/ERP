@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\CapexForm;
 use App\Models\Department;
-use App\Models\Invoice;
 use App\Models\PurchaseOrder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +22,8 @@ class BudgetTrackingController extends Controller
             'assetRequest.department',
             'assetRequest.user',
             'approvals',
+            'purchaseOrders:id,capex_form_id,po_number,total_amount',
+            'purchaseOrders.invoices:id,purchase_order_id,amount',
         ])
         ->whereYear('created_at', $year)
         ->when($departmentId, function ($q) use ($departmentId) {
@@ -33,11 +34,8 @@ class BudgetTrackingController extends Controller
 
         // Build rows: one row per CAPEX form
         $rows = $capexForms->map(function ($capex) {
-            $po = $capex->purchaseOrders()->first();  // 1 PO per CAPEX
-            $invoiceTotal = 0;
-            if ($po) {
-                $invoiceTotal = Invoice::where('purchase_order_id', $po->id)->sum('amount');
-            }
+            $po = $capex->purchaseOrders->first();
+            $invoiceTotal = (float) ($po?->invoices->sum('amount') ?? 0);
 
             $budgeted   = (float) ($capex->total_amount ?? 0);
             $poAmount   = $po ? (float) $po->total_amount : 0;

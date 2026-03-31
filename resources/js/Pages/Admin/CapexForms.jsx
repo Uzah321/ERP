@@ -142,16 +142,16 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
 
     return (
         <AuthenticatedLayout user={auth.user}>
-            <Head title="CAPEX Forms" />
+            <Head title="Approval Forms" />
             <div className="p-6 space-y-6">
 
                 {flash?.success && <InlineNotification kind="success" title="Success" subtitle={flash.success} lowContrast onClose={() => {}} />}
                 {flash?.error && <InlineNotification kind="error" title="Error" subtitle={flash.error} lowContrast onClose={() => {}} />}
 
-                {/* Create CAPEX Form */}
+                {/* Create Approval Form */}
                 {assetRequests?.length > 0 && (
                     <div className="bg-white border border-gray-200 p-5 shadow-sm">
-                        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Create New CAPEX Form</h3>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Create New Approval Form</h3>
                         <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <Select
@@ -266,7 +266,7 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                     <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                                        Approval Chain <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)', fontWeight: 400 }}>Who approves this CAPEX, in order</span>
+                                        Approval Chain <span style={{ fontSize: '0.75rem', color: 'var(--cds-text-placeholder)', fontWeight: 400 }}>Who approves this form, in order</span>
                                     </label>
                                     <Button kind="ghost" size="sm" renderIcon={Add} onClick={addChainStage}>Add Stage</Button>
                                 </div>
@@ -300,7 +300,7 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                                 <InlineNotification
                                     kind="success"
                                     title="Quotation 1"
-                                    subtitle="must be the cheapest / recommended quote — it will be marked as the selected quotation on the CAPEX PDF."
+                                    subtitle="must be the cheapest / recommended quote — it will be marked as the selected quotation on the approval PDF."
                                     lowContrast
                                     onClose={() => {}}
                                     style={{ marginBottom: '0.5rem' }}
@@ -405,7 +405,7 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                         <TableBody>
                             {forms.data.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={9} style={{ textAlign: 'center', color: 'var(--cds-text-placeholder)' }}>No CAPEX forms found.</TableCell>
+                                    <TableCell colSpan={9} style={{ textAlign: 'center', color: 'var(--cds-text-placeholder)' }}>No approval forms found.</TableCell>
                                 </TableRow>
                             )}
                             {forms.data.map(f => {

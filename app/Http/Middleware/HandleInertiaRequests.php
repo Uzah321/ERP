@@ -29,13 +29,22 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user()?->only([
+                'user' => $user?->only([
                     'id', 'name', 'email', 'role', 'department_id',
                     'is_active', 'two_factor_enabled', 'approval_position',
                 ]),
+                'permissions' => $user ? [
+                    'can_manage_assets' => $user->canManageAssets(),
+                    'can_manage_administration' => $user->canManageAdministration(),
+                    'can_access_procurement' => $user->canAccessProcurement(),
+                    'can_view_all_departments' => $user->canViewAllDepartments(),
+                    'dashboard_route_name' => $user->dashboardRouteName(),
+                ] : null,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

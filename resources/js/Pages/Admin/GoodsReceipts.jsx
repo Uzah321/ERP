@@ -128,7 +128,7 @@ export default function GoodsReceipts({ pendingPos, receipts, filters, flash }) 
                     {selectedPo && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                                <TextInput id="gr-date" labelText="Date Received *" type="date" value={form.received_at} onChange={e => setForm(f => ({ ...f, received_at: e.target.value }))} required />
+                                <TextInput id="gr-date" labelText="Date Received *" type="date" autoFocus value={form.received_at} onChange={e => setForm(f => ({ ...f, received_at: e.target.value }))} required />
                                 <TextInput id="gr-dn" labelText="Delivery Note No." placeholder="e.g. DN-20260324-001" value={form.delivery_note_no} onChange={e => setForm(f => ({ ...f, delivery_note_no: e.target.value }))} />
                                 <Select id="gr-status" labelText="Receipt Status *" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} required>
                                     <SelectItem value="complete" text="Complete Delivery" />

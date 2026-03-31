@@ -49,7 +49,7 @@
                 <td>{{ $asset->name }}</td>
                 <td>{{ $asset->category ? $asset->category->name : 'N/A' }}</td>
                 <td>{{ $asset->department ? $asset->department->name : 'N/A' }}</td>
-                <td>{{ $asset->location ? $asset->location->name : 'N/A' }}</td>
+                <td>{{ $asset->location_label }}</td>
                 <td>
                     <span class="
                         @if($asset->status == 'Active') status-active

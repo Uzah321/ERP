@@ -12,6 +12,10 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    public const ROLE_EXECUTIVE = 'executive';
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_USER = 'user';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -60,5 +64,59 @@ class User extends Authenticatable
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public static function roles(): array
+    {
+        return [
+            self::ROLE_EXECUTIVE,
+            self::ROLE_ADMIN,
+            self::ROLE_USER,
+        ];
+    }
+
+    public function isExecutive(): bool
+    {
+        return $this->role === self::ROLE_EXECUTIVE;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isStandardUser(): bool
+    {
+        return !$this->isExecutive() && !$this->isAdmin();
+    }
+
+    public function hasAnyRole(array $roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
+    public function canViewAllDepartments(): bool
+    {
+        return $this->hasAnyRole([self::ROLE_EXECUTIVE, self::ROLE_ADMIN]);
+    }
+
+    public function canManageAssets(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canManageAdministration(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canAccessProcurement(): bool
+    {
+        return $this->hasAnyRole([self::ROLE_EXECUTIVE, self::ROLE_ADMIN]);
+    }
+
+    public function dashboardRouteName(): string
+    {
+        return $this->isExecutive() ? 'executive.dashboard' : 'asset-management.index';
     }
 }

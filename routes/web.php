@@ -25,6 +25,11 @@ use App\Http\Controllers\PositionSpecificationController;
 use App\Http\Controllers\CapexController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExecutiveDashboardController;
+use App\Http\Controllers\ProcurementDashboardController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\StoreManagementController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -59,15 +64,27 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function (\Illuminate\Http\Request $request) {
-    return app(\App\Http\Controllers\AssetController::class)->index($request);
-})->middleware(['auth', 'verified', 'two-factor'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'two-factor'])->name('dashboard');
+Route::get('/asset-management', [AssetController::class, 'index'])->middleware(['auth', 'verified', 'two-factor'])->name('asset-management.index');
 
-Route::post('/assets', [AssetController::class, 'store'])->middleware(['auth', 'verified', 'two-factor'])->name('assets.store');
-Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['auth', 'verified', 'two-factor'])->name('assets.update');
+Route::post('/assets', [AssetController::class, 'store'])->middleware(['auth', 'verified', 'two-factor', 'admin'])->name('assets.store');
+Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['auth', 'verified', 'two-factor', 'admin'])->name('assets.update');
 
 Route::middleware(['auth', 'two-factor'])->group(function () {
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('/operations/store-management', [StoreManagementController::class, 'index'])->name('store-management.index');
+    Route::get('/operations/store-management/complexes/{complex}/stores', [StoreManagementController::class, 'stores'])->name('store-management.stores');
+    Route::get('/operations/store-management/stores/{store}/assets', [StoreManagementController::class, 'assets'])->name('store-management.assets');
     Route::post('/asset-requests', [AssetRequestController::class, 'store'])->name('asset-requests.store');
+
+    Route::middleware('role:executive')->group(function () {
+        Route::get('/executive/dashboard', [ExecutiveDashboardController::class, 'index'])->name('executive.dashboard');
+    });
+
+    Route::middleware('role:admin,executive')->group(function () {
+        Route::get('/procurement/dashboard', [ProcurementDashboardController::class, 'index'])->name('procurement.dashboard');
+        Route::get('/procurement/pending', [ProcurementDashboardController::class, 'pending'])->name('procurement.pending');
+    });
 
     // Fetch position specs for the asset request modal (all authenticated users)
     Route::get('/api/position-specifications', [PositionSpecificationController::class, 'all'])->name('position-specs.all');
@@ -149,7 +166,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::delete('/admin/position-specifications/{positionSpecification}', [PositionSpecificationController::class, 'destroy'])->name('admin.position-specs.destroy');
     });
 
-    Route::get('/transfers', [TransferRequestController::class, 'index'])->name('transfers.index');
+    Route::get('/transfers', fn () => redirect()->route('admin.allocations.index'))->name('transfers.index');
     Route::post('/assets/{asset}/transfer', [TransferRequestController::class, 'store'])->name('transfers.store');
     Route::post('/assets/bulk-transfer', [TransferRequestController::class, 'bulkTransfer'])->name('assets.bulkTransfer');
     Route::patch('/transfers/{transferRequest}', [TransferRequestController::class, 'update'])->name('transfers.update');
@@ -177,9 +194,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::put('/admin/software-licences/{softwareLicence}', [\App\Http\Controllers\SoftwareLicenceController::class, 'update'])->name('admin.software-licences.update');
     Route::delete('/admin/software-licences/{softwareLicence}', [\App\Http\Controllers\SoftwareLicenceController::class, 'destroy'])->name('admin.software-licences.destroy');
 
-    Route::post('/assets/{asset}/decommission', [AssetLifecycleController::class, 'decommission'])->name('assets.decommission');
-    Route::post('/assets/{asset}/dispose', [AssetLifecycleController::class, 'dispose'])->name('assets.dispose');
-    Route::post('/assets/{asset}/archive', [AssetLifecycleController::class, 'archive'])->name('assets.archive');
+    Route::post('/assets/{asset}/decommission', [AssetLifecycleController::class, 'decommission'])->middleware('admin')->name('assets.decommission');
+    Route::post('/assets/{asset}/dispose', [AssetLifecycleController::class, 'dispose'])->middleware('admin')->name('assets.dispose');
+    Route::post('/assets/{asset}/archive', [AssetLifecycleController::class, 'archive'])->middleware('admin')->name('assets.archive');
     Route::get('/assets/{asset}/qr-label', [AssetController::class, 'qrLabel'])->name('assets.qr-label');
     
     Route::get('/decommission-log', [DecommissionLogController::class, 'index'])->name('decommission.log');

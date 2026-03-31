@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Asset;
 use App\Models\AssetAllocation;
 use App\Models\Department;
+use App\Models\TransferRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,12 +19,24 @@ class AssetAllocationController extends Controller
             ->latest()
             ->get();
 
+        $pendingTransfers = TransferRequest::with([
+            'asset',
+            'requester',
+            'targetDepartment',
+            'targetLocation',
+            'targetUser',
+        ])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+
         $assets = Asset::select('id', 'name', 'barcode', 'status')->orderBy('name')->get();
         $departments = Department::select('id', 'name')->orderBy('name')->get();
         $users = User::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Admin/Allocations', [
             'allocations' => $allocations,
+            'pendingTransfers' => $pendingTransfers,
             'assets' => $assets,
             'departments' => $departments,
             'users' => $users,

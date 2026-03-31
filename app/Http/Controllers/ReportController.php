@@ -9,6 +9,7 @@ use App\Models\PurchaseOrder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 class ReportController extends Controller
@@ -20,7 +21,7 @@ class ReportController extends Controller
 
     public function generate(Request $request)
     {
-        $query = Asset::with(['department', 'category', 'location']);
+        $query = Asset::with($this->assetRelations());
 
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
@@ -48,7 +49,7 @@ class ReportController extends Controller
 
     public function exportCsv(Request $request)
     {
-        $query = Asset::with(['department', 'category', 'location']);
+        $query = Asset::with($this->assetRelations());
 
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
@@ -81,7 +82,7 @@ class ReportController extends Controller
                     $asset->serial_number,
                     $asset->department?->name,
                     $asset->category?->name,
-                    $asset->location?->name,
+                    $asset->location_label,
                     $asset->status,
                     $asset->condition,
                     $asset->purchase_cost,
@@ -97,6 +98,19 @@ class ReportController extends Controller
             ->log('Downloaded the Master Asset CSV Report');
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function assetRelations(): array
+    {
+        $relations = ['department', 'category', 'location'];
+
+        if (Schema::hasColumns('locations', ['type', 'parent_id'])
+            && Schema::hasColumns('assets', ['complex_id', 'store_id'])) {
+            $relations[] = 'complex';
+            $relations[] = 'store';
+        }
+
+        return $relations;
     }
 
     public function maintenance(Request $request)

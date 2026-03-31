@@ -112,6 +112,7 @@ export default function Categories({ auth, categories, flash }) {
                     <TextInput
                         id="cat-name"
                         labelText="Category Name"
+                        autoFocus
                         value={data.name}
                         onChange={e => setData('name', e.target.value)}
                         invalid={!!errors.name}

@@ -11,15 +11,16 @@ const highlights = [
 
 export default function GuestLayout({ children }) {
     return (
-        <div style={{ minHeight: '100vh', display: 'flex' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--cds-background)' }}>
             {/* Left brand panel — Carbon g100 dark theme */}
             <Theme theme="g100">
                 <div
-                    className="brand-panel"
+                    className="hidden lg:flex"
                     style={{
-                        display: 'none',
-                        width: '45%',
+                        flex: '0 0 50%',
+                        width: '50%',
                         background: 'var(--cds-background)',
+                        display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         padding: '3rem',
@@ -65,19 +66,22 @@ export default function GuestLayout({ children }) {
             </Theme>
 
             {/* Right form panel */}
-            <div style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '3rem 1.5rem',
-                background: 'var(--cds-background)',
-            }}>
+            <div
+                className="w-full lg:w-1/2"
+                style={{
+                    flex: '1 1 50%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '3rem 1.5rem',
+                    background: 'var(--cds-background)',
+                }}
+            >
                 {/* Mobile logo — hidden on large screens */}
                 <Link
                     href="/"
-                    className="brand-panel-mobile"
+                    className="lg:hidden"
                     style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', marginBottom: '2rem' }}
                 >
                     <div style={{
@@ -94,7 +98,7 @@ export default function GuestLayout({ children }) {
                     </span>
                 </Link>
 
-                <Tile style={{ width: '100%', maxWidth: '26rem', padding: '2.5rem 2rem' }}>
+                <Tile style={{ width: '100%', maxWidth: '28rem', padding: '2.5rem 2rem' }}>
                     {children}
                 </Tile>
             </div>

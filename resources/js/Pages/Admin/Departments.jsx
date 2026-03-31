@@ -133,6 +133,7 @@ export default function Departments({ auth, departments, users, flash }) {
                         id="dept-name"
                         labelText="Department Name"
                         placeholder="e.g. Finance, IT, Operations"
+                        autoFocus
                         value={activeForm.data.name}
                         onChange={e => activeForm.setData('name', e.target.value)}
                         invalid={!!activeForm.errors.name}

@@ -43,7 +43,7 @@ class UserManagementController extends Controller
             'email' => 'required|email|max:255|unique:users,email',
             'password' => ['required', Rules\Password::defaults()],
             'department_id' => 'required|exists:departments,id',
-            'role' => 'required|in:admin,user',
+            'role' => 'required|in:executive,admin,user',
             'approval_position' => 'nullable|in:it_manager,finance_operations,it_head,finance_director',
         ]);
 
@@ -65,7 +65,7 @@ class UserManagementController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'department_id' => 'required|exists:departments,id',
-            'role' => 'required|in:admin,user',
+            'role' => 'required|in:executive,admin,user',
             'approval_position' => 'nullable|in:it_manager,finance_operations,it_head,finance_director',
         ]);
 

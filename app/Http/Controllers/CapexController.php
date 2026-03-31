@@ -189,7 +189,7 @@ class CapexController extends Controller
 
         // Prevent duplicate CAPEX for same request
         if (CapexForm::where('asset_request_id', $assetRequest->id)->exists()) {
-            return back()->withErrors(['asset_request_id' => 'A CAPEX form already exists for this request.']);
+            return back()->withErrors(['asset_request_id' => 'An approval form already exists for this request.']);
         }
 
         $ref = 'SRQ-' . now()->format('Y') . '-' . str_pad($assetRequest->id, 4, '0', STR_PAD_LEFT);
@@ -247,10 +247,10 @@ class CapexController extends Controller
                 Mail::to($firstUser->email)->send(new CapexApprovalRequest($approval));
             }
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'An error occurred while creating the CAPEX form.']);
+            return back()->withErrors(['error' => 'An error occurred while creating the approval form.']);
         }
 
-        return back()->with('success', 'CAPEX form created and sent to ' . $chain[0]['label'] . ' for approval.');
+        return back()->with('success', 'Approval form created and sent to ' . $chain[0]['label'] . ' for approval.');
     }
 
     /**

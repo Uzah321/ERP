@@ -203,7 +203,7 @@ export default function SoftwareLicences({ licences, filters, flash }) {
                     size="lg"
                 >
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <TextInput id="sl-name" labelText="Software Name *" value={form.software_name} onChange={e => setForm(f => ({ ...f, software_name: e.target.value }))} required />
+                        <TextInput id="sl-name" labelText="Software Name *" autoFocus value={form.software_name} onChange={e => setForm(f => ({ ...f, software_name: e.target.value }))} required />
                         <TextInput id="sl-vendor" labelText="Vendor / Publisher" value={form.vendor_name} onChange={e => setForm(f => ({ ...f, vendor_name: e.target.value }))} />
                         <TextInput id="sl-key" labelText="Licence Key" placeholder={editing ? '(leave blank to keep unchanged)' : ''} value={form.licence_key} onChange={e => setForm(f => ({ ...f, licence_key: e.target.value }))} />
                         <Select id="sl-type" labelText="Licence Type *" value={form.licence_type} onChange={e => setForm(f => ({ ...f, licence_type: e.target.value }))}>

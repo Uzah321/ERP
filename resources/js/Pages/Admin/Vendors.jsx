@@ -116,7 +116,7 @@ export default function Vendors({ auth, vendors, flash }) {
                     primaryButtonDisabled={createForm.processing}
                 >
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <TextInput id="v-name" labelText="Vendor Name" value={createForm.data.name} onChange={e => createForm.setData('name', e.target.value)} required />
+                        <TextInput id="v-name" labelText="Vendor Name" autoFocus value={createForm.data.name} onChange={e => createForm.setData('name', e.target.value)} required />
                         <TextInput id="v-category" labelText="Product Category" value={createForm.data.product_category} onChange={e => createForm.setData('product_category', e.target.value)} required />
                         <TextInput id="v-email" labelText="Contact Email" type="email" value={createForm.data.contact_email} onChange={e => createForm.setData('contact_email', e.target.value)} required />
                         <TextInput id="v-bu" labelText="Business Unit" value={createForm.data.business_unit} onChange={e => createForm.setData('business_unit', e.target.value)} />
@@ -135,7 +135,7 @@ export default function Vendors({ auth, vendors, flash }) {
                     primaryButtonDisabled={editForm.processing}
                 >
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <TextInput id="ve-name" labelText="Vendor Name" value={editForm.data.name} onChange={e => editForm.setData('name', e.target.value)} required />
+                        <TextInput id="ve-name" labelText="Vendor Name" autoFocus value={editForm.data.name} onChange={e => editForm.setData('name', e.target.value)} required />
                         <TextInput id="ve-category" labelText="Product Category" value={editForm.data.product_category} onChange={e => editForm.setData('product_category', e.target.value)} required />
                         <TextInput id="ve-email" labelText="Contact Email" type="email" value={editForm.data.contact_email} onChange={e => editForm.setData('contact_email', e.target.value)} required />
                         <TextInput id="ve-bu" labelText="Business Unit" value={editForm.data.business_unit} onChange={e => editForm.setData('business_unit', e.target.value)} />

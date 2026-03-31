@@ -118,7 +118,7 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
                 {approvedCapex?.length > 0 && !selectedCapex && (
                     <div className="bg-white border border-gray-200 p-5 shadow-sm">
                         <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Generate New Purchase Order</h3>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginBottom: '1rem' }}>Select a fully-approved CAPEX form to generate a PO from.</p>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginBottom: '1rem' }}>Select an approved form to generate a PO from.</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {approvedCapex.map(c => (
                                 <button

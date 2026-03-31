@@ -17,18 +17,18 @@ class Asset extends Model
     {
         static::addGlobalScope('department', function (Builder $builder) {
             // Automatically filter assets by the current user's department
-            // UNLESS the user is an 'admin'
-            if (Auth::check() && Auth::user()->role !== 'admin') {
+            // UNLESS the user has elevated access across departments.
+            if (Auth::check() && !Auth::user()->canViewAllDepartments()) {
                 $builder->where('department_id', Auth::user()->department_id);
             }
         });
     }
 
-    protected $appends = ['book_value', 'warranty_status'];
+    protected $appends = ['book_value', 'warranty_status', 'location_label'];
 
     protected $fillable = [
         'name', 'serial_number', 'barcode', 'department_id', 'category_id',
-        'location_id', 'assigned_to', 'purchase_cost', 'purchase_date',
+        'location_id', 'complex_id', 'store_id', 'assigned_to', 'purchase_cost', 'purchase_date',
         'order_number', 'condition', 'status', 'description', 'last_audited_at',
         'depreciation_method', 'annual_depreciation_rate', 'asset_life_years', 'salvage_value',
         'warranty_expiry_date', 'warranty_provider', 'warranty_notes',
@@ -93,6 +93,14 @@ class Asset extends Model
     public function location() {
         return $this->belongsTo(Location::class);
     }
+
+    public function complex() {
+        return $this->belongsTo(Location::class, 'complex_id');
+    }
+
+    public function store() {
+        return $this->belongsTo(Location::class, 'store_id');
+    }
     
     public function assignee() {
         return $this->belongsTo(User::class, 'assigned_to');
@@ -108,5 +116,18 @@ class Asset extends Model
 
     public function goodsReceipt() {
         return $this->belongsTo(GoodsReceipt::class);
+    }
+
+    public function getLocationLabelAttribute(): string
+    {
+        if ($this->store?->name && $this->complex?->name) {
+            return $this->complex->name . ' / ' . $this->store->name;
+        }
+
+        if ($this->complex?->name) {
+            return $this->complex->name;
+        }
+
+        return $this->location?->name ?? '—';
     }
 }

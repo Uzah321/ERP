@@ -11,13 +11,14 @@ class DepartmentRollupController extends Controller
     public function index()
     {
         $rollups = Department::withCount('assets')
+            ->withSum('assets', 'purchase_cost')
             ->get()
             ->map(function ($dept) {
                 return [
                     'id' => $dept->id,
                     'name' => $dept->name,
                     'asset_count' => $dept->assets_count,
-                    'total_value' => $dept->assets()->sum('purchase_cost') ?? 0,
+                    'total_value' => $dept->assets_sum_purchase_cost ?? 0,
                 ];
             });
 

@@ -111,6 +111,7 @@ export default function Locations({ auth, locations, flash }) {
                     <TextInput
                         id="loc-name"
                         labelText="Location Name"
+                        autoFocus
                         value={data.name}
                         onChange={e => setData('name', e.target.value)}
                         invalid={!!errors.name}

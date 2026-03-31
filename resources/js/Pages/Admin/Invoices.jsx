@@ -208,7 +208,7 @@ export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
                     size="lg"
                 >
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <Select id="inv-po" labelText="Purchase Order *" value={form.purchase_order_id} onChange={e => selectPo(e.target.value)} required>
+                        <Select id="inv-po" labelText="Purchase Order *" autoFocus value={form.purchase_order_id} onChange={e => selectPo(e.target.value)} required>
                             <SelectItem value="" text="— Select PO —" />
                             {uninvoicedPos.map(p => (
                                 <SelectItem key={p.id} value={p.id} text={`PO #${p.po_number} · ${p.vendor_name} · ${p.rtp_reference}`} />
@@ -237,7 +237,7 @@ export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
                     {payModal && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <p style={{ fontSize: '0.875rem' }}>Invoice <strong>{payModal.invoice_number}</strong> — ${Number(payModal.amount).toLocaleString()} + VAT</p>
-                            <TextInput id="pay-date" labelText="Payment Date *" type="date" value={payForm.paid_at} onChange={e => setPayForm(f => ({ ...f, paid_at: e.target.value }))} required />
+                            <TextInput id="pay-date" labelText="Payment Date *" type="date" autoFocus value={payForm.paid_at} onChange={e => setPayForm(f => ({ ...f, paid_at: e.target.value }))} required />
                             <Select id="pay-method" labelText="Payment Method" value={payForm.payment_method} onChange={e => setPayForm(f => ({ ...f, payment_method: e.target.value }))}>
                                 <SelectItem value="EFT" text="EFT" />
                                 <SelectItem value="Cheque" text="Cheque" />

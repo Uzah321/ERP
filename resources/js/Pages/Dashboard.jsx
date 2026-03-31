@@ -31,7 +31,7 @@ const WARRANTY_TAG = { active: 'green', expiring_soon: 'yellow', expired: 'red' 
 const STATUSES = ['Available','Allocated','Active Use','Deployed','Purchased','Registered','Under Maintenance','Audit','Retired','Decommissioned','Disposed','Archived'];
 const CONDITIONS = ['New','Good','Fair','Poor'];
 
-export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, request_categories, selected_department_id, filters }) {
+export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, request_categories, selected_department_id, filters, supports_location_hierarchy }) {
     const [showCreateModal,  setShowCreateModal]  = useState(false);
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showTransferModal,setShowTransferModal]= useState(false);
@@ -43,19 +43,29 @@ export default function Dashboard({ auth, assets, department, categories, locati
     const [filterStatus,     setFilterStatus]     = useState(filters?.status ?? '');
     const [filterCondition,  setFilterCondition]  = useState(filters?.condition ?? '');
     const [pendingDepartment,setPendingDepartment]= useState(selected_department_id ?? '');
+    const [filterComplex,    setFilterComplex]    = useState(filters?.complex_id ?? '');
+    const [filterStore,      setFilterStore]      = useState(filters?.store_id ?? '');
     const [bulkData,         setBulkData]         = useState({ target_department_id: '', reason: '' });
     const [bulkErrors,       setBulkErrors]       = useState({});
     const [bulkProcessing,   setBulkProcessing]   = useState(false);
 
     const isAdmin = auth.user.role === 'admin';
+    const isExecutive = auth.user.role === 'executive';
+    const canManageAssets = auth.permissions?.can_manage_assets ?? isAdmin;
+    const canViewAllDepartments = auth.permissions?.can_view_all_departments ?? (isAdmin || isExecutive);
+    const canRequestAssets = !isExecutive;
     const rows = assets?.data ?? [];
     const currentPage = assets?.current_page ?? 1;
     const totalAssets = assets?.total ?? 0;
     const pageSize = assets?.per_page ?? 25;
+    const selectedComplex = (locations ?? []).find((complex) => String(complex.id) === String(filterComplex));
+    const availableStores = selectedComplex?.stores ?? [];
 
     const applyFilters = (page = 1, overrides = {}) => {
-        router.get(route('dashboard'), {
+        router.get(route('asset-management.index'), {
             department_id: pendingDepartment,
+            complex_id: filterComplex,
+            store_id: filterStore,
             search: searchQuery,
             status: filterStatus,
             condition: filterCondition,
@@ -65,8 +75,8 @@ export default function Dashboard({ auth, assets, department, categories, locati
     };
 
     const clearFilters = () => {
-        setSearchQuery(''); setFilterStatus(''); setFilterCondition('');
-        applyFilters(1, { search: '', status: '', condition: '' });
+        setSearchQuery(''); setFilterStatus(''); setFilterCondition(''); setFilterComplex(''); setFilterStore('');
+        applyFilters(1, { search: '', status: '', condition: '', complex_id: '', store_id: '' });
     };
 
     const toggleSelect = (id) => setSelectedAssets(prev =>
@@ -92,18 +102,20 @@ export default function Dashboard({ auth, assets, department, categories, locati
 
             {/* Toolbar */}
             <TableToolbar>
-                <TableBatchActions
-                    totalSelected={selectedAssets.length}
-                    onCancel={() => setSelectedAssets([])}
-                    shouldShowBatchActions={selectedAssets.length > 0}
-                >
-                    <TableBatchAction renderIcon={ArrowsHorizontal} onClick={() => setShowTransferModal(true)}>
-                        Transfer
-                    </TableBatchAction>
-                    <TableBatchAction renderIcon={TrashCan} onClick={() => setShowDeleteConfirm(true)}>
-                        Delete Selected
-                    </TableBatchAction>
-                </TableBatchActions>
+                {canManageAssets && (
+                    <TableBatchActions
+                        totalSelected={selectedAssets.length}
+                        onCancel={() => setSelectedAssets([])}
+                        shouldShowBatchActions={selectedAssets.length > 0}
+                    >
+                        <TableBatchAction renderIcon={ArrowsHorizontal} onClick={() => setShowTransferModal(true)}>
+                            Transfer
+                        </TableBatchAction>
+                        <TableBatchAction renderIcon={TrashCan} onClick={() => setShowDeleteConfirm(true)}>
+                            Delete Selected
+                        </TableBatchAction>
+                    </TableBatchActions>
+                )}
 
                 <TableToolbarContent>
                     <TableToolbarSearch
@@ -135,7 +147,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                         <SelectItem value="" text="All Conditions" />
                         {CONDITIONS.map(c => <SelectItem key={c} value={c} text={c} />)}
                     </Select>
-                    {isAdmin && (
+                    {canViewAllDepartments && (
                         <Select
                             id="filter-dept"
                             labelText=""
@@ -148,14 +160,51 @@ export default function Dashboard({ auth, assets, department, categories, locati
                             {(all_departments ?? []).map(d => <SelectItem key={d.id} value={String(d.id)} text={d.name} />)}
                         </Select>
                     )}
+                    {supports_location_hierarchy && (
+                        <Select
+                            id="filter-complex"
+                            labelText=""
+                            hideLabel
+                            value={filterComplex}
+                            onChange={e => {
+                                setFilterComplex(e.target.value);
+                                setFilterStore('');
+                                applyFilters(1, { complex_id: e.target.value, store_id: '' });
+                            }}
+                            style={{ width: '200px' }}
+                        >
+                            <SelectItem value="" text="All Complexes" />
+                            {(locations ?? []).map(complex => <SelectItem key={complex.id} value={String(complex.id)} text={complex.name} />)}
+                        </Select>
+                    )}
+                    {supports_location_hierarchy && (
+                        <Select
+                            id="filter-store"
+                            labelText=""
+                            hideLabel
+                            value={filterStore}
+                            onChange={e => {
+                                setFilterStore(e.target.value);
+                                applyFilters(1, { store_id: e.target.value });
+                            }}
+                            style={{ width: '220px' }}
+                        >
+                            <SelectItem value="" text={filterComplex ? 'All Stores' : 'Select Complex First'} />
+                            {availableStores.map(store => <SelectItem key={store.id} value={String(store.id)} text={store.name} />)}
+                        </Select>
+                    )}
                     <Button kind="ghost" renderIcon={Renew} iconDescription="Refresh" hasIconOnly
                         onClick={() => router.reload({ only: ['assets'] })} />
-                    <Button kind="primary" renderIcon={Add} onClick={() => setShowCreateModal(true)}>
-                        New Asset
-                    </Button>
-                    <Button kind="tertiary" renderIcon={ShoppingCart} onClick={() => setShowRequestModal(true)}>
-                        Request Order
-                    </Button>
+                    {canManageAssets && (
+                        <Button kind="primary" renderIcon={Add} onClick={() => setShowCreateModal(true)}>
+                            New Asset
+                        </Button>
+                    )}
+                    {canRequestAssets && (
+                        <Button kind="tertiary" renderIcon={ShoppingCart} onClick={() => setShowRequestModal(true)}>
+                            Request Order
+                        </Button>
+                    )}
                 </TableToolbarContent>
             </TableToolbar>
 
@@ -163,14 +212,16 @@ export default function Dashboard({ auth, assets, department, categories, locati
             <Table size="sm" useZebraStyles>
                 <TableHead>
                     <TableRow>
-                        <TableSelectAll
-                            checked={allSelected}
-                            indeterminate={selectedAssets.length > 0 && !allSelected}
-                            onSelect={toggleAll}
-                            name="select-all"
-                            id="select-all"
-                            ariaLabel="Select all rows"
-                        />
+                        {canManageAssets && (
+                            <TableSelectAll
+                                checked={allSelected}
+                                indeterminate={selectedAssets.length > 0 && !allSelected}
+                                onSelect={toggleAll}
+                                name="select-all"
+                                id="select-all"
+                                ariaLabel="Select all rows"
+                            />
+                        )}
                         <TableHeader>Photo</TableHeader>
                         <TableHeader>Barcode</TableHeader>
                         <TableHeader>Serial #</TableHeader>
@@ -187,22 +238,24 @@ export default function Dashboard({ auth, assets, department, categories, locati
                 <TableBody>
                     {rows.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={12} style={{ textAlign: 'center', padding: '3rem', color: 'var(--cds-text-secondary)' }}>
-                                {totalAssets === 0 ? 'No assets found. Click "New Asset" to add your first item.' : 'No assets match your filters.'}
-                                {(searchQuery || filterStatus || filterCondition) && (
+                            <TableCell colSpan={canManageAssets ? 12 : 11} style={{ textAlign: 'center', padding: '3rem', color: 'var(--cds-text-secondary)' }}>
+                                {totalAssets === 0 ? (canManageAssets ? 'No assets found. Click "New Asset" to add your first item.' : 'No assets found for your current access level.') : 'No assets match your filters.'}
+                                {(searchQuery || filterStatus || filterCondition || filterComplex || filterStore) && (
                                     <Button kind="ghost" size="sm" onClick={clearFilters} style={{ marginLeft: '0.5rem' }}>Clear filters</Button>
                                 )}
                             </TableCell>
                         </TableRow>
                     ) : rows.map((asset) => (
-                        <TableRow key={asset.id} onDoubleClick={() => setEditingAsset(asset)}>
-                            <TableSelectRow
-                                checked={selectedAssets.includes(asset.id)}
-                                onSelect={() => toggleSelect(asset.id)}
-                                name={`select-${asset.id}`}
-                                id={`select-${asset.id}`}
-                                ariaLabel={`Select ${asset.name}`}
-                            />
+                        <TableRow key={asset.id} onDoubleClick={() => canManageAssets && setEditingAsset(asset)}>
+                            {canManageAssets && (
+                                <TableSelectRow
+                                    checked={selectedAssets.includes(asset.id)}
+                                    onSelect={() => toggleSelect(asset.id)}
+                                    name={`select-${asset.id}`}
+                                    id={`select-${asset.id}`}
+                                    ariaLabel={`Select ${asset.name}`}
+                                />
+                            )}
                             <TableCell>
                                 {asset.photo_path
                                     ? <img src={`/storage/${asset.photo_path}`} alt={asset.name}
@@ -216,7 +269,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                             <TableCell><code style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>{asset.serial_number || '—'}</code></TableCell>
                             <TableCell style={{ fontWeight: 500 }}>{asset.name}</TableCell>
                             <TableCell>{asset.category?.name || '—'}</TableCell>
-                            <TableCell>{asset.location?.name || '—'}</TableCell>
+                            <TableCell>{asset.location_label || '—'}</TableCell>
                             <TableCell>{asset.condition}</TableCell>
                             <TableCell>
                                 <Tag type={STATUS_TAG[asset.status] ?? 'gray'} size="sm">{asset.status}</Tag>
@@ -241,10 +294,14 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                         onClick={() => window.open(route('activity-log.asset', asset.id), '_blank')} />
                                     <Button kind="ghost" size="sm" hasIconOnly renderIcon={QrCode} iconDescription="Print QR Label"
                                         onClick={() => window.open(route('assets.qr-label', asset.id), '_blank')} />
-                                    <Button kind="ghost" size="sm" hasIconOnly renderIcon={Edit} iconDescription="Edit"
-                                        onClick={() => setEditingAsset(asset)} />
-                                    <Button kind="danger--ghost" size="sm" hasIconOnly renderIcon={TrashCan} iconDescription="Archive"
-                                        onClick={() => { setDeletingAsset(asset); setShowDeleteConfirm(true); }} />
+                                    {canManageAssets && (
+                                        <Button kind="ghost" size="sm" hasIconOnly renderIcon={Edit} iconDescription="Edit"
+                                            onClick={() => setEditingAsset(asset)} />
+                                    )}
+                                    {canManageAssets && (
+                                        <Button kind="danger--ghost" size="sm" hasIconOnly renderIcon={TrashCan} iconDescription="Archive"
+                                            onClick={() => { setDeletingAsset(asset); setShowDeleteConfirm(true); }} />
+                                    )}
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -262,12 +319,13 @@ export default function Dashboard({ auth, assets, department, categories, locati
             />
 
             {/* Bulk Transfer Modal */}
+            {canManageAssets && (
             <ComposedModal open={showTransferModal} onClose={() => setShowTransferModal(false)} size="sm">
                 <ModalHeader title={`Transfer ${selectedAssets.length} Assets`} />
                 <ModalBody>
                     <Select id="bulk-dept" labelText="Target Department"
                         value={bulkData.target_department_id}
-                        onChange={e => setBulkData({ ...bulkData, target_department_id: e.target.value })}
+                        onChange={e => setBulkData((current) => ({ ...current, target_department_id: e.target.value }))}
                         required invalid={!!bulkErrors.target_department_id} invalidText={bulkErrors.target_department_id}>
                         <SelectItem value="" text="Select Department" />
                         {(all_departments ?? []).map(d => <SelectItem key={d.id} value={String(d.id)} text={d.name} />)}
@@ -275,7 +333,7 @@ export default function Dashboard({ auth, assets, department, categories, locati
                     <div style={{ marginTop: '1rem' }}>
                         <TextArea id="bulk-reason" labelText="Reason for Transfer"
                             value={bulkData.reason}
-                            onChange={e => setBulkData({ ...bulkData, reason: e.target.value })}
+                            onChange={e => setBulkData((current) => ({ ...current, reason: e.target.value }))}
                             rows={3} required
                             invalid={!!bulkErrors.reason} invalidText={bulkErrors.reason} />
                     </div>
@@ -287,8 +345,10 @@ export default function Dashboard({ auth, assets, department, categories, locati
                     </Button>
                 </ModalFooter>
             </ComposedModal>
+            )}
 
             {/* Delete Confirmation Modal */}
+            {canManageAssets && (
             <Modal
                 open={showDeleteConfirm}
                 danger
@@ -310,14 +370,15 @@ export default function Dashboard({ auth, assets, department, categories, locati
             >
                 <p>This action will archive the asset{selectedAssets.length > 1 ? 's' : ''}. It can be restored from Archive Utilities.</p>
             </Modal>
+            )}
 
-            {editingAsset && (
-                <EditAssetModal asset={editingAsset} onClose={() => setEditingAsset(null)} categories={categories} locations={locations} />
+            {canManageAssets && editingAsset && (
+                <EditAssetModal asset={editingAsset} onClose={() => setEditingAsset(null)} categories={categories} complexes={locations} />
             )}
-            {showCreateModal && (
-                <CreateAssetModal onClose={() => setShowCreateModal(false)} categories={categories} locations={locations} />
+            {canManageAssets && showCreateModal && (
+                <CreateAssetModal onClose={() => setShowCreateModal(false)} categories={categories} complexes={locations} />
             )}
-            {showRequestModal && (
+            {canRequestAssets && showRequestModal && (
                 <AssetRequestModal
                     show={showRequestModal}
                     onClose={() => setShowRequestModal(false)}

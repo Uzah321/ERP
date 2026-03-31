@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin'      => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'role'       => \App\Http\Middleware\EnsureUserHasRole::class,
             'two-factor' => \App\Http\Middleware\TwoFactorAuthentication::class,
         ]);
     })

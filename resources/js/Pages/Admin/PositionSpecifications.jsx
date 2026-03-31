@@ -147,7 +147,7 @@ export default function PositionSpecifications({ auth, specifications, flash }) 
                     primaryButtonDisabled={createForm.processing}
                 >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <TextInput id="ps-pos" labelText="Position Name *" placeholder="e.g. Manager, HOD, Staff, Intern" value={createForm.data.position_name} onChange={e => createForm.setData('position_name', e.target.value)} invalid={!!createForm.errors.position_name} invalidText={createForm.errors.position_name} required />
+                        <TextInput id="ps-pos" labelText="Position Name *" placeholder="e.g. Manager, HOD, Staff, Intern" autoFocus value={createForm.data.position_name} onChange={e => createForm.setData('position_name', e.target.value)} invalid={!!createForm.errors.position_name} invalidText={createForm.errors.position_name} required />
                         <TextInput id="ps-type" labelText="Asset Type *" placeholder="e.g. Laptop, Desktop, Monitor" value={createForm.data.asset_type} onChange={e => createForm.setData('asset_type', e.target.value)} invalid={!!createForm.errors.asset_type} invalidText={createForm.errors.asset_type} required />
                         <TextInput id="ps-spec" labelText="Specifications *" placeholder="e.g. 32GB+ RAM, 1TB+ storage, Core i7" value={createForm.data.specifications} onChange={e => createForm.setData('specifications', e.target.value)} invalid={!!createForm.errors.specifications} invalidText={createForm.errors.specifications} required />
                     </div>
@@ -164,7 +164,7 @@ export default function PositionSpecifications({ auth, specifications, flash }) 
                     primaryButtonDisabled={editForm.processing}
                 >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <TextInput id="eps-pos" labelText="Position Name *" value={editForm.data.position_name} onChange={e => editForm.setData('position_name', e.target.value)} required />
+                        <TextInput id="eps-pos" labelText="Position Name *" autoFocus value={editForm.data.position_name} onChange={e => editForm.setData('position_name', e.target.value)} required />
                         <TextInput id="eps-type" labelText="Asset Type *" value={editForm.data.asset_type} onChange={e => editForm.setData('asset_type', e.target.value)} required />
                         <TextInput id="eps-spec" labelText="Specifications *" value={editForm.data.specifications} onChange={e => editForm.setData('specifications', e.target.value)} required />
                     </div>

@@ -71,6 +71,12 @@ export default function Users({ auth, users, departments, flash }) {
         return labels[pos] || null;
     };
 
+    const roleTagType = (role) => {
+        if (role === 'executive') return 'red';
+        if (role === 'admin') return 'purple';
+        return 'gray';
+    };
+
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Users" />
@@ -100,6 +106,7 @@ export default function Users({ auth, users, departments, flash }) {
                         <TextInput
                             id="user-name"
                             labelText="Full Name"
+                            autoFocus
                             value={createForm.data.name}
                             onChange={e => createForm.setData('name', e.target.value)}
                             invalid={!!createForm.errors.name}
@@ -143,6 +150,7 @@ export default function Users({ auth, users, departments, flash }) {
                             onChange={e => createForm.setData('role', e.target.value)}
                         >
                             <SelectItem value="user" text="User" />
+                            <SelectItem value="executive" text="Executive" />
                             <SelectItem value="admin" text="Admin" />
                         </Select>
                         <Select
@@ -185,7 +193,7 @@ export default function Users({ auth, users, departments, flash }) {
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>{user.department_name}</TableCell>
                                 <TableCell>
-                                    <Tag type={user.role === 'admin' ? 'purple' : 'gray'} size="sm">{user.role}</Tag>
+                                    <Tag type={roleTagType(user.role)} size="sm">{user.role}</Tag>
                                 </TableCell>
                                 <TableCell>
                                     {user.approval_position
@@ -236,6 +244,7 @@ export default function Users({ auth, users, departments, flash }) {
                         <TextInput
                             id="edit-name"
                             labelText="Full Name"
+                            autoFocus
                             value={editForm.data.name}
                             onChange={e => editForm.setData('name', e.target.value)}
                             required
@@ -265,6 +274,7 @@ export default function Users({ auth, users, departments, flash }) {
                             onChange={e => editForm.setData('role', e.target.value)}
                         >
                             <SelectItem value="user" text="User" />
+                            <SelectItem value="executive" text="Executive" />
                             <SelectItem value="admin" text="Admin" />
                         </Select>
                         <Select
