@@ -18,6 +18,8 @@ function Write-Info { Write-Host $args -ForegroundColor $InfoColor }
 function Write-Success { Write-Host $args -ForegroundColor $SuccessColor }
 function Write-Error { Write-Host $args -ForegroundColor $ErrorColor }
 
+$composeCommand = "sudo docker-compose"
+
 Write-Info "================================"
 Write-Info "Laravel Deployment to Live Server"
 Write-Info "================================"
@@ -145,8 +147,10 @@ Write-Info ""
 Write-Info "Executing setup on remote server..."
 Write-Info ""
 
-$remoteSetup = @"
-cd $AppPath
+$remoteSetup = @'
+set -e
+
+cd __APP_PATH__
 
 echo 'Setting up environment...'
 if [ ! -f .env ]; then
@@ -163,28 +167,50 @@ if ! grep -q '^APP_KEY=base64:' .env; then
     exit 1
 fi
 
+COMPOSE="__COMPOSE_COMMAND__"
+
 echo 'Building Docker containers...'
-sudo docker-compose up -d --build --remove-orphans
+echo 'Removing stale app containers to avoid legacy docker-compose ContainerConfig failures...'
+STALE_APP_CONTAINERS=$(sudo docker ps -aq --filter name=assetlinq_app)
+if [ -n "$STALE_APP_CONTAINERS" ]; then
+    sudo docker rm -f $STALE_APP_CONTAINERS
+fi
+
+$COMPOSE pull || true
+$COMPOSE up -d --build --remove-orphans
 
 echo 'Waiting for database to initialize...'
 sleep 15
 
 echo 'Running migrations...'
-sudo docker-compose exec -T app php artisan migrate --force
+$COMPOSE exec -T app php artisan migrate --force
 
 echo 'Caching configuration...'
-sudo docker-compose exec -T app php artisan optimize:clear
-sudo docker-compose exec -T app php artisan config:cache
-sudo docker-compose exec -T app php artisan route:cache
+$COMPOSE exec -T app php artisan optimize:clear
+$COMPOSE exec -T app php artisan config:cache
+$COMPOSE exec -T app php artisan route:cache
+$COMPOSE exec -T app php artisan view:cache
 
 echo 'Setting permissions...'
-sudo docker-compose exec -T app chown -R www-data:www-data storage bootstrap/cache
+$COMPOSE exec -T app chown -R www-data:www-data storage bootstrap/cache
+
+echo 'Restarting nginx to clear any stale upstream after app recreation...'
+$COMPOSE restart nginx || sudo docker restart simbisa_nginx
 
 echo ''
-docker-compose ps
+$COMPOSE ps
+'@
+
+$remoteSetup = $remoteSetup.Replace('__APP_PATH__', $AppPath).Replace('__COMPOSE_COMMAND__', $composeCommand)
+
+$remoteSetupCommand = @"
+cat > /tmp/assetlinq_deploy.sh <<'EOF'
+$remoteSetup
+EOF
+bash /tmp/assetlinq_deploy.sh
 "@
 
-ssh $SSHUser@$ServerIP $remoteSetup
+ssh $SSHUser@$ServerIP $remoteSetupCommand
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "ERROR: Remote setup failed"

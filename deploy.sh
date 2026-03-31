@@ -39,6 +39,13 @@ docker-compose pull
 
 # 6. Build and start containers without tearing down named volumes
 echo "Building and starting containers..."
+
+echo "Removing stale app containers to avoid legacy docker-compose ContainerConfig failures..."
+STALE_APP_CONTAINERS=$(docker ps -aq --filter name=assetlinq_app)
+if [ -n "$STALE_APP_CONTAINERS" ]; then
+    docker rm -f $STALE_APP_CONTAINERS
+fi
+
 docker-compose up -d --build --remove-orphans
 
 # 8. Wait for database to be ready
@@ -59,6 +66,9 @@ docker-compose exec -T app php artisan view:cache
 # 11. Set permissions
 echo "Setting permissions..."
 docker-compose exec -T app chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+echo "Restarting nginx to clear stale upstream references..."
+docker-compose restart nginx || docker restart simbisa_nginx
 
 echo ""
 echo "================================"
