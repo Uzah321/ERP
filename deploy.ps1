@@ -19,6 +19,7 @@ function Write-Success { Write-Host $args -ForegroundColor $SuccessColor }
 function Write-Error { Write-Host $args -ForegroundColor $ErrorColor }
 
 $composeCommand = "sudo docker-compose"
+$deploymentArchiveName = "deploy_bundle.tar.gz"
 
 Write-Info "================================"
 Write-Info "Laravel Deployment to Live Server"
@@ -91,8 +92,49 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+$deploymentArchivePath = Join-Path $LocalPath $deploymentArchiveName
+$deploymentExcludes = @(
+    '--exclude=.git',
+    '--exclude=node_modules',
+    '--exclude=vendor',
+    '--exclude=storage/logs',
+    '--exclude=public/build',
+    '--exclude=public/build.tar.gz',
+    '--exclude=public/build.zip',
+    '--exclude=.env',
+    '--exclude=.env.backup',
+    '--exclude=.env.production',
+    '--exclude=.vscode',
+    '--exclude=.idea',
+    '--exclude=.fleet',
+    '--exclude=.zed',
+    '--exclude=.phpunit.result.cache',
+    '--exclude=*.log',
+    '--exclude=error_log.txt',
+    '--exclude=latest_error.log',
+    '--exclude=latest_errors.txt',
+    '--exclude=raw_error_log.txt',
+    '--exclude=out.txt',
+    '--exclude=render.out',
+    '--exclude=backups'
+)
+
+if (Test-Path $deploymentArchivePath) {
+    Remove-Item $deploymentArchivePath -Force
+}
+
+Write-Info "Packaging lean deployment archive..."
+$deploymentArchiveArgs = @('-czf', $deploymentArchivePath) + $deploymentExcludes + @('-C', $LocalPath, '.')
+& tar.exe @deploymentArchiveArgs
+
+if ($LASTEXITCODE -ne 0) {
+    Pop-Location
+    Write-Error "ERROR: Failed to package deployment archive"
+    exit 1
+}
+
 Pop-Location
-Write-Success "Frontend build packaged successfully!"
+Write-Success "Frontend build and lean deployment archive packaged successfully!"
 Write-Info ""
 
 # Upload files
@@ -100,17 +142,10 @@ Write-Info "Uploading application files..."
 Write-Info "Source: $LocalPath"
 Write-Info "Destination: $ServerIP`:$AppPath"
 
-scp -r "$LocalPath\*" "$SSHUser@$ServerIP`:$AppPath/" 2>&1 | Select-String -Pattern "NOTICE|ERROR" -ErrorAction SilentlyContinue
+scp "$deploymentArchivePath" "$SSHUser@$ServerIP`:$AppPath/"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "ERROR: File upload failed"
-    exit 1
-}
-
-scp -r "$LocalPath\.docker" "$SSHUser@$ServerIP`:$AppPath/"
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "ERROR: .docker upload failed"
+    Write-Error "ERROR: Deployment archive upload failed"
     exit 1
 }
 
@@ -123,6 +158,18 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Success "Files uploaded successfully!"
 Write-Info ""
+
+Write-Info "Extracting deployment archive on the server..."
+ssh $SSHUser@$ServerIP "cd $AppPath && tar -xzf $deploymentArchiveName && rm -f $deploymentArchiveName"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "ERROR: Failed to extract deployment archive on the server"
+    exit 1
+}
+
+if (Test-Path $deploymentArchivePath) {
+    Remove-Item $deploymentArchivePath -Force
+}
 
 # Upload compiled frontend assets separately and verify manifest location
 Write-Info "Uploading compiled frontend assets..."
@@ -177,6 +224,11 @@ if [ -n "$STALE_APP_CONTAINERS" ]; then
 fi
 
 $COMPOSE pull || true
+$COMPOSE build app worker scheduler
+
+echo 'Installing PHP dependencies on the server volume...'
+$COMPOSE run --rm app composer install --no-interaction --no-dev --optimize-autoloader
+
 $COMPOSE up -d --build --remove-orphans
 
 echo 'Waiting for database to initialize...'

@@ -5,6 +5,8 @@
 
 set -e
 
+DEPLOY_ARCHIVE="deploy_bundle.tar.gz"
+
 echo "================================"
 echo "Starting Deployment to Live Server"
 echo "================================"
@@ -12,9 +14,12 @@ echo "================================"
 # 1. Navigate to application directory
 cd /var/www/simbisa
 
-# 2. Pull latest code
-echo "Pulling latest code..."
-git pull origin main 2>/dev/null || echo "Git not initialized, skipping pull"
+# 2. Extract uploaded lean deployment archive when present
+if [ -f "$DEPLOY_ARCHIVE" ]; then
+    echo "Extracting lean deployment archive..."
+    tar -xzf "$DEPLOY_ARCHIVE"
+    rm -f "$DEPLOY_ARCHIVE"
+fi
 
 # 3. Ensure production environment exists but never overwrite the live file
 echo "Checking environment..."
@@ -45,6 +50,12 @@ STALE_APP_CONTAINERS=$(docker ps -aq --filter name=assetlinq_app)
 if [ -n "$STALE_APP_CONTAINERS" ]; then
     docker rm -f $STALE_APP_CONTAINERS
 fi
+
+echo "Building application images..."
+docker-compose build app worker scheduler
+
+echo "Installing PHP dependencies on the server volume..."
+docker-compose run --rm app composer install --no-interaction --no-dev --optimize-autoloader
 
 docker-compose up -d --build --remove-orphans
 
