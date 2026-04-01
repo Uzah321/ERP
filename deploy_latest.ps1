@@ -10,114 +10,104 @@ param(
 
 $ErrorActionPreference = "Stop"
 $RemoteTarget = "${User}@${Server}"
-$BuildArchive = "public\build.tar.gz"
+$DeployArchive = "deploy_bundle.tar.gz"
 
 function Invoke-SSH {
     param([string]$Cmd)
     ssh $RemoteTarget $Cmd
-    if ($LASTEXITCODE -ne 0) { throw "SSH command failed" }
+    if ($LASTEXITCODE -ne 0) { throw "SSH command failed: $Cmd" }
 }
+
+function Invoke-HealthCheck {
+    param([string]$BaseUrl)
+
+    Write-Host "      > GET $BaseUrl/up"
+    $up = Invoke-WebRequest "$BaseUrl/up" -UseBasicParsing -TimeoutSec 30
+    if ($up.StatusCode -ne 200) {
+        throw "Health check failed for /up"
+    }
+
+    Write-Host "      > GET $BaseUrl/login"
+    $login = Invoke-WebRequest "$BaseUrl/login" -UseBasicParsing -TimeoutSec 30
+    if ($login.StatusCode -ne 200) {
+        throw "Health check failed for /login"
+    }
+
+    if ($login.Content -notmatch 'name="email"' -or $login.Content -notmatch 'name="password"') {
+        throw "Login page rendered unexpectedly; email/password fields not found"
+    }
+}
+
+Set-Location $PSScriptRoot
 
 Write-Host "========================================"
 Write-Host " AssetLinq - Deploy Latest Changes"
 Write-Host "========================================"
 
-# 1. Package compiled frontend build
 Write-Host ""
-Write-Host "[1/4] Packaging public/build ..."
-if (Test-Path $BuildArchive) { Remove-Item $BuildArchive -Force }
-tar -czf $BuildArchive -C public build
-if ($LASTEXITCODE -ne 0) { throw "Failed to package public/build" }
-$sizeMB = [math]::Round((Get-Item $BuildArchive).Length / 1MB, 1)
-Write-Host "      build.tar.gz ready ($sizeMB MB)"
+Write-Host "[1/4] Packaging deployment bundle ..."
+if (Test-Path $DeployArchive) { Remove-Item $DeployArchive -Force }
 
-# 2. Upload everything to /tmp (always writable)
+tar -czf $DeployArchive `
+    --exclude=.git `
+    --exclude=vendor `
+    --exclude=node_modules `
+    --exclude=resources/js `
+    --exclude=tests `
+    --exclude=.env `
+    --exclude=.env.local `
+    --exclude=.env.example `
+    --exclude=.env.docker `
+    --exclude=.env.testing `
+    --exclude=public/hot `
+    --exclude=storage/logs/*.log `
+    --exclude=storage/framework/cache/data/* `
+    --exclude=storage/framework/sessions/* `
+    --exclude=storage/framework/views/* `
+    --exclude=storage/app/public/capex-quotations/* `
+    --exclude=storage/app/public/asset-photos/* `
+    --exclude=*.bat `
+    --exclude=*.log `
+    --exclude=*.txt `
+    --exclude=check_*.php `
+    --exclude=fix_*.php `
+    --exclude=create_*.php `
+    --exclude=get_*.php `
+    --exclude=test_*.php `
+    --exclude=debug_*.php `
+    --exclude=update_*.php `
+    --exclude=list_*.php `
+    --exclude=render.out `
+    --exclude=run_deploy.sh `
+    --exclude=deploy_bundle.tar.gz `
+    --exclude=public/build.tar.gz `
+    .
+if ($LASTEXITCODE -ne 0) { throw "Failed to package deployment bundle" }
+
+$sizeMB = [math]::Round((Get-Item $DeployArchive).Length / 1MB, 1)
+Write-Host "      deploy_bundle.tar.gz ready ($sizeMB MB)"
+
 Write-Host ""
-Write-Host "[2/4] Uploading files to /tmp ..."
-
-scp $BuildArchive "${RemoteTarget}:/tmp/build.tar.gz"
-if ($LASTEXITCODE -ne 0) { throw "SCP failed: build.tar.gz" }
-
-$phpFiles = @(
-    "app/Http/Controllers/ProcurementDashboardController.php",
-    "app/Http/Controllers/ReportController.php",
-    "app/Http/Controllers/AssetController.php",
-    "app/Http/Controllers/AssetRequestController.php",
-    "app/Http/Controllers/TransferRequestController.php",
-    "app/Models/User.php"
-)
-foreach ($f in $phpFiles) {
-    $localPath = $f -replace "/", "\"
-    scp $localPath "${RemoteTarget}:/tmp/$(Split-Path $f -Leaf)"
-    if ($LASTEXITCODE -ne 0) { throw "SCP failed: $f" }
-    Write-Host "      $f"
-}
-
-scp "routes\web.php" "${RemoteTarget}:/tmp/web.php"
-if ($LASTEXITCODE -ne 0) { throw "SCP failed: routes/web.php" }
-Write-Host "      routes/web.php"
+Write-Host "[2/4] Uploading bundle to server ..."
+scp $DeployArchive "${RemoteTarget}:${AppDir}/deploy_bundle.tar.gz"
+if ($LASTEXITCODE -ne 0) { throw "SCP failed: deploy bundle" }
 Write-Host "      Upload complete."
 
-# 3. Server-side: use docker cp to push files into container (bypasses host permissions)
-#    then artisan cache refresh + nginx restart.
-#    Each command is a separate SSH call to avoid CRLF corruption from PS here-strings.
 Write-Host ""
-Write-Host "[3/4] Installing files and refreshing caches ..."
+Write-Host "[3/4] Running server deployment ..."
+Invoke-SSH "cd ${AppDir} && bash deploy.sh"
 
-$App = "assetlinq_app"
-
-$serverCmds = @(
-    # PHP files into container
-    "docker cp /tmp/ProcurementDashboardController.php ${App}:/app/app/Http/Controllers/ProcurementDashboardController.php",
-    "docker cp /tmp/ReportController.php ${App}:/app/app/Http/Controllers/ReportController.php",
-    "docker cp /tmp/AssetController.php  ${App}:/app/app/Http/Controllers/AssetController.php",
-    "docker cp /tmp/AssetRequestController.php ${App}:/app/app/Http/Controllers/AssetRequestController.php",
-    "docker cp /tmp/TransferRequestController.php ${App}:/app/app/Http/Controllers/TransferRequestController.php",
-    "docker cp /tmp/User.php             ${App}:/app/app/Models/User.php",
-    "docker cp /tmp/web.php              ${App}:/app/routes/web.php",
-    # Build tarball into container
-    "docker cp /tmp/build.tar.gz ${App}:/tmp/build.tar.gz"
-)
-
-foreach ($cmd in $serverCmds) {
-    Write-Host "      > $cmd"
-    ssh $RemoteTarget $cmd
-    if ($LASTEXITCODE -ne 0) { throw "Failed: $cmd" }
-}
-
-# Extract build tarball inside the container to preserve Linux paths
-Write-Host "      > [extract build inside container]"
-ssh $RemoteTarget "docker exec ${App} sh -c 'cd /app/public && rm -rf build && tar -xzf /tmp/build.tar.gz'"
-ssh $RemoteTarget "docker exec ${App} sh -c 'rm -f /tmp/build.tar.gz'"
-# Verify the manifest exists as proof of successful extraction
-$verifyCmd = "docker exec ${App} test -f /app/public/build/manifest.json"
-ssh $RemoteTarget $verifyCmd
-if ($LASTEXITCODE -ne 0) { throw "Build extraction failed - manifest.json not found" }
-Write-Host "      > build extracted and verified"
-
-# Rebuild caches (no -T: older Docker CLI on this server does not support it)
-$cacheCmds = @(
-    "docker exec ${App} php artisan optimize:clear",
-    "docker exec ${App} php artisan config:cache",
-    "docker exec ${App} php artisan route:cache",
-    "docker exec ${App} php artisan view:cache",
-    "docker restart simbisa_nginx"
-)
-foreach ($cmd in $cacheCmds) {
-    Write-Host "      > $cmd"
-    ssh $RemoteTarget $cmd
-    if ($LASTEXITCODE -ne 0) { throw "Failed: $cmd" }
-}
-
-# 4. Clean up local zip
 Write-Host ""
-Write-Host "[4/4] Cleaning up ..."
-Remove-Item $BuildArchive -Force
+Write-Host "[4/4] Running post-deploy health checks ..."
+Invoke-HealthCheck "http://$Server"
+
+if (Test-Path $DeployArchive) { Remove-Item $DeployArchive -Force }
 
 Write-Host ""
 Write-Host "========================================"
 Write-Host " Deployment complete!"
 Write-Host " http://$Server"
+Write-Host " Login smoke checks passed"
 Write-Host "========================================"
 
 

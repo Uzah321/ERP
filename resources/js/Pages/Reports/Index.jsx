@@ -46,7 +46,7 @@ const tabStyles = {
 };
 
 export default function ReportsIndex({ auth, procurement_metrics = {}, recent_procurement_orders = [], procurement_last_updated_at }) {
-    const isExecutive = auth.user.role === 'executive';
+    const isExecutive = auth.user.role === 'executive' || auth.user.is_super_user === true;
     const initialTab = useMemo(() => {
         if (typeof window === 'undefined') {
             return isExecutive ? 'procurement' : 'reports';

@@ -150,8 +150,8 @@ export default function SettingsIndex({ auth, mustVerifyEmail, status, roleSumma
         backup: { auto_backup_enabled: false, backup_frequency: 'weekly', backup_time: '02:00', retention_days: 30, backup_destination: 'local', activity_log_retention: '365 days', deleted_asset_retention: '90 days', auto_purge_expired_data: false },
     };
 
-    const isAdmin = auth.user.role === 'admin';
-    const isExecutive = auth.user.role === 'executive';
+    const isAdmin = auth.user.role === 'admin' || auth.user.is_super_user === true;
+    const isExecutive = auth.user.role === 'executive' || auth.user.is_super_user === true;
     const isPrivileged = isAdmin || isExecutive;
     const tabs = isPrivileged ? privilegedTabs : basicTabs;
     const twoFactorSetupHref = safeRoute('two-factor.setup');

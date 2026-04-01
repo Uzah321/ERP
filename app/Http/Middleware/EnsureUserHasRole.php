@@ -12,7 +12,7 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        if (!$user || !$user->is_active || !$user->hasAnyRole($roles)) {
+        if (!$user || !$user->isActiveForAccess() || !$user->hasAnyRole($roles)) {
             abort(403, 'Unauthorized. You do not have access to this area.');
         }
 

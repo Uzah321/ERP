@@ -52,8 +52,8 @@ export default function Dashboard({ auth, assets, department, categories, locati
 
     const effectiveRole = page_permissions?.effective_role ?? auth.user.role;
     const isSuperUser = page_permissions?.is_super_user ?? auth.user.is_super_user ?? auth.permissions?.is_super_user ?? false;
-    const isAdmin = effectiveRole === 'admin';
-    const isExecutive = effectiveRole === 'executive';
+    const isAdmin = effectiveRole === 'admin' || isSuperUser;
+    const isExecutive = effectiveRole === 'executive' || isSuperUser;
     const privilegedFallback = isSuperUser || isAdmin || isExecutive;
     const canManageAssets = page_permissions?.can_manage_assets ?? auth.permissions?.can_manage_assets ?? privilegedFallback;
     const canViewAllDepartments = page_permissions?.can_view_all_departments ?? auth.permissions?.can_view_all_departments ?? privilegedFallback;

@@ -45,6 +45,27 @@ class DashboardAccessTest extends TestCase
             ->assertOk();
     }
 
+    public function test_super_user_can_access_admin_and_executive_dashboards(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'd.zondo@simbisa.co.zw',
+            'role' => 'user',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect(route('executive.dashboard', absolute: false));
+
+        $this->actingAs($user)
+            ->get('/admin/dashboard')
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->get('/executive/dashboard')
+            ->assertOk();
+    }
+
     public function test_settings_page_is_displayed_for_authenticated_users(): void
     {
         $user = User::factory()->create(['role' => 'user']);

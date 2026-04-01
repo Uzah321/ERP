@@ -18,8 +18,8 @@ import CreateAssetModal from '@/Components/CreateAssetModal';
 import EditAssetModal from '@/Components/EditAssetModal';
 
 export default function StoreAssets({ auth, complex, store, assets, categories, complexes }) {
-    const isAdmin = auth.user.role === 'admin';
-    const isExecutive = auth.user.role === 'executive';
+    const isAdmin = auth.user.role === 'admin' || auth.user.is_super_user === true;
+    const isExecutive = auth.user.role === 'executive' || auth.user.is_super_user === true;
     const isPrivileged = isAdmin || isExecutive;
     const [showCreate, setShowCreate] = useState(false);
     const [editingAsset, setEditingAsset] = useState(null);

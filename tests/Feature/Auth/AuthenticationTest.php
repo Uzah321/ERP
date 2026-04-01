@@ -30,6 +30,39 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
+    public function test_inactive_users_can_not_authenticate_using_the_login_screen(): void
+    {
+        $user = User::factory()->create(['is_active' => false]);
+
+        $response = $this->from('/login')->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertRedirect('/login');
+        $response->assertSessionHasErrors([
+            'email' => 'Your account has been disabled. Contact an administrator.',
+        ]);
+    }
+
+    public function test_super_user_can_authenticate_even_if_marked_inactive(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'd.zondo@simbisa.co.zw',
+            'is_active' => false,
+            'role' => 'user',
+        ]);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create();

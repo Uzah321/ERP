@@ -3,8 +3,8 @@ import { Head, Link } from '@inertiajs/react';
 import { Button, Tag, Tile } from '@carbon/react';
 
 export default function ProcurementDashboard({ auth }) {
-    const isAdmin = auth.user.role === 'admin';
-    const isExecutive = auth.user.role === 'executive';
+    const isAdmin = auth.user.role === 'admin' || auth.user.is_super_user === true;
+    const isExecutive = auth.user.role === 'executive' || auth.user.is_super_user === true;
     const isPrivileged = isAdmin || isExecutive;
     const workflowActions = isPrivileged
         ? [

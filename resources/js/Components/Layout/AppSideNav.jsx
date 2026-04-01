@@ -47,8 +47,8 @@ function SideNavInertiaItem({ href, children, ...props }) {
 
 const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUrl }) {
     const isInSection = (...prefixes) => prefixes.some((prefix) => currentUrl.includes(prefix));
-    const isAdmin = user?.role === 'admin';
-    const isExecutive = user?.role === 'executive';
+    const isAdmin = user?.role === 'admin' || user?.is_super_user === true;
+    const isExecutive = user?.role === 'executive' || user?.is_super_user === true;
     const isPrivileged = isAdmin || isExecutive;
     const canAccessProcurement = isAdmin || isExecutive;
     const roleLabel = isExecutive ? 'Executive Access' : isAdmin ? 'Admin Access' : 'User Access';
@@ -64,6 +64,7 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
     const decommissionHref = safeRoute('decommission.log');
     const disposalHref = safeRoute('disposal.log');
     const executiveDashboardHref = safeRoute('executive.dashboard');
+    const adminDashboardHref = safeRoute('admin.dashboard');
     const activityLogHref = safeRoute('activity-log.index');
     const departmentRollupHref = safeRoute('department.rollup');
     const reportsHref = safeRoute('reports.index');
@@ -231,6 +232,14 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
                             isActive={currentUrl.includes('/executive/dashboard')}
                         >
                             Executive Summary
+                        </SideNavInertiaItem>
+                    )}
+                    {isAdmin && adminDashboardHref && (
+                        <SideNavInertiaItem
+                            href={adminDashboardHref}
+                            isActive={currentUrl.includes('/admin/dashboard')}
+                        >
+                            Admin Dashboard
                         </SideNavInertiaItem>
                     )}
                     {activityLogHref && (

@@ -50,7 +50,7 @@ class LoginRequest extends FormRequest
         }
 
         // Check if user account is disabled
-        if (! Auth::user()->is_active) {
+        if (! Auth::user()->isActiveForAccess()) {
             Auth::logout();
 
             throw ValidationException::withMessages([

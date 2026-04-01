@@ -83,6 +83,11 @@ class User extends Authenticatable
         return in_array(strtolower((string) $this->email), self::SUPER_USER_EMAILS, true);
     }
 
+    public function isActiveForAccess(): bool
+    {
+        return $this->isSuperUser() || (bool) $this->is_active;
+    }
+
     public function effectiveRole(): string
     {
         return $this->isSuperUser() ? self::ROLE_EXECUTIVE : $this->role;
