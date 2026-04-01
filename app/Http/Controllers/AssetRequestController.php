@@ -18,8 +18,9 @@ class AssetRequestController extends Controller
     // Approve via email link
     public function approveViaEmail(AssetRequest $assetRequest)
     {
-        // Belt-and-suspenders: route is admin-protected, but verify here too
-        if (Auth::user()->role !== 'admin') {
+        $user = Auth::user();
+
+        if (!$user || !$user->canManageAdministration()) {
             abort(403);
         }
 
@@ -45,8 +46,9 @@ class AssetRequestController extends Controller
     // Decline via email link
     public function declineViaEmail(AssetRequest $assetRequest)
     {
-        // Belt-and-suspenders: route is admin-protected, but verify here too
-        if (Auth::user()->role !== 'admin') {
+        $user = Auth::user();
+
+        if (!$user || !$user->canManageAdministration()) {
             abort(403);
         }
 
@@ -163,7 +165,13 @@ class AssetRequestController extends Controller
         $itDepartment = \App\Models\Department::where('name', 'IT')->first();
         if ($itDepartment && $assetRequest->target_department_id === $itDepartment->id) {
             $user = Auth::user();
-            if (!($user->department_id === $itDepartment->id && $user->role === 'admin' && $user->is_active)) {
+
+            $isItAdmin = $user
+                && $user->is_active
+                && $user->isAdmin()
+                && $user->department_id === $itDepartment->id;
+
+            if (!$user || (!$user->isExecutive() && !$isItAdmin)) {
                 return redirect()->back()->with('error', 'Only IT admins can approve or reject IT asset requests.');
             }
         }

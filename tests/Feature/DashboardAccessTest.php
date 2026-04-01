@@ -19,6 +19,19 @@ class DashboardAccessTest extends TestCase
             ->assertRedirect(route('asset-management.index', absolute: false));
     }
 
+    public function test_admin_dashboard_redirects_to_admin_summary(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertRedirect(route('admin.dashboard', absolute: false));
+
+        $this->actingAs($user)
+            ->get('/admin/dashboard')
+            ->assertOk();
+    }
+
     public function test_executive_dashboard_redirects_to_executive_summary(): void
     {
         $user = User::factory()->create(['role' => 'executive']);
@@ -57,6 +70,25 @@ class DashboardAccessTest extends TestCase
 
         $this->actingAs($user)
             ->get('/procurement/dashboard')
+            ->assertForbidden();
+    }
+
+    public function test_user_access_workspace_is_available_to_executives_only(): void
+    {
+        $executive = User::factory()->create(['role' => 'executive']);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'user']);
+
+        $this->actingAs($executive)
+            ->get(route('users.index', absolute: false))
+            ->assertOk();
+
+        $this->actingAs($admin)
+            ->get(route('users.index', absolute: false))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('users.index', absolute: false))
             ->assertForbidden();
     }
 

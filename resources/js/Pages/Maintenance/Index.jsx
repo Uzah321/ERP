@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useState } from 'react';
 import {
     Table,
     TableHead,
@@ -8,8 +9,14 @@ import {
     TableBody,
     TableCell,
     Tag,
+    Button,
+    Modal,
+    Select,
+    SelectItem,
+    TextArea,
+    TextInput
 } from '@carbon/react';
-import { Time } from '@carbon/icons-react';
+import { Time, Add } from '@carbon/icons-react';
 
 function statusTag(status) {
     const map = {
@@ -29,7 +36,31 @@ function statusTag(status) {
     return map[status] || 'gray';
 }
 
-export default function MaintenanceIndex({ auth, assets }) {
+export default function MaintenanceIndex({ auth, assets, stores }) {
+    const [showModal, setShowModal] = useState(false);
+    const [selectedStore, setSelectedStore] = useState('');
+    
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
+        asset_id: '',
+        maintenance_type: 'Preventive',
+        issue_description: '',
+        vendor_name: '',
+        scheduled_date: '',
+    });
+
+    const filteredAssets = assets.filter(a => String(a.store_id) === String(selectedStore));
+
+    const handleSubmit = (e) => {
+        post(route('maintenance.store', data.asset_id), {
+            onSuccess: () => {
+                setShowModal(false);
+                reset();
+                setSelectedStore('');
+                clearErrors();
+            }
+        });
+    };
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -40,12 +71,98 @@ export default function MaintenanceIndex({ auth, assets }) {
             <div className="py-6">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm">
-                        <div className="p-6 border-b border-gray-100">
-                            <h3 className="text-lg font-bold" style={{ color: 'var(--cds-text-primary)' }}>Asset Maintenance Tracking</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--cds-text-secondary)' }}>
-                                Review the time in use and repair frequency for all assets.
-                            </p>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-bold" style={{ color: 'var(--cds-text-primary)' }}>Asset Maintenance Tracking</h3>
+                                <p className="text-sm mt-1" style={{ color: 'var(--cds-text-secondary)' }}>
+                                    Review the time in use and repair frequency for all assets.
+                                </p>
+                            </div>
+                            <Button renderIcon={Add} onClick={() => setShowModal(true)}>Log Maintenance</Button>
                         </div>
+
+                        <Modal
+                            open={showModal}
+                            modalHeading="Send Asset to Maintenance"
+                            primaryButtonText={processing ? 'Saving...' : 'Send to Maintenance'}
+                            secondaryButtonText="Cancel"
+                            onRequestClose={() => { setShowModal(false); reset(); setSelectedStore(''); clearErrors() }}
+                            onRequestSubmit={handleSubmit}
+                            primaryButtonDisabled={processing || !data.asset_id}
+                        >
+                            <div className="space-y-4">
+                                <Select
+                                    id="store_id"
+                                    labelText="Select Store"
+                                    value={selectedStore}
+                                    onChange={(e) => {
+                                        setSelectedStore(e.target.value);
+                                        setData('asset_id', '');
+                                    }}
+                                    className="mb-4"
+                                >
+                                    <SelectItem value="" text="-- Please select a store --" />
+                                    {stores && stores.map(s => (
+                                        <SelectItem key={s.id} value={s.id} text={s.name} />
+                                    ))}
+                                </Select>
+
+                                <Select
+                                    id="asset_id"
+                                    labelText="Select Asset"
+                                    value={data.asset_id}
+                                    onChange={(e) => setData('asset_id', e.target.value)}
+                                    disabled={!selectedStore}
+                                    invalid={!!errors.asset_id}
+                                    invalidText={errors.asset_id}
+                                    className="mb-4"
+                                >
+                                    <SelectItem value="" text="-- Please select an asset --" />
+                                    {filteredAssets.map(a => (
+                                        <SelectItem key={a.id} value={a.id} text={`${a.name} (${a.barcode})`} />
+                                    ))}
+                                </Select>
+
+                                <Select
+                                    id="mt"
+                                    labelText="Maintenance Type"
+                                    value={data.maintenance_type}
+                                    onChange={(e) => setData('maintenance_type', e.target.value)}
+                                    className="mb-4"
+                                >
+                                    <SelectItem value="Preventive" text="Preventive" />
+                                    <SelectItem value="Corrective" text="Corrective" />
+                                    <SelectItem value="Emergency" text="Emergency" />
+                                </Select>
+
+                                <TextArea
+                                    id="issue"
+                                    labelText="Description / Issue"
+                                    value={data.issue_description}
+                                    onChange={e => setData('issue_description', e.target.value)}
+                                    invalid={!!errors.issue_description}
+                                    invalidText={errors.issue_description}
+                                    rows={3}
+                                    className="mb-4"
+                                />
+
+                                <TextInput
+                                    id="vendor"
+                                    labelText="Vendor Name (Optional)"
+                                    value={data.vendor_name}
+                                    onChange={e => setData('vendor_name', e.target.value)}
+                                    className="mb-4"
+                                />
+
+                                <TextInput
+                                    id="sdate"
+                                    type="date"
+                                    labelText="Scheduled Date (Optional)"
+                                    value={data.scheduled_date}
+                                    onChange={e => setData('scheduled_date', e.target.value)}
+                                />
+                            </div>
+                        </Modal>
 
                         <Table>
                             <TableHead>

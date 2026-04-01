@@ -1,136 +1,164 @@
+import { useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
-import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tag, Tile } from '@carbon/react';
-import { BarChart, Bar, CartesianGrid, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from 'recharts';
+import { Head, Link, router } from '@inertiajs/react';
+import { Button } from '@carbon/react';
+import OverviewWorkspace from '@/Components/Dashboard/OverviewWorkspace';
+import { safeRoute } from '@/utils/ziggy';
 
-const COLORS = ['var(--cds-interactive)', 'var(--cds-support-success)', 'var(--cds-support-warning)', 'var(--cds-support-error)', '#5e5ce6', '#d12771'];
+const currency = (value) => '$' + Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const statusTone = {
-    open: 'blue',
-    partial: 'yellow',
-    delivered: 'green',
-    pending: 'gray',
-};
-
-const currency = (value) => `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-export default function ExecutiveDashboard({ auth, metrics, chart_data, recent_purchases, top_departments }) {
-    const cards = [
-        { label: 'Total Assets', value: metrics.total_assets },
-        { label: 'Asset Portfolio Value', value: currency(metrics.total_value) },
-        { label: 'Pending CAPEX', value: metrics.pending_capex },
-        { label: 'Awaiting PO', value: metrics.approved_waiting_po },
-        { label: 'Open Purchase Orders', value: metrics.open_purchase_orders },
-        { label: 'YTD Spend', value: currency(metrics.ytd_spend) },
+export default function ExecutiveDashboard({
+    auth,
+    metrics,
+    alerts,
+    quick_stats,
+    chart_data,
+    recent_activity: recentActivityProp,
+    top_complexes,
+    last_updated_at,
+    supports_location_hierarchy,
+    procurement_metrics: procurementMetricsProp,
+    recent_purchases: recentPurchasesProp,
+}) {
+    const procurement_metrics = procurementMetricsProp ?? {};
+    const recent_activity = recentActivityProp ?? [];
+    const recent_purchases = recentPurchasesProp ?? [];
+    const usersIndexHref = safeRoute('users.index');
+    const procurementDashboardHref = safeRoute('procurement.dashboard');
+    const storeManagementHref = safeRoute('store-management.index');
+    const maintenanceHref = safeRoute('maintenance.index');
+    const activityLogHref = safeRoute('activity-log.index');
+    const reportsHref = safeRoute('reports.index');
+    const assetManagementHref = safeRoute('asset-management.index');
+    const refreshOnly = [
+        'metrics',
+        'alerts',
+        'quick_stats',
+        'chart_data',
+        'recent_activity',
+        'top_complexes',
+        'last_updated_at',
+        'supports_location_hierarchy',
+        'procurement_metrics',
+        'recent_purchases',
     ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: refreshOnly,
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const quickActions = [
+        {
+            eyebrow: 'Access Control',
+            title: 'User Invitations',
+            description: 'Invite new users into the system, assign their access role, and control account activation.',
+            href: usersIndexHref,
+            cta: 'Manage user access',
+        },
+        {
+            eyebrow: 'Procurement',
+            title: 'Purchase Monitoring',
+            description: 'Track pending approvals, open purchase orders, and operational procurement pressure.',
+            href: procurementDashboardHref,
+            cta: 'Open procurement hub',
+            kind: 'primary',
+        },
+        {
+            eyebrow: 'Operations',
+            title: 'Complex and Store View',
+            description: 'Open the site workspace to inspect the operational footprint across complexes and shops.',
+            href: storeManagementHref,
+            cta: 'Open site workspace',
+        },
+        {
+            eyebrow: 'Maintenance',
+            title: 'Maintenance Exposure',
+            description: 'Review the current maintenance backlog and identify assets with elevated support load.',
+            href: maintenanceHref,
+            cta: 'View maintenance',
+        },
+        {
+            eyebrow: 'Audit',
+            title: 'Recent Activity Feed',
+            description: 'Inspect the latest asset, transfer, and administration changes with user attribution.',
+            href: activityLogHref,
+            cta: 'Open activity log',
+        },
+        {
+            eyebrow: 'Reporting',
+            title: 'Analytics Exports',
+            description: 'Jump into the reporting workspace for asset, depreciation, and maintenance exports.',
+            href: reportsHref,
+            cta: 'Open reports',
+        },
+        {
+            eyebrow: 'Asset Portfolio',
+            title: 'Asset Register View',
+            description: 'Inspect live asset distribution, conditions, and site assignment without leaving the dashboard context.',
+            href: assetManagementHref,
+            cta: 'View assets',
+        },
+    ];
+
+    const supplementaryMetrics = [
+        { label: 'Pending CAPEX', value: procurement_metrics.pending_capex, type: 'purple' },
+        { label: 'Awaiting PO', value: procurement_metrics.approved_waiting_po, type: 'cool-gray' },
+        { label: 'Open POs', value: procurement_metrics.open_purchase_orders, type: 'blue' },
+        { label: 'Pending invoices', value: procurement_metrics.pending_invoices, type: 'yellow' },
+        { label: 'Overdue invoices', value: procurement_metrics.overdue_invoices, type: 'red' },
+        { label: 'YTD spend', value: currency(procurement_metrics.ytd_spend), type: 'green' },
+    ];
+
+    const activityPlusPurchases = recent_activity.slice(0, 6).concat(
+        recent_purchases.slice(0, 2).map((purchase) => ({
+            id: `purchase-${purchase.id}`,
+            event: purchase.delivery_status,
+            description: `Purchase order ${purchase.po_number} for ${purchase.vendor_name}`,
+            causer: purchase.department,
+            subject_type: 'PurchaseOrder',
+            subject_id: purchase.id,
+            subject_name: purchase.po_number,
+            created_at: purchase.created_at,
+            created_at_human: purchase.created_at,
+        }))
+    );
 
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Executive Dashboard" />
 
-            <div className="space-y-6">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
-                    <div>
-                        <h1 style={{ fontSize: '1.75rem', fontWeight: 600, margin: 0 }}>Executive Dashboard</h1>
-                        <p style={{ margin: '0.5rem 0 0', color: 'var(--cds-text-secondary)', maxWidth: '52rem' }}>
-                            A high-level summary of asset posture, procurement exposure, and the departments driving the largest operational footprint.
-                        </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <Button as={Link} href={route('procurement.dashboard')} kind="primary" size="sm">Open Purchase Dashboard</Button>
-                        <Button as={Link} href={route('procurement.pending')} kind="tertiary" size="sm">Review Pending Purchases</Button>
-                    </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))', gap: '1rem' }}>
-                    {cards.map((card) => (
-                        <Tile key={card.label}>
-                            <p style={{ margin: 0, fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--cds-text-secondary)' }}>{card.label}</p>
-                            <p style={{ margin: '0.75rem 0 0', fontSize: '1.75rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>{card.value}</p>
-                        </Tile>
-                    ))}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '1rem' }}>
-                    <Tile>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginTop: 0 }}>Assets by Department</h2>
-                        <div style={{ height: '20rem' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chart_data.department}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" />
-                                    <YAxis allowDecimals={false} />
-                                    <Tooltip cursor={{ fill: 'var(--cds-layer-01)' }} />
-                                    <Bar dataKey="count" fill="var(--cds-link-primary)" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </Tile>
-
-                    <Tile>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginTop: 0 }}>Asset Status Mix</h2>
-                        <div style={{ height: '20rem' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={chart_data.status} dataKey="count" nameKey="status" innerRadius={55} outerRadius={88} paddingAngle={4}>
-                                        {chart_data.status.map((entry, index) => <Cell key={entry.status ?? index} fill={COLORS[index % COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </Tile>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <Tile>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginTop: 0 }}>Recent Purchase Activity</h2>
-                        <Table size="sm" useZebraStyles>
-                            <TableHead>
-                                <TableRow>
-                                    <TableHeader>PO</TableHeader>
-                                    <TableHeader>Vendor</TableHeader>
-                                    <TableHeader>Department</TableHeader>
-                                    <TableHeader>Status</TableHeader>
-                                    <TableHeader>Total</TableHeader>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {recent_purchases.map((purchase) => (
-                                    <TableRow key={purchase.id}>
-                                        <TableCell>{purchase.po_number}</TableCell>
-                                        <TableCell>{purchase.vendor_name}</TableCell>
-                                        <TableCell>{purchase.department}</TableCell>
-                                        <TableCell><Tag type={statusTone[purchase.delivery_status] ?? 'gray'}>{purchase.delivery_status}</Tag></TableCell>
-                                        <TableCell>{currency(purchase.total_amount)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </Tile>
-
-                    <Tile>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginTop: 0 }}>Top Departments by Asset Count</h2>
-                        <Table size="sm" useZebraStyles>
-                            <TableHead>
-                                <TableRow>
-                                    <TableHeader>Department</TableHeader>
-                                    <TableHeader>Assets</TableHeader>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {top_departments.map((department) => (
-                                    <TableRow key={department.id}>
-                                        <TableCell>{department.name}</TableCell>
-                                        <TableCell>{department.assets_count}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </Tile>
-                </div>
-            </div>
+            <OverviewWorkspace
+                role="executive"
+                eyebrow="Executive Summary"
+                title="Executive Monitoring Dashboard"
+                description="A live Carbon executive view of asset footprint, site distribution, transfer pressure, maintenance exposure, and procurement posture. The layout stays read-efficient while surfacing the actions and escalations that matter most."
+                metrics={metrics}
+                alerts={alerts}
+                quickStats={quick_stats}
+                chartData={chart_data}
+                recentActivity={activityPlusPurchases}
+                topComplexes={top_complexes}
+                lastUpdatedAt={last_updated_at}
+                quickActions={quickActions}
+                supplementaryMetrics={supplementaryMetrics}
+                supportsLocationHierarchy={supports_location_hierarchy}
+                onRefresh={() => router.reload({ only: refreshOnly, preserveState: true, preserveScroll: true })}
+                headerActions={(
+                    <>
+                        {usersIndexHref && <Button as={Link} href={usersIndexHref} kind="ghost" size="sm">Manage user access</Button>}
+                        {procurementDashboardHref && <Button as={Link} href={procurementDashboardHref} kind="primary" size="sm">Open procurement hub</Button>}
+                        {reportsHref && <Button as={Link} href={reportsHref} kind="tertiary" size="sm">Open reports</Button>}
+                    </>
+                )}
+            />
         </AuthenticatedLayout>
     );
 }

@@ -156,7 +156,7 @@ class AssetApiController extends Controller
             ];
         }
 
-        $complex = Location::complexes()->find($request->complex_id);
+        $complex = Location::query()->hierarchyType('complex')->find($request->complex_id);
 
         if (!$complex) {
             throw ValidationException::withMessages([
@@ -173,7 +173,7 @@ class AssetApiController extends Controller
         }
 
         $store = Location::query()
-            ->where('type', 'store')
+            ->hierarchyType('store')
             ->where('parent_id', $complex->id)
             ->find($request->store_id);
 

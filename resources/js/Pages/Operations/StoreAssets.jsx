@@ -19,6 +19,8 @@ import EditAssetModal from '@/Components/EditAssetModal';
 
 export default function StoreAssets({ auth, complex, store, assets, categories, complexes }) {
     const isAdmin = auth.user.role === 'admin';
+    const isExecutive = auth.user.role === 'executive';
+    const isPrivileged = isAdmin || isExecutive;
     const [showCreate, setShowCreate] = useState(false);
     const [editingAsset, setEditingAsset] = useState(null);
     const [confirmArchive, setConfirmArchive] = useState(null);
@@ -43,7 +45,7 @@ export default function StoreAssets({ auth, complex, store, assets, categories, 
                             <p style={{ margin: '0.75rem 0 0', color: 'var(--cds-text-secondary)' }}>{complex?.name || 'No complex assigned'}</p>
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                            {isAdmin && <Button kind="primary" size="sm" onClick={() => setShowCreate(true)}>New Asset</Button>}
+                            {isPrivileged && <Button kind="primary" size="sm" onClick={() => setShowCreate(true)}>New Asset</Button>}
                             {complex && <Button as={Link} href={route('store-management.stores', complex.id)} kind="ghost" size="sm">Back to Stores</Button>}
                             <Button as={Link} href={route('store-management.index')} kind="ghost" size="sm">Back to Complexes</Button>
                         </div>
@@ -82,8 +84,8 @@ export default function StoreAssets({ auth, complex, store, assets, categories, 
                                     <TableCell>{asset.status}</TableCell>
                                     <TableCell style={{ width: '1%' }}>
                                         <OverflowMenu flipped iconDescription="Asset actions">
-                                            {isAdmin && <OverflowMenuItem itemText="Edit asset" onClick={() => setEditingAsset(asset)} />}
-                                            {isAdmin && <OverflowMenuItem hasDivider isDelete itemText="Archive asset" onClick={() => setConfirmArchive(asset)} />}
+                                            {isPrivileged && <OverflowMenuItem itemText="Edit asset" onClick={() => setEditingAsset(asset)} />}
+                                            {isPrivileged && <OverflowMenuItem hasDivider isDelete itemText="Archive asset" onClick={() => setConfirmArchive(asset)} />}
                                         </OverflowMenu>
                                     </TableCell>
                                 </TableRow>
@@ -92,7 +94,7 @@ export default function StoreAssets({ auth, complex, store, assets, categories, 
                     </Table>
                 </Tile>
 
-                {isAdmin && showCreate && (
+                {isPrivileged && showCreate && (
                     <CreateAssetModal
                         onClose={() => setShowCreate(false)}
                         categories={categories}
@@ -103,7 +105,7 @@ export default function StoreAssets({ auth, complex, store, assets, categories, 
                     />
                 )}
 
-                {isAdmin && editingAsset && (
+                {isPrivileged && editingAsset && (
                     <EditAssetModal
                         asset={editingAsset}
                         onClose={() => setEditingAsset(null)}

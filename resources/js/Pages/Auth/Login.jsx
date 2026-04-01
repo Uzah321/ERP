@@ -95,10 +95,7 @@ export default function Login({ status, canResetPassword }) {
                 </div>
 
                 <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                    Don&apos;t have an account?{' '}
-                    <Link href={route('register')} style={{ color: 'var(--cds-link-primary)', fontWeight: 500, textDecoration: 'none' }}>
-                        Register
-                    </Link>
+                    Access is invitation-only. Contact an executive to be added and assigned the correct dashboard access.
                 </p>
             </Form>
         </GuestLayout>

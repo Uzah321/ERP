@@ -63,11 +63,6 @@ export default function Welcome({ auth, canLogin, canRegister }) {
                                         Log In
                                     </Button>
                                 )}
-                                {canRegister && (
-                                    <Button kind="primary" size="sm" href={route('register')} as={Link}>
-                                        Register
-                                    </Button>
-                                )}
                             </>
                         )}
                     </nav>
@@ -121,12 +116,13 @@ export default function Welcome({ auth, canLogin, canRegister }) {
                                 {user ? 'Go to Dashboard' : 'Sign In'}
                             </Button>
                         )}
-                        {!user && canRegister && (
-                            <Button kind="tertiary" size="lg" href={route('register')} as={Link}>
-                                Create Account
-                            </Button>
-                        )}
                     </div>
+
+                    {!user && !canRegister && (
+                        <p style={{ margin: '1rem 0 0', color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
+                            Access is invitation-only. New accounts are provisioned by executives and routed to role-specific dashboards after sign-in.
+                        </p>
+                    )}
 
                     <div
                         style={{

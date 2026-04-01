@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Button, InlineNotification,
     Select, SelectItem, TextInput,
@@ -42,6 +42,23 @@ export default function PurchaseOrders({ auth, orders, approvedCapex, nextPoNumb
     const [items, setItems] = useState([
         { description: '', qty: 1, unit_price: '' },
     ]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const targetCapexId = params.get('capex_id');
+
+        if (params.get('create') === '1' && approvedCapex?.length > 0 && !selectedCapex) {
+            const targetedCapex = targetCapexId
+                ? approvedCapex.find((capex) => String(capex.id) === String(targetCapexId))
+                : null;
+
+            selectCapex(targetedCapex ?? approvedCapex[0]);
+            params.delete('create');
+            params.delete('capex_id');
+            const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+    }, [approvedCapex, selectedCapex]);
 
     const selectCapex = (capex) => {
         setSelectedCapex(capex);

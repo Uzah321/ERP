@@ -17,12 +17,56 @@ const getStatusTag = (f) => {
 };
 
 export default function CapexForms({ auth, forms, assetRequests, users = [], filters = {}, flash }) {
+    const selectAssetRequest = (requestId) => {
+        const req = assetRequests.find((item) => String(item.id) === String(requestId)) ?? null;
+
+        if (!req) {
+            return false;
+        }
+
+        setSelectedRequest(req);
+        const items = (req.items ?? []).map((item) => ({ ...item, unit_price: item.unit_price ?? '' }));
+        setEditableItems(items);
+        const computedTotal = items.reduce((sum, item) =>
+            sum + (parseFloat(item.unit_price || 0) * (parseInt(item.quantity ?? 1, 10))), 0
+        );
+
+        setData((current) => ({
+            ...current,
+            asset_request_id: String(requestId),
+            total_amount: computedTotal > 0 ? computedTotal.toFixed(2) : '',
+        }));
+
+        return true;
+    };
+
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['forms', 'assetRequests'], preserveScroll: true, preserveState: true });
         }, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const targetRequestId = params.get('asset_request_id');
+
+        if (params.get('create') === '1' && assetRequests?.length > 0) {
+            if (targetRequestId) {
+                selectAssetRequest(targetRequestId);
+            }
+
+            const requestField = document.getElementById('capex-request');
+
+            requestField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            requestField?.focus();
+
+            params.delete('create');
+            params.delete('asset_request_id');
+            const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+    }, [assetRequests]);
 
     const [quotationFiles, setQuotationFiles] = useState([null, null, null]);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -158,19 +202,7 @@ export default function CapexForms({ auth, forms, assetRequests, users = [], fil
                                     id="capex-request"
                                     labelText="Asset Request *"
                                     value={data.asset_request_id}
-                                    onChange={e => {
-                                        const req = assetRequests.find(r => String(r.id) === String(e.target.value)) ?? null;
-                                        setSelectedRequest(req);
-                                        const items = (req?.items ?? []).map(i => ({ ...i, unit_price: i.unit_price ?? '' }));
-                                        setEditableItems(items);
-                                        const computedTotal = items.reduce((sum, i) =>
-                                            sum + (parseFloat(i.unit_price || 0) * (parseInt(i.quantity ?? 1, 10))), 0);
-                                        setData(d => ({
-                                            ...d,
-                                            asset_request_id: e.target.value,
-                                            total_amount: computedTotal > 0 ? computedTotal.toFixed(2) : '',
-                                        }));
-                                    }}
+                                    onChange={e => selectAssetRequest(e.target.value)}
                                     invalid={!!formErrors.asset_request_id}
                                     invalidText={formErrors.asset_request_id}
                                     required

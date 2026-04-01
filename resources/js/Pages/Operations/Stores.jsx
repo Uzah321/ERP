@@ -5,7 +5,7 @@ import { Button, InlineNotification, Modal, OverflowMenu, OverflowMenuItem, Tabl
 import LocationManagementModal from '@/Components/LocationManagementModal';
 
 export default function Stores({ auth, complex, complexes, stores, flash }) {
-    const isAdmin = auth.user.role === 'admin';
+    const canManageLocations = ['admin', 'executive'].includes(auth.user.role);
     const [showCreate, setShowCreate] = useState(false);
     const [editingStore, setEditingStore] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState(null);
@@ -71,7 +71,7 @@ export default function Stores({ auth, complex, complexes, stores, flash }) {
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                             <Button as={Link} href={route('store-management.index')} kind="ghost" size="sm">Back to Complexes</Button>
-                            {isAdmin && <Button kind="primary" size="sm" onClick={openCreate}>New Store</Button>}
+                            {canManageLocations && <Button kind="primary" size="sm" onClick={openCreate}>Add Store</Button>}
                         </div>
                     </div>
                 </Tile>
@@ -101,8 +101,8 @@ export default function Stores({ auth, complex, complexes, stores, flash }) {
                                     <TableCell style={{ width: '1%' }}>
                                         <OverflowMenu flipped iconDescription="Store actions">
                                             <OverflowMenuItem itemText="View assets" onClick={() => router.get(route('store-management.assets', store.id))} />
-                                            {isAdmin && <OverflowMenuItem itemText="Edit store" onClick={() => openEdit(store)} />}
-                                            {isAdmin && <OverflowMenuItem hasDivider isDelete itemText="Delete store" onClick={() => setConfirmDelete(store)} />}
+                                            {canManageLocations && <OverflowMenuItem itemText="Edit store" onClick={() => openEdit(store)} />}
+                                            {canManageLocations && <OverflowMenuItem hasDivider isDelete itemText="Delete store" onClick={() => setConfirmDelete(store)} />}
                                         </OverflowMenu>
                                     </TableCell>
                                 </TableRow>
@@ -112,7 +112,7 @@ export default function Stores({ auth, complex, complexes, stores, flash }) {
                 </Tile>
             </div>
 
-            {isAdmin && (
+            {canManageLocations && (
                 <LocationManagementModal
                     open={showCreate}
                     modalHeading="New Store"
@@ -128,7 +128,7 @@ export default function Stores({ auth, complex, complexes, stores, flash }) {
                 />
             )}
 
-            {isAdmin && (
+            {canManageLocations && (
                 <LocationManagementModal
                     open={!!editingStore}
                     modalHeading="Edit Store"

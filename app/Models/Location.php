@@ -41,11 +41,11 @@ class Location extends Model
 
     public function scopeComplexes($query)
     {
-        return $query->where('type', 'complex');
+        return $query->whereType('complex');
     }
 
-    public function scopeStores($query)
+    public function scopeHierarchyType($query, string $type)
     {
-        return $query->where('type', 'store');
+        return $query->whereType($type);
     }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CreateAssetModal from '@/Components/CreateAssetModal';
@@ -13,10 +13,11 @@ import {
     ComposedModal, ModalHeader, ModalBody, ModalFooter,
     TextArea, Modal,
     InlineNotification,
+    OverflowMenu, OverflowMenuItem,
 } from '@carbon/react';
 import {
     Add, ArrowsHorizontal, ShoppingCart, Renew, TrashCan,
-    Time, QrCode, Edit, WarningAlt,
+    Time, QrCode, Edit,
 } from '@carbon/icons-react';
 
 const STATUS_TAG = {
@@ -31,7 +32,7 @@ const WARRANTY_TAG = { active: 'green', expiring_soon: 'yellow', expired: 'red' 
 const STATUSES = ['Available','Allocated','Active Use','Deployed','Purchased','Registered','Under Maintenance','Audit','Retired','Decommissioned','Disposed','Archived'];
 const CONDITIONS = ['New','Good','Fair','Poor'];
 
-export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, request_categories, selected_department_id, filters, supports_location_hierarchy }) {
+export default function Dashboard({ auth, assets, department, categories, locations, all_departments, vendor_categories, request_categories, selected_department_id, filters, supports_location_hierarchy, page_permissions }) {
     const [showCreateModal,  setShowCreateModal]  = useState(false);
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showTransferModal,setShowTransferModal]= useState(false);
@@ -49,17 +50,31 @@ export default function Dashboard({ auth, assets, department, categories, locati
     const [bulkErrors,       setBulkErrors]       = useState({});
     const [bulkProcessing,   setBulkProcessing]   = useState(false);
 
-    const isAdmin = auth.user.role === 'admin';
-    const isExecutive = auth.user.role === 'executive';
-    const canManageAssets = auth.permissions?.can_manage_assets ?? isAdmin;
-    const canViewAllDepartments = auth.permissions?.can_view_all_departments ?? (isAdmin || isExecutive);
-    const canRequestAssets = !isExecutive;
+    const effectiveRole = page_permissions?.effective_role ?? auth.user.role;
+    const isSuperUser = page_permissions?.is_super_user ?? auth.user.is_super_user ?? auth.permissions?.is_super_user ?? false;
+    const isAdmin = effectiveRole === 'admin';
+    const isExecutive = effectiveRole === 'executive';
+    const privilegedFallback = isSuperUser || isAdmin || isExecutive;
+    const canManageAssets = page_permissions?.can_manage_assets ?? auth.permissions?.can_manage_assets ?? privilegedFallback;
+    const canViewAllDepartments = page_permissions?.can_view_all_departments ?? auth.permissions?.can_view_all_departments ?? privilegedFallback;
+    const canRequestAssets = true;
     const rows = assets?.data ?? [];
     const currentPage = assets?.current_page ?? 1;
     const totalAssets = assets?.total ?? 0;
     const pageSize = assets?.per_page ?? 25;
     const selectedComplex = (locations ?? []).find((complex) => String(complex.id) === String(filterComplex));
     const availableStores = selectedComplex?.stores ?? [];
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+
+        if (canRequestAssets && params.get('request') === '1') {
+            setShowRequestModal(true);
+            params.delete('request');
+            const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+    }, [canRequestAssets]);
 
     const applyFilters = (page = 1, overrides = {}) => {
         router.get(route('asset-management.index'), {
@@ -96,11 +111,50 @@ export default function Dashboard({ auth, assets, department, categories, locati
         });
     };
 
+    const openTransferForAssets = (assetIds) => {
+        setSelectedAssets(assetIds);
+        setShowTransferModal(true);
+    };
+
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Asset Master" />
 
-            {/* Toolbar */}
+            {/* Page actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1rem 0.5rem' }}>
+                <div>
+                    <div style={{ color: 'var(--cds-text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                        Asset Management
+                    </div>
+                    <span style={{ color: 'var(--cds-text-secondary)', fontSize: '0.875rem' }}>
+                        {totalAssets.toLocaleString()} asset{totalAssets !== 1 ? 's' : ''}
+                    </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+                    <span style={{ color: 'var(--cds-text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Asset Actions</span>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {canManageAssets && (
+                        <Button kind="secondary" renderIcon={ArrowsHorizontal} size="sm"
+                            disabled={selectedAssets.length === 0}
+                            onClick={() => setShowTransferModal(true)}>
+                            {selectedAssets.length > 0 ? `Transfer (${selectedAssets.length})` : 'Transfer'}
+                        </Button>
+                    )}
+                    {canRequestAssets && (
+                        <Button kind="tertiary" renderIcon={ShoppingCart} size="sm" onClick={() => setShowRequestModal(true)}>
+                            Request Asset
+                        </Button>
+                    )}
+                    {canManageAssets && (
+                        <Button kind="primary" renderIcon={Add} size="sm" onClick={() => setShowCreateModal(true)}>
+                            Add Asset
+                        </Button>
+                    )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Filters */}
             <TableToolbar>
                 {canManageAssets && (
                     <TableBatchActions
@@ -195,16 +249,6 @@ export default function Dashboard({ auth, assets, department, categories, locati
                     )}
                     <Button kind="ghost" renderIcon={Renew} iconDescription="Refresh" hasIconOnly
                         onClick={() => router.reload({ only: ['assets'] })} />
-                    {canManageAssets && (
-                        <Button kind="primary" renderIcon={Add} onClick={() => setShowCreateModal(true)}>
-                            New Asset
-                        </Button>
-                    )}
-                    {canRequestAssets && (
-                        <Button kind="tertiary" renderIcon={ShoppingCart} onClick={() => setShowRequestModal(true)}>
-                            Request Order
-                        </Button>
-                    )}
                 </TableToolbarContent>
             </TableToolbar>
 
@@ -222,7 +266,6 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                 ariaLabel="Select all rows"
                             />
                         )}
-                        <TableHeader>Photo</TableHeader>
                         <TableHeader>Barcode</TableHeader>
                         <TableHeader>Serial #</TableHeader>
                         <TableHeader>Asset Name</TableHeader>
@@ -238,8 +281,8 @@ export default function Dashboard({ auth, assets, department, categories, locati
                 <TableBody>
                     {rows.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={canManageAssets ? 12 : 11} style={{ textAlign: 'center', padding: '3rem', color: 'var(--cds-text-secondary)' }}>
-                                {totalAssets === 0 ? (canManageAssets ? 'No assets found. Click "New Asset" to add your first item.' : 'No assets found for your current access level.') : 'No assets match your filters.'}
+                            <TableCell colSpan={canManageAssets ? 11 : 10} style={{ textAlign: 'center', padding: '3rem', color: 'var(--cds-text-secondary)' }}>
+                                {totalAssets === 0 ? (canManageAssets ? 'No assets found. Click "Add Asset" to create your first item.' : 'No assets found for your current access level.') : 'No assets match your filters.'}
                                 {(searchQuery || filterStatus || filterCondition || filterComplex || filterStore) && (
                                     <Button kind="ghost" size="sm" onClick={clearFilters} style={{ marginLeft: '0.5rem' }}>Clear filters</Button>
                                 )}
@@ -256,17 +299,8 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                     ariaLabel={`Select ${asset.name}`}
                                 />
                             )}
-                            <TableCell>
-                                {asset.photo_path
-                                    ? <img src={`/storage/${asset.photo_path}`} alt={asset.name}
-                                        style={{ height: '2.25rem', width: '2.25rem', borderRadius: '4px', objectFit: 'cover', border: '1px solid var(--cds-border-subtle)' }} />
-                                    : <div style={{ height: '2.25rem', width: '2.25rem', borderRadius: '4px', background: 'var(--cds-layer-02)', border: '1px solid var(--cds-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--cds-icon-disabled)' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                    </div>
-                                }
-                            </TableCell>
-                            <TableCell><code style={{ fontSize: '0.75rem' }}>{asset.barcode}</code></TableCell>
-                            <TableCell><code style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>{asset.serial_number || '—'}</code></TableCell>
+                            <TableCell><code style={{ fontSize: '0.75rem', fontFamily: 'var(--cds-font-family)' }}>{asset.barcode}</code></TableCell>
+                            <TableCell><code style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', fontFamily: 'var(--cds-font-family)' }}>{asset.serial_number || '—'}</code></TableCell>
                             <TableCell style={{ fontWeight: 500 }}>{asset.name}</TableCell>
                             <TableCell>{asset.category?.name || '—'}</TableCell>
                             <TableCell>{asset.location_label || '—'}</TableCell>
@@ -289,20 +323,13 @@ export default function Dashboard({ auth, assets, department, categories, locati
                                 }
                             </TableCell>
                             <TableCell onClick={e => e.stopPropagation()}>
-                                <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end' }}>
-                                    <Button kind="ghost" size="sm" hasIconOnly renderIcon={Time} iconDescription="View History"
-                                        onClick={() => window.open(route('activity-log.asset', asset.id), '_blank')} />
-                                    <Button kind="ghost" size="sm" hasIconOnly renderIcon={QrCode} iconDescription="Print QR Label"
-                                        onClick={() => window.open(route('assets.qr-label', asset.id), '_blank')} />
-                                    {canManageAssets && (
-                                        <Button kind="ghost" size="sm" hasIconOnly renderIcon={Edit} iconDescription="Edit"
-                                            onClick={() => setEditingAsset(asset)} />
-                                    )}
-                                    {canManageAssets && (
-                                        <Button kind="danger--ghost" size="sm" hasIconOnly renderIcon={TrashCan} iconDescription="Archive"
-                                            onClick={() => { setDeletingAsset(asset); setShowDeleteConfirm(true); }} />
-                                    )}
-                                </div>
+                                <OverflowMenu flipped iconDescription={`Actions for ${asset.name}`}>
+                                    <OverflowMenuItem itemText="View asset history" onClick={() => window.open(route('activity-log.asset', asset.id), '_blank')} />
+                                    <OverflowMenuItem itemText="Print QR label" onClick={() => window.open(route('assets.qr-label', asset.id), '_blank')} />
+                                    {canManageAssets && <OverflowMenuItem itemText="Edit asset" onClick={() => setEditingAsset(asset)} />}
+                                    {canManageAssets && <OverflowMenuItem itemText="Transfer this asset" onClick={() => openTransferForAssets([asset.id])} />}
+                                    {canManageAssets && <OverflowMenuItem hasDivider isDelete itemText="Archive asset" onClick={() => { setDeletingAsset(asset); setShowDeleteConfirm(true); }} />}
+                                </OverflowMenu>
                             </TableCell>
                         </TableRow>
                     ))}

@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Department;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class UserManagementController extends Controller
@@ -41,22 +41,23 @@ class UserManagementController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'password' => ['required', Rules\Password::defaults()],
             'department_id' => 'required|exists:departments,id',
             'role' => 'required|in:executive,admin,user',
             'approval_position' => 'nullable|in:it_manager,finance_operations,it_head,finance_director',
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => Str::password(32),
             'department_id' => $request->department_id,
             'role' => $request->role,
             'approval_position' => $request->approval_position ?: null,
         ]);
 
-        return redirect()->back()->with('success', 'User created successfully.');
+        Password::broker()->sendResetLink(['email' => $user->email]);
+
+        return redirect()->back()->with('success', 'Invitation sent successfully. The user will receive an email to set their password and access the system.');
     }
 
     public function update(Request $request, User $user)

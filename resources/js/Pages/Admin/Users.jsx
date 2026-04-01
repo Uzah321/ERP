@@ -16,7 +16,7 @@ export default function Users({ auth, users, departments, flash }) {
     const [confirmTarget, setConfirmTarget] = useState(null);
 
     const createForm = useForm({
-        name: '', email: '', password: '', department_id: '', role: 'user', approval_position: '',
+        name: '', email: '', department_id: '', role: 'user', approval_position: '',
     });
 
     const editForm = useForm({
@@ -25,7 +25,7 @@ export default function Users({ auth, users, departments, flash }) {
 
     const handleCreate = (e) => {
         e.preventDefault();
-        createForm.post(route('admin.users.store'), {
+        createForm.post(route('users.store'), {
             onSuccess: () => { createForm.reset(); setShowCreate(false); },
         });
     };
@@ -41,7 +41,7 @@ export default function Users({ auth, users, departments, flash }) {
 
     const handleUpdate = (e, id) => {
         e.preventDefault();
-        editForm.put(route('admin.users.update', id), {
+        editForm.put(route('users.update', id), {
             onSuccess: () => setEditing(null),
         });
     };
@@ -52,13 +52,13 @@ export default function Users({ auth, users, departments, flash }) {
     };
 
     const confirmDelete = () => {
-        router.delete(route('admin.users.destroy', confirmTarget));
+        router.delete(route('users.destroy', confirmTarget));
         setConfirmOpen(false);
         setConfirmTarget(null);
     };
 
     const handleToggleActive = (id) => {
-        router.patch(route('admin.users.toggle', id));
+        router.patch(route('users.toggle', id));
     };
 
     const approvalPositionLabel = (pos) => {
@@ -86,17 +86,17 @@ export default function Users({ auth, users, departments, flash }) {
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>{users.length} user(s) registered</p>
+                    <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>{users.length} user account(s) in the system</p>
                     <Button renderIcon={Add} onClick={() => setShowCreate(!showCreate)} kind="primary" size="sm">
-                        Add User
+                        Invite User
                     </Button>
                 </div>
 
                 {/* Create form modal */}
                 <Modal
                     open={showCreate}
-                    modalHeading="Add New User"
-                    primaryButtonText={createForm.processing ? 'Creating…' : 'Create User'}
+                    modalHeading="Invite User"
+                    primaryButtonText={createForm.processing ? 'Sending…' : 'Send Invite'}
                     secondaryButtonText="Cancel"
                     onRequestClose={() => setShowCreate(false)}
                     onRequestSubmit={handleCreate}
@@ -121,16 +121,6 @@ export default function Users({ auth, users, departments, flash }) {
                             onChange={e => createForm.setData('email', e.target.value)}
                             invalid={!!createForm.errors.email}
                             invalidText={createForm.errors.email}
-                            required
-                        />
-                        <TextInput
-                            id="user-password"
-                            labelText="Password"
-                            type="password"
-                            value={createForm.data.password}
-                            onChange={e => createForm.setData('password', e.target.value)}
-                            invalid={!!createForm.errors.password}
-                            invalidText={createForm.errors.password}
                             required
                         />
                         <Select
@@ -165,6 +155,9 @@ export default function Users({ auth, users, departments, flash }) {
                             <SelectItem value="it_head" text="IT Head of Technology" />
                             <SelectItem value="finance_director" text="Finance Director" />
                         </Select>
+                        <div style={{ gridColumn: '1 / -1', color: 'var(--cds-text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>
+                            An invitation email will be sent to this address. The user will set their own password and then land on the dashboard assigned to their role.
+                        </div>
                     </div>
                 </Modal>
 

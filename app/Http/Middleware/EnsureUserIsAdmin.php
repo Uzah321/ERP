@@ -12,7 +12,7 @@ class EnsureUserIsAdmin
     {
         $user = $request->user();
 
-        if (!$user || $user->role !== 'admin' || !$user->is_active) {
+        if (!$user || !$user->is_active || !$user->isAdmin()) {
             abort(403, 'Unauthorized. Admin access required.');
         }
 

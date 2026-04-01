@@ -15,6 +15,7 @@ import {
     Home,
     Help,
 } from '@carbon/icons-react';
+import { safeRoute } from '@/utils/ziggy';
 const AppSideNav = lazy(() => import('@/Components/Layout/AppSideNav'));
 
 const prefetchPage = (href) => {
@@ -30,6 +31,8 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
     const { auth, ziggy } = usePage().props;
     const user = userProp ?? auth?.user;
     const currentUrl = ziggy?.location ?? window.location.href;
+    const dashboardHref = safeRoute('dashboard') ?? '/dashboard';
+    const settingsHref = safeRoute('settings.index') ?? '/settings';
 
     const [activeFeatureModal, setActiveFeatureModal] = useState(null);
 
@@ -45,11 +48,11 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
                                 isActive={isSideNavExpanded}
                             />
                             <HeaderName
-                                href={route('dashboard')}
+                                href={dashboardHref}
                                 prefix=""
-                                onClick={(event) => navigateWithoutReload(event, route('dashboard'))}
-                                onMouseEnter={() => prefetchPage(route('dashboard'))}
-                                onFocus={() => prefetchPage(route('dashboard'))}
+                                onClick={(event) => navigateWithoutReload(event, dashboardHref)}
+                                onMouseEnter={() => prefetchPage(dashboardHref)}
+                                onFocus={() => prefetchPage(dashboardHref)}
                             >
                                 ASSET<span style={{ fontWeight: 300, color: 'var(--cds-link-primary)' }}>LINQ</span>
                             </HeaderName>
@@ -98,7 +101,7 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
                                             {user?.email ?? ''}
                                         </p>
                                     </div>
-                                    <Link prefetch={['hover', 'click']} href={route('settings.index')} style={{ display: 'block', padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--cds-text-primary)', textDecoration: 'none' }}>
+                                    <Link prefetch={['hover', 'click']} href={settingsHref} style={{ display: 'block', padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--cds-text-primary)', textDecoration: 'none' }}>
                                         Settings
                                     </Link>
                                 </OverflowMenu>

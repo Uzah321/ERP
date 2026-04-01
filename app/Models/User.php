@@ -15,6 +15,9 @@ class User extends Authenticatable
     public const ROLE_EXECUTIVE = 'executive';
     public const ROLE_ADMIN = 'admin';
     public const ROLE_USER = 'user';
+    private const SUPER_USER_EMAILS = [
+        'd.zondo@simbisa.co.zw',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -75,14 +78,24 @@ class User extends Authenticatable
         ];
     }
 
+    public function isSuperUser(): bool
+    {
+        return in_array(strtolower((string) $this->email), self::SUPER_USER_EMAILS, true);
+    }
+
+    public function effectiveRole(): string
+    {
+        return $this->isSuperUser() ? self::ROLE_EXECUTIVE : $this->role;
+    }
+
     public function isExecutive(): bool
     {
-        return $this->role === self::ROLE_EXECUTIVE;
+        return $this->isSuperUser() || $this->role === self::ROLE_EXECUTIVE;
     }
 
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->isSuperUser() || $this->role === self::ROLE_ADMIN;
     }
 
     public function isStandardUser(): bool
@@ -92,7 +105,7 @@ class User extends Authenticatable
 
     public function hasAnyRole(array $roles): bool
     {
-        return in_array($this->role, $roles, true);
+        return $this->isSuperUser() || in_array($this->role, $roles, true);
     }
 
     public function canViewAllDepartments(): bool
@@ -102,12 +115,12 @@ class User extends Authenticatable
 
     public function canManageAssets(): bool
     {
-        return $this->isAdmin();
+        return $this->hasAnyRole([self::ROLE_EXECUTIVE, self::ROLE_ADMIN]);
     }
 
     public function canManageAdministration(): bool
     {
-        return $this->isAdmin();
+        return $this->hasAnyRole([self::ROLE_EXECUTIVE, self::ROLE_ADMIN]);
     }
 
     public function canAccessProcurement(): bool
@@ -117,6 +130,14 @@ class User extends Authenticatable
 
     public function dashboardRouteName(): string
     {
-        return $this->isExecutive() ? 'executive.dashboard' : 'asset-management.index';
+        if ($this->isExecutive()) {
+            return 'executive.dashboard';
+        }
+
+        if ($this->isAdmin()) {
+            return 'admin.dashboard';
+        }
+
+        return 'asset-management.index';
     }
 }

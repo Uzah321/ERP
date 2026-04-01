@@ -36,7 +36,9 @@ RUN install-php-extensions \
     fileinfo \
     xml \
     ctype \
-    curl
+    curl \
+    gd \
+    intl
 
 # Copy PHP config
 COPY .docker/php/php.ini /usr/local/etc/php/conf.d/app.ini
@@ -52,7 +54,7 @@ COPY . .
 RUN composer install --no-interaction --no-dev --optimize-autoloader
 
 # Create necessary directories
-RUN mkdir -p storage/logs storage/app storage/framework/cache storage/framework/sessions /var/log/php-fpm && \
+RUN mkdir -p storage/logs/nginx storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/framework/testing /var/log/php-fpm /var/log/supervisor && \
     chmod -R 755 storage bootstrap/cache /var/log/php-fpm && \
     chown -R www-data:www-data /app /var/log/php-fpm
 

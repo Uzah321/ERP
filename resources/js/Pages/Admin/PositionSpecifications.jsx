@@ -83,7 +83,7 @@ export default function PositionSpecifications({ auth, specifications, flash }) 
                 <Table size="lg" useZebraStyles>
                     <TableHead>
                         <TableRow>
-                            <TableHeader>Position</TableHeader>
+                            <TableHeader>Job</TableHeader>
                             <TableHeader>Asset Type</TableHeader>
                             <TableHeader>Specifications</TableHeader>
                             <TableHeader>Actions</TableHeader>
@@ -111,10 +111,10 @@ export default function PositionSpecifications({ auth, specifications, flash }) 
                     </TableBody>
                 </Table>
 
-                {/* Summary by Position */}
+                {/* Summary by Job */}
                 {Object.keys(grouped).length > 0 && (
                     <div>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>Summary by Position</h3>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>Summary by Job</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                             {Object.entries(grouped).map(([position, specs]) => (
                                 <div key={position} className="bg-white border border-gray-200 p-4 shadow-sm">
@@ -147,7 +147,7 @@ export default function PositionSpecifications({ auth, specifications, flash }) 
                     primaryButtonDisabled={createForm.processing}
                 >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <TextInput id="ps-pos" labelText="Position Name *" placeholder="e.g. Manager, HOD, Staff, Intern" autoFocus value={createForm.data.position_name} onChange={e => createForm.setData('position_name', e.target.value)} invalid={!!createForm.errors.position_name} invalidText={createForm.errors.position_name} required />
+                        <TextInput id="ps-pos" labelText="Job *" placeholder="e.g. Manager, HOD, Staff, Intern" autoFocus value={createForm.data.position_name} onChange={e => createForm.setData('position_name', e.target.value)} invalid={!!createForm.errors.position_name} invalidText={createForm.errors.position_name} required />
                         <TextInput id="ps-type" labelText="Asset Type *" placeholder="e.g. Laptop, Desktop, Monitor" value={createForm.data.asset_type} onChange={e => createForm.setData('asset_type', e.target.value)} invalid={!!createForm.errors.asset_type} invalidText={createForm.errors.asset_type} required />
                         <TextInput id="ps-spec" labelText="Specifications *" placeholder="e.g. 32GB+ RAM, 1TB+ storage, Core i7" value={createForm.data.specifications} onChange={e => createForm.setData('specifications', e.target.value)} invalid={!!createForm.errors.specifications} invalidText={createForm.errors.specifications} required />
                     </div>
@@ -164,7 +164,7 @@ export default function PositionSpecifications({ auth, specifications, flash }) 
                     primaryButtonDisabled={editForm.processing}
                 >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <TextInput id="eps-pos" labelText="Position Name *" autoFocus value={editForm.data.position_name} onChange={e => editForm.setData('position_name', e.target.value)} required />
+                        <TextInput id="eps-pos" labelText="Job *" autoFocus value={editForm.data.position_name} onChange={e => editForm.setData('position_name', e.target.value)} required />
                         <TextInput id="eps-type" labelText="Asset Type *" value={editForm.data.asset_type} onChange={e => editForm.setData('asset_type', e.target.value)} required />
                         <TextInput id="eps-spec" labelText="Specifications *" value={editForm.data.specifications} onChange={e => editForm.setData('specifications', e.target.value)} required />
                     </div>

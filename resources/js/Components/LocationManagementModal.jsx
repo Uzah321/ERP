@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useId } from 'react';
 import {
     Modal,
     Select,
@@ -21,6 +21,7 @@ export default function LocationManagementModal({
     onRequestSubmit,
 }) {
     const nameInputRef = useRef(null);
+    const idPrefix = useId();
 
     useEffect(() => {
         if (!open) {
@@ -46,7 +47,7 @@ export default function LocationManagementModal({
         >
             <div style={{ display: 'grid', gap: '1rem' }}>
                 <Select
-                    id="location-type"
+                    id={`${idPrefix}-location-type`}
                     labelText="Location Type"
                     value={data.type}
                     onChange={(event) => setData((current) => ({ ...current, type: event.target.value, parent_id: event.target.value === 'store' ? current.parent_id : '' }))}
@@ -59,7 +60,7 @@ export default function LocationManagementModal({
 
                 {data.type === 'store' && (
                     <Select
-                        id="parent-id"
+                        id={`${idPrefix}-parent-id`}
                         labelText="Parent Complex"
                         value={data.parent_id}
                         onChange={(event) => setData('parent_id', event.target.value)}
@@ -74,7 +75,7 @@ export default function LocationManagementModal({
                 )}
 
                 <TextInput
-                    id="location-name"
+                    id={`${idPrefix}-location-name`}
                     ref={nameInputRef}
                     labelText={data.type === 'complex' ? 'Complex Name' : 'Store Name'}
                     value={data.name}
@@ -83,7 +84,7 @@ export default function LocationManagementModal({
                     invalidText={errors.name}
                 />
                 <TextArea
-                    id="location-address"
+                    id={`${idPrefix}-location-address`}
                     labelText="Address / Description"
                     value={data.address}
                     onChange={(event) => setData('address', event.target.value)}

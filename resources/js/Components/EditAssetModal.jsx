@@ -26,7 +26,6 @@ export default function EditAssetModal({ asset, onClose, categories, complexes, 
         warranty_expiry_date: asset?.warranty_expiry_date || '',
         warranty_provider: asset?.warranty_provider || '',
         warranty_notes: asset?.warranty_notes || '',
-        photo: null,
         redirect_to: redirectTo,
     });
 
@@ -75,6 +74,8 @@ export default function EditAssetModal({ asset, onClose, categories, complexes, 
                         <Select id="store_id" labelText="Store / Shop"
                             value={data.store_id}
                             onChange={e => setData('store_id', e.target.value)}
+                            required
+                            helperText="Select the store so this asset stays attached to the correct store."
                             invalid={!!errors.store_id} invalidText={errors.store_id}>
                             <SelectItem value="" text={selectedComplex ? '-- Select Store --' : 'Select a complex first'} />
                             {availableStores.map((store) => <SelectItem key={store.id} value={String(store.id)} text={store.name} />)}
@@ -105,25 +106,6 @@ export default function EditAssetModal({ asset, onClose, categories, complexes, 
                     <Column sm={4} md={8} lg={16}>
                         <TextArea id="description" labelText="Description" rows={3}
                             value={data.description} onChange={e => setData('description', e.target.value)} />
-                    </Column>
-
-                    {/* Photo */}
-                    <Column sm={4} md={8} lg={16}>
-                        {asset?.photo_path && (
-                            <div style={{ marginBottom: '0.75rem' }}>
-                                <img src={`/storage/${asset.photo_path}`} alt="Asset"
-                                    style={{ height: '6rem', width: 'auto', borderRadius: '4px', border: '1px solid var(--cds-border-subtle)', objectFit: 'cover' }} />
-                            </div>
-                        )}
-                        <FileUploader
-                            labelTitle="Asset Photo (leave blank to keep existing)"
-                            labelDescription="JPEG, PNG, WebP"
-                            buttonLabel="Replace photo"
-                            accept={['image/jpeg', 'image/png', 'image/jpg', 'image/webp']}
-                            onChange={e => setData('photo', e.target.files[0] || null)}
-                            invalid={!!errors.photo}
-                            invalidText={errors.photo}
-                        />
                     </Column>
 
                     {/* Depreciation */}

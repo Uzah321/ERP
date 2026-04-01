@@ -6,7 +6,6 @@ use App\Models\CapexForm;
 use App\Models\Invoice;
 use App\Models\PurchaseOrder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,42 +13,7 @@ class ProcurementDashboardController extends Controller
 {
     public function index(Request $request): Response
     {
-        $pendingCapex = CapexForm::whereNotIn('status', ['approved', 'declined'])->count();
-        $approvedAwaitingPo = CapexForm::where('status', 'approved')->whereDoesntHave('purchaseOrders')->count();
-        $openPurchaseOrders = PurchaseOrder::whereIn('delivery_status', ['open', 'partial'])->count();
-        $deliveredAwaitingInvoice = PurchaseOrder::where('delivery_status', 'delivered')->where('invoice_status', 'pending')->count();
-        $overdueInvoices = Invoice::where('status', 'pending')->whereDate('due_date', '<', now()->toDateString())->count();
-        $paidThisMonth = Invoice::where('status', 'paid')
-            ->whereMonth('paid_at', now()->month)
-            ->whereYear('paid_at', now()->year)
-            ->sum(DB::raw('amount + vat_amount'));
-
-        $recentOrders = PurchaseOrder::with(['capexForm.assetRequest.department'])
-            ->latest()
-            ->limit(8)
-            ->get()
-            ->map(fn (PurchaseOrder $order) => [
-                'id' => $order->id,
-                'po_number' => $order->po_number,
-                'vendor_name' => $order->vendor_name,
-                'department' => $order->capexForm?->assetRequest?->department?->name ?? '-',
-                'delivery_status' => $order->delivery_status,
-                'invoice_status' => $order->invoice_status,
-                'total_amount' => $order->total_amount,
-                'created_at' => $order->created_at?->format('Y-m-d'),
-            ]);
-
-        return Inertia::render('Procurement/Dashboard', [
-            'metrics' => [
-                'pending_capex' => $pendingCapex,
-                'approved_waiting_po' => $approvedAwaitingPo,
-                'open_purchase_orders' => $openPurchaseOrders,
-                'delivered_waiting_invoice' => $deliveredAwaitingInvoice,
-                'overdue_invoices' => $overdueInvoices,
-                'paid_this_month' => $paidThisMonth,
-            ],
-            'recent_orders' => $recentOrders,
-        ]);
+        return Inertia::render('Procurement/Dashboard');
     }
 
     public function pending(Request $request): Response
@@ -61,6 +25,7 @@ class ProcurementDashboardController extends Controller
             ->get()
             ->map(fn (CapexForm $form) => [
                 'id' => $form->id,
+                'asset_request_id' => $form->asset_request_id,
                 'reference' => $form->rtp_reference,
                 'department' => $form->assetRequest?->department?->name ?? '-',
                 'status' => $form->status,

@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Button, InlineNotification, Tag,
     Modal, TextInput, TextArea,
@@ -30,6 +30,23 @@ export default function GoodsReceipts({ pendingPos, receipts, filters, flash }) 
         condition_notes: '',
         notes: '',
     });
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const targetPoId = params.get('po_id');
+
+        if (params.get('create') === '1' && pendingPos?.length > 0 && !selectedPo) {
+            const targetedPo = targetPoId
+                ? pendingPos.find((po) => String(po.id) === String(targetPoId))
+                : null;
+
+            selectPo(targetedPo ?? pendingPos[0]);
+            params.delete('create');
+            params.delete('po_id');
+            const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+    }, [pendingPos, selectedPo]);
 
     function selectPo(po) {
         setSelectedPo(po);

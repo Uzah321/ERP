@@ -22,7 +22,8 @@ class StoreManagementController extends Controller
             ]);
         }
 
-        $complexes = Location::complexes()
+        $complexes = Location::query()
+            ->hierarchyType('complex')
             ->withCount('stores')
             ->withCount('assetsAsComplex')
             ->orderBy('name')
@@ -46,7 +47,7 @@ class StoreManagementController extends Controller
         abort_unless($complex->type === 'complex', 404);
 
         $stores = Location::query()
-            ->stores()
+            ->hierarchyType('store')
             ->where('parent_id', $complex->id)
             ->withCount('assetsAsStore')
             ->orderBy('name')
@@ -54,7 +55,7 @@ class StoreManagementController extends Controller
 
         return Inertia::render('Operations/Stores', [
             'complex' => $complex->only(['id', 'name', 'address', 'type']),
-            'complexes' => Location::complexes()->orderBy('name')->get(['id', 'name', 'address']),
+            'complexes' => Location::query()->hierarchyType('complex')->orderBy('name')->get(['id', 'name', 'address']),
             'stores' => $stores,
         ]);
     }
@@ -90,7 +91,8 @@ class StoreManagementController extends Controller
             'store' => $store->only(['id', 'name', 'address', 'parent_id', 'type']),
             'assets' => $assets,
             'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
-            'complexes' => Location::complexes()
+            'complexes' => Location::query()
+                ->hierarchyType('complex')
                 ->with(['stores:id,name,parent_id'])
                 ->orderBy('name')
                 ->get(['id', 'name', 'address']),

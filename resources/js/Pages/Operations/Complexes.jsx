@@ -5,7 +5,7 @@ import { Button, InlineNotification, Modal, OverflowMenu, OverflowMenuItem, Tabl
 import LocationManagementModal from '@/Components/LocationManagementModal';
 
 export default function Complexes({ auth, complexes, flash }) {
-    const isAdmin = auth.user.role === 'admin';
+    const canManageLocations = ['admin', 'executive'].includes(auth.user.role);
     const [showCreate, setShowCreate] = useState(false);
     const [editingComplex, setEditingComplex] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState(null);
@@ -71,7 +71,7 @@ export default function Complexes({ auth, complexes, flash }) {
                                 Start with a complex, then open it to manage its stores.
                             </p>
                         </div>
-                        {isAdmin && <Button kind="primary" size="sm" onClick={openCreate}>New Complex</Button>}
+                        {canManageLocations && <Button kind="primary" size="sm" onClick={openCreate}>Add Complex</Button>}
                     </div>
                 </Tile>
 
@@ -102,8 +102,8 @@ export default function Complexes({ auth, complexes, flash }) {
                                     <TableCell style={{ width: '1%' }}>
                                         <OverflowMenu flipped iconDescription="Complex actions">
                                             <OverflowMenuItem itemText="View stores" onClick={() => router.get(route('store-management.stores', complex.id))} />
-                                            {isAdmin && <OverflowMenuItem itemText="Edit complex" onClick={() => openEdit(complex)} />}
-                                            {isAdmin && <OverflowMenuItem hasDivider isDelete itemText="Delete complex" onClick={() => setConfirmDelete(complex)} />}
+                                            {canManageLocations && <OverflowMenuItem itemText="Edit complex" onClick={() => openEdit(complex)} />}
+                                            {canManageLocations && <OverflowMenuItem hasDivider isDelete itemText="Delete complex" onClick={() => setConfirmDelete(complex)} />}
                                         </OverflowMenu>
                                     </TableCell>
                                 </TableRow>
@@ -113,7 +113,7 @@ export default function Complexes({ auth, complexes, flash }) {
                 </Tile>
             </div>
 
-            {isAdmin && (
+            {canManageLocations && (
                 <LocationManagementModal
                     open={showCreate}
                     modalHeading="New Complex"
@@ -129,7 +129,7 @@ export default function Complexes({ auth, complexes, flash }) {
                 />
             )}
 
-            {isAdmin && (
+            {canManageLocations && (
                 <LocationManagementModal
                     open={!!editingComplex}
                     modalHeading="Edit Complex"

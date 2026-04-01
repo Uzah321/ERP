@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tag, Tile } from '@carbon/react';
+import { Head, Link } from '@inertiajs/react';
+import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tag, Tile } from '@carbon/react';
 
 const currency = (value) => `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -66,6 +66,20 @@ export default function PendingPurchases({ auth, pending_capex, approved_waiting
                             { key: 'status', label: 'Status', render: (value) => <Tag type={statusTone[value] ?? 'gray'}>{value}</Tag> },
                             { key: 'total_amount', label: 'Total', render: (value) => currency(value) },
                             { key: 'created_at', label: 'Created' },
+                            {
+                                key: 'action',
+                                label: 'Action',
+                                render: (_, row) => row.asset_request_id ? (
+                                    <Button
+                                        as={Link}
+                                        href={route('admin.capex.index', { create: 1, asset_request_id: row.asset_request_id })}
+                                        kind="ghost"
+                                        size="sm"
+                                    >
+                                        Open source request
+                                    </Button>
+                                ) : '—',
+                            },
                         ]}
                     />
 
@@ -78,6 +92,20 @@ export default function PendingPurchases({ auth, pending_capex, approved_waiting
                             { key: 'department', label: 'Department' },
                             { key: 'total_amount', label: 'Total', render: (value) => currency(value) },
                             { key: 'created_at', label: 'Approved' },
+                            {
+                                key: 'action',
+                                label: 'Action',
+                                render: (_, row) => (
+                                    <Button
+                                        as={Link}
+                                        href={route('purchase-orders.index', { create: 1, capex_id: row.id })}
+                                        kind="ghost"
+                                        size="sm"
+                                    >
+                                        Generate PO
+                                    </Button>
+                                ),
+                            },
                         ]}
                     />
 
@@ -91,6 +119,20 @@ export default function PendingPurchases({ auth, pending_capex, approved_waiting
                             { key: 'department', label: 'Department' },
                             { key: 'delivery_status', label: 'Delivery', render: (value) => <Tag type={statusTone[value] ?? 'gray'}>{value}</Tag> },
                             { key: 'total_amount', label: 'Total', render: (value) => currency(value) },
+                            {
+                                key: 'action',
+                                label: 'Action',
+                                render: (_, row) => (
+                                    <Button
+                                        as={Link}
+                                        href={route('goods-receipts.index', { create: 1, po_id: row.id })}
+                                        kind="ghost"
+                                        size="sm"
+                                    >
+                                        Record receipt
+                                    </Button>
+                                ),
+                            },
                         ]}
                     />
 
@@ -104,6 +146,20 @@ export default function PendingPurchases({ auth, pending_capex, approved_waiting
                             { key: 'department', label: 'Department' },
                             { key: 'total_amount', label: 'Total', render: (value) => currency(value) },
                             { key: 'created_at', label: 'Delivered' },
+                            {
+                                key: 'action',
+                                label: 'Action',
+                                render: (_, row) => (
+                                    <Button
+                                        as={Link}
+                                        href={route('invoices.index', { create: 1, po_id: row.id })}
+                                        kind="ghost"
+                                        size="sm"
+                                    >
+                                        Record invoice
+                                    </Button>
+                                ),
+                            },
                         ]}
                     />
 
@@ -118,6 +174,20 @@ export default function PendingPurchases({ auth, pending_capex, approved_waiting
                             { key: 'status', label: 'Status', render: (value) => <Tag type={statusTone[value] ?? 'gray'}>{value}</Tag> },
                             { key: 'amount', label: 'Amount', render: (value) => currency(value) },
                             { key: 'due_date', label: 'Due Date' },
+                            {
+                                key: 'action',
+                                label: 'Action',
+                                render: (_, row) => (
+                                    <Button
+                                        as={Link}
+                                        href={route('invoices.index', { search: row.invoice_number })}
+                                        kind="ghost"
+                                        size="sm"
+                                    >
+                                        Review invoice
+                                    </Button>
+                                ),
+                            },
                         ]}
                     />
                 </div>

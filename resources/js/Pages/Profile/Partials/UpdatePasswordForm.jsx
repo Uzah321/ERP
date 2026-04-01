@@ -1,6 +1,30 @@
 import { useForm } from '@inertiajs/react';
 import { useRef } from 'react';
-import { Form, PasswordInput, Button } from '@carbon/react';
+import { Form, PasswordInput, Button, Tag } from '@carbon/react';
+
+function passwordStrength(password) {
+    let score = 0;
+
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+    if (score >= 5) {
+        return { label: 'Strong', type: 'green' };
+    }
+
+    if (score >= 3) {
+        return { label: 'Moderate', type: 'yellow' };
+    }
+
+    if (password.length > 0) {
+        return { label: 'Weak', type: 'red' };
+    }
+
+    return { label: 'Not set', type: 'gray' };
+}
 
 export default function UpdatePasswordForm({ className = '' }) {
     const passwordInput = useRef();
@@ -39,6 +63,8 @@ export default function UpdatePasswordForm({ className = '' }) {
         });
     };
 
+    const strength = passwordStrength(data.password);
+
     return (
         <section className={className}>
             <header>
@@ -72,6 +98,13 @@ export default function UpdatePasswordForm({ className = '' }) {
                     invalidText={errors.password}
                     ref={passwordInput}
                 />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginTop: '-0.25rem' }}>
+                    <p className="text-sm text-gray-600" style={{ margin: 0 }}>
+                        Use at least 12 characters with uppercase, numbers, and special characters.
+                    </p>
+                    <Tag type={strength.type}>{strength.label}</Tag>
+                </div>
 
                 <PasswordInput
                     id="password_confirmation"

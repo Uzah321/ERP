@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\MaintenanceRecord;
+use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,11 +29,15 @@ class MaintenanceController extends Controller
                 'condition' => $asset->condition,
                 'repair_count' => $asset->maintenance_records_count,
                 'time_in_use' => $timeInUse,
+                'store_id' => $asset->store_id,
             ];
         });
 
+        $stores = Location::where('type', 'store')->orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('Maintenance/Index', [
-            'assets' => $assets
+            'assets' => $assets,
+            'stores' => $stores
         ]);
     }
 

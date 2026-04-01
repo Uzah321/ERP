@@ -51,8 +51,8 @@ Route::middleware('auth')->group(function () {
         ->name('two-factor.verify');
 });
 
-// ── Asset request approval links (admin-only, email link clicks) ──
-Route::middleware(['auth', 'admin'])->group(function () {
+// ── Asset request approval links (privileged access, email link clicks) ──
+Route::middleware(['auth', 'role:admin,executive'])->group(function () {
     Route::get('/asset-requests/{assetRequest}/approve', [AssetRequestController::class, 'approveViaEmail'])->name('asset-requests.approve');
     Route::get('/asset-requests/{assetRequest}/decline', [AssetRequestController::class, 'declineViaEmail'])->name('asset-requests.decline');
 });
@@ -67,8 +67,8 @@ Route::get('/', function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'two-factor'])->name('dashboard');
 Route::get('/asset-management', [AssetController::class, 'index'])->middleware(['auth', 'verified', 'two-factor'])->name('asset-management.index');
 
-Route::post('/assets', [AssetController::class, 'store'])->middleware(['auth', 'verified', 'two-factor', 'admin'])->name('assets.store');
-Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['auth', 'verified', 'two-factor', 'admin'])->name('assets.update');
+Route::post('/assets', [AssetController::class, 'store'])->middleware(['auth', 'verified', 'two-factor', 'role:admin,executive'])->name('assets.store');
+Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['auth', 'verified', 'two-factor', 'role:admin,executive'])->name('assets.update');
 
 Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
@@ -79,6 +79,11 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
 
     Route::middleware('role:executive')->group(function () {
         Route::get('/executive/dashboard', [ExecutiveDashboardController::class, 'index'])->name('executive.dashboard');
+        Route::get('/executive/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::post('/executive/users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::put('/executive/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        Route::delete('/executive/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+        Route::patch('/executive/users/{user}/toggle', [UserManagementController::class, 'toggleActive'])->name('users.toggle');
     });
 
     Route::middleware('role:admin,executive')->group(function () {
@@ -89,16 +94,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     // Fetch position specs for the asset request modal (all authenticated users)
     Route::get('/api/position-specifications', [PositionSpecificationController::class, 'all'])->name('position-specs.all');
 
-    // Admin-only routes
-    Route::middleware('admin')->group(function () {
+    // Admin and executive routes
+    Route::middleware('role:admin,executive')->group(function () {
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-
-        // Admin: User Management
-        Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
-        Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
-        Route::put('/admin/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');
-        Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
-        Route::patch('/admin/users/{user}/toggle', [UserManagementController::class, 'toggleActive'])->name('admin.users.toggle');
 
         // Admin: Department Management
         Route::get('/admin/departments', [DepartmentController::class, 'index'])->name('admin.departments.index');
@@ -111,12 +109,6 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::post('/admin/categories', [CategoryController::class, 'store'])->name('admin.categories.store');
         Route::put('/admin/categories/{category}', [CategoryController::class, 'update'])->name('admin.categories.update');
         Route::delete('/admin/categories/{category}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
-
-        // Admin: Locations
-        Route::get('/admin/locations', [LocationController::class, 'index'])->name('admin.locations.index');
-        Route::post('/admin/locations', [LocationController::class, 'store'])->name('admin.locations.store');
-        Route::put('/admin/locations/{location}', [LocationController::class, 'update'])->name('admin.locations.update');
-        Route::delete('/admin/locations/{location}', [LocationController::class, 'destroy'])->name('admin.locations.destroy');
 
         // Admin: Vendor Management
         Route::get('/admin/vendors', [VendorController::class, 'index'])->name('admin.vendors.index');
@@ -166,6 +158,13 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
         Route::delete('/admin/position-specifications/{positionSpecification}', [PositionSpecificationController::class, 'destroy'])->name('admin.position-specs.destroy');
     });
 
+    Route::middleware('role:admin,executive')->group(function () {
+        Route::get('/admin/locations', [LocationController::class, 'index'])->name('admin.locations.index');
+        Route::post('/admin/locations', [LocationController::class, 'store'])->name('admin.locations.store');
+        Route::put('/admin/locations/{location}', [LocationController::class, 'update'])->name('admin.locations.update');
+        Route::delete('/admin/locations/{location}', [LocationController::class, 'destroy'])->name('admin.locations.destroy');
+    });
+
     Route::get('/transfers', fn () => redirect()->route('admin.allocations.index'))->name('transfers.index');
     Route::post('/assets/{asset}/transfer', [TransferRequestController::class, 'store'])->name('transfers.store');
     Route::post('/assets/bulk-transfer', [TransferRequestController::class, 'bulkTransfer'])->name('assets.bulkTransfer');
@@ -194,9 +193,9 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::put('/admin/software-licences/{softwareLicence}', [\App\Http\Controllers\SoftwareLicenceController::class, 'update'])->name('admin.software-licences.update');
     Route::delete('/admin/software-licences/{softwareLicence}', [\App\Http\Controllers\SoftwareLicenceController::class, 'destroy'])->name('admin.software-licences.destroy');
 
-    Route::post('/assets/{asset}/decommission', [AssetLifecycleController::class, 'decommission'])->middleware('admin')->name('assets.decommission');
-    Route::post('/assets/{asset}/dispose', [AssetLifecycleController::class, 'dispose'])->middleware('admin')->name('assets.dispose');
-    Route::post('/assets/{asset}/archive', [AssetLifecycleController::class, 'archive'])->middleware('admin')->name('assets.archive');
+    Route::post('/assets/{asset}/decommission', [AssetLifecycleController::class, 'decommission'])->middleware('role:admin,executive')->name('assets.decommission');
+    Route::post('/assets/{asset}/dispose', [AssetLifecycleController::class, 'dispose'])->middleware('role:admin,executive')->name('assets.dispose');
+    Route::post('/assets/{asset}/archive', [AssetLifecycleController::class, 'archive'])->middleware('role:admin,executive')->name('assets.archive');
     Route::get('/assets/{asset}/qr-label', [AssetController::class, 'qrLabel'])->name('assets.qr-label');
     
     Route::get('/decommission-log', [DecommissionLogController::class, 'index'])->name('decommission.log');
@@ -205,6 +204,7 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::post('/archive/{id}/restore', [ArchiveController::class, 'restore'])->name('archive.restore');
     
     Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+    Route::get('/activity-log/export/csv', [ActivityLogController::class, 'export'])->name('activity-log.export.csv');
     Route::get('/activity-log/asset/{asset}', [ActivityLogController::class, 'forAsset'])->name('activity-log.asset');
     Route::get('/department-rollup', [DepartmentRollupController::class, 'index'])->name('department.rollup');
     Route::post('/system/sync', [SyncController::class, 'sync'])->name('system.sync');

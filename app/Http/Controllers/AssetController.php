@@ -22,12 +22,19 @@ class AssetController extends Controller
         $user = Auth::user();
         $department = $user->department;
         $supportsLocationHierarchy = $this->supportsLocationHierarchy();
+        $pagePermissions = [
+            'can_manage_assets' => $user->canManageAssets(),
+            'can_view_all_departments' => $user->canViewAllDepartments(),
+            'is_super_user' => $user->isSuperUser(),
+            'effective_role' => $user->effectiveRole(),
+        ];
 
         // Fetch arrays for our dropdowns with short-circuit cache to speed rendering
-        $categories = cache()->remember('categories-dropdown', now()->minutes(30), fn() => Category::select('id', 'name')->orderBy('name')->get());
-        $complexes = cache()->remember('locations-dropdown', now()->minutes(30), function () use ($supportsLocationHierarchy) {
+        $categories = Category::select('id', 'name')->orderBy('name')->get();
+        $complexes = (function () use ($supportsLocationHierarchy) {
             if ($supportsLocationHierarchy) {
-                return Location::complexes()
+                return Location::query()
+                    ->hierarchyType('complex')
                     ->select('id', 'name', 'address')
                     ->with(['stores' => fn ($query) => $query->select('id', 'name', 'address', 'parent_id')->orderBy('name')])
                     ->orderBy('name')
@@ -42,8 +49,8 @@ class AssetController extends Controller
 
                     return $location;
                 });
-        });
-        $departments = cache()->remember('departments-dropdown', now()->minutes(30), fn() => Department::select('id', 'name')->orderBy('name')->get());
+        })();
+        $departments = Department::select('id', 'name')->orderBy('name')->get();
 
         $relations = ['category:id,name', 'location:id,name'];
 
@@ -97,15 +104,11 @@ class AssetController extends Controller
 
         $assets = $query->latest()->paginate(25)->withQueryString();
 
-        $vendorCategories = cache()->remember(
-            'vendor_categories-dropdown',
-            now()->minutes(30),
-            fn() => \App\Models\Vendor::query()
-                ->whereNotNull('product_category')
-                ->where('product_category', '!=', '')
-                ->distinct()
-                ->pluck('product_category')
-        );
+        $vendorCategories = \App\Models\Vendor::query()
+            ->whereNotNull('product_category')
+            ->where('product_category', '!=', '')
+            ->distinct()
+            ->pluck('product_category');
 
         $requestCategories = $this->requestCategories($categories, $vendorCategories);
 
@@ -114,6 +117,7 @@ class AssetController extends Controller
             'filters' => $request->only(['search', 'status', 'condition', 'department_id', 'complex_id', 'store_id']),
             'all_departments' => $departments,
             'department' => $department,
+            'page_permissions' => $pagePermissions,
             'selected_department_id' => $selectedDepartmentId,
             'categories' => $categories,
             'complexes' => $complexes,
@@ -165,13 +169,12 @@ class AssetController extends Controller
             'warranty_expiry_date'=> 'nullable|date',
             'warranty_provider'   => 'nullable|string|max:255',
             'warranty_notes'      => 'nullable|string|max:1000',
-            'photo'               => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'redirect_to'         => 'nullable|string',
         ];
 
         if ($supportsLocationHierarchy) {
             $rules['complex_id'] = ['required', Rule::exists('locations', 'id')->where(fn ($query) => $query->where('type', 'complex'))];
-            $rules['store_id'] = ['nullable', Rule::exists('locations', 'id')->where(fn ($query) => $query->where('type', 'store'))];
+            $rules['store_id'] = ['required', Rule::exists('locations', 'id')->where(fn ($query) => $query->where('type', 'store'))];
         } else {
             $rules['complex_id'] = ['required', 'exists:locations,id'];
             $rules['store_id'] = ['nullable'];
@@ -183,12 +186,6 @@ class AssetController extends Controller
 
         // Automatically Generate a Barcode: AL (AssetLinq) + Year + Random 5-digit number
         $barcode = 'AL-' . date('Y') . '-' . strtoupper(substr(uniqid(), -5));
-
-        // Handle photo upload
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('asset-photos', 'public');
-        }
 
         $assetData = [
             'name' => $request->name,
@@ -209,7 +206,6 @@ class AssetController extends Controller
             'warranty_expiry_date'=> $request->warranty_expiry_date,
             'warranty_provider'   => $request->warranty_provider,
             'warranty_notes'      => $request->warranty_notes,
-            'photo_path'          => $photoPath,
             // Initialise current_value to purchase_cost so the depreciation command has a baseline
             'current_value'       => $request->purchase_cost ?: null,
         ];
@@ -244,13 +240,12 @@ class AssetController extends Controller
             'warranty_expiry_date'=> 'nullable|date',
             'warranty_provider'   => 'nullable|string|max:255',
             'warranty_notes'      => 'nullable|string|max:1000',
-            'photo'               => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'redirect_to'         => 'nullable|string',
         ];
 
         if ($supportsLocationHierarchy) {
             $rules['complex_id'] = ['required', Rule::exists('locations', 'id')->where(fn ($query) => $query->where('type', 'complex'))];
-            $rules['store_id'] = ['nullable', Rule::exists('locations', 'id')->where(fn ($query) => $query->where('type', 'store'))];
+            $rules['store_id'] = ['required', Rule::exists('locations', 'id')->where(fn ($query) => $query->where('type', 'store'))];
         } else {
             $rules['complex_id'] = ['required', 'exists:locations,id'];
             $rules['store_id'] = ['nullable'];
@@ -259,15 +254,6 @@ class AssetController extends Controller
         $request->validate($rules);
 
         $locationSelection = $this->resolveLocationSelection($request, $supportsLocationHierarchy);
-
-        // Handle photo upload — replace old file if new one supplied
-        $photoPath = $asset->photo_path;
-        if ($request->hasFile('photo')) {
-            if ($photoPath) {
-                Storage::disk('public')->delete($photoPath);
-            }
-            $photoPath = $request->file('photo')->store('asset-photos', 'public');
-        }
 
         $updateData = [
             'name' => $request->name,
@@ -286,7 +272,6 @@ class AssetController extends Controller
             'warranty_expiry_date'=> $request->warranty_expiry_date,
             'warranty_provider'   => $request->warranty_provider,
             'warranty_notes'      => $request->warranty_notes,
-            'photo_path'          => $photoPath,
         ];
 
         if ($supportsLocationHierarchy) {
@@ -308,8 +293,8 @@ class AssetController extends Controller
     {
         // Generate QR code as base64 PNG using chillerlan/php-qrcode
         $qrOptions = new \chillerlan\QRCode\QROptions([
-            'outputType' => \chillerlan\QRCode\Output\QROutputInterface::GDIMAGE_PNG,
-            'eccLevel'   => \chillerlan\QRCode\QRCode::ECC_H,
+            'outputType' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+            'eccLevel'   => \chillerlan\QRCode\Common\EccLevel::H,
             'scale'      => 6,
             'imageBase64'=> false,
         ]);
@@ -344,7 +329,7 @@ class AssetController extends Controller
             ];
         }
 
-        $complex = Location::complexes()->find($request->complex_id);
+        $complex = Location::query()->hierarchyType('complex')->find($request->complex_id);
 
         if (!$complex) {
             throw ValidationException::withMessages([
@@ -352,22 +337,14 @@ class AssetController extends Controller
             ]);
         }
 
-        if (!$request->filled('store_id')) {
-            return [
-                'location_id' => $complex->id,
-                'complex_id' => $complex->id,
-                'store_id' => null,
-            ];
-        }
-
         $store = Location::query()
-            ->where('type', 'store')
+            ->hierarchyType('store')
             ->where('parent_id', $complex->id)
             ->find($request->store_id);
 
         if (!$store) {
             throw ValidationException::withMessages([
-                'store_id' => 'The selected store does not belong to the chosen complex.',
+                'store_id' => 'Select a valid store that belongs to the chosen complex.',
             ]);
         }
 

@@ -34,16 +34,24 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $user?->only([
-                    'id', 'name', 'email', 'role', 'department_id',
-                    'is_active', 'two_factor_enabled', 'approval_position',
-                ]),
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->effectiveRole(),
+                    'department_id' => $user->department_id,
+                    'is_active' => $user->is_active,
+                    'two_factor_enabled' => $user->two_factor_enabled,
+                    'approval_position' => $user->approval_position,
+                    'is_super_user' => $user->isSuperUser(),
+                ] : null,
                 'permissions' => $user ? [
                     'can_manage_assets' => $user->canManageAssets(),
                     'can_manage_administration' => $user->canManageAdministration(),
                     'can_access_procurement' => $user->canAccessProcurement(),
                     'can_view_all_departments' => $user->canViewAllDepartments(),
                     'dashboard_route_name' => $user->dashboardRouteName(),
+                    'is_super_user' => $user->isSuperUser(),
                 ] : null,
             ],
             'flash' => [

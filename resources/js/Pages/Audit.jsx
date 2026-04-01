@@ -14,11 +14,14 @@ import {
     TableBody,
     TableCell,
     Tile,
+    Select,
+    SelectItem,
 } from '@carbon/react';
 
-export default function Audit({ auth, recent_audits }) {
+export default function Audit({ auth, recent_audits, locations }) {
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         barcode: '',
+        location_id: '',
     });
     const [successMsg, setSuccessMsg] = useState('');
     const inputRef = useRef();
@@ -69,6 +72,19 @@ export default function Audit({ auth, recent_audits }) {
                             )}
 
                             <Form onSubmit={submit}>
+                                <Select
+                                    id="location_id"
+                                    labelText="Verify/Update Location (Optional)"
+                                    value={data.location_id}
+                                    onChange={(e) => setData('location_id', e.target.value)}
+                                    className="mb-4"
+                                >
+                                    <SelectItem value="" text="Keep Existing Location" />
+                                    {locations && locations.map(loc => (
+                                        <SelectItem key={loc.id} value={loc.id} text={loc.name} />
+                                    ))}
+                                </Select>
+
                                 <TextInput
                                     id="barcode"
                                     labelText="Asset Barcode or Serial Number"

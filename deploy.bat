@@ -1,90 +1,75 @@
 @echo off
-REM Deploy Laravel Application to Live Server
-REM Server: 77.93.154.83
-REM User: administrator
-
+REM Deploy Laravel + Docker to Remote Server (Optimized)
 setlocal enabledelayedexpansion
 
+REM === CONFIGURATION ===
 set SERVER_IP=77.93.154.83
 set SSH_USER=administrator
 set APP_PATH=/var/www/simbisa
-set LOCAL_APP_PATH=c:\Users\dingulwazi.zondo\Desktop\LARAVEL\first-app
+set LOCAL_PATH=C:\Users\dingulwazi.zondo\Desktop\LARAVEL\first-app
+set ARCHIVE=deploy-%DATE:~10,4%%DATE:~4,2%%DATE:~7,2%.zip
 
-echo ================================
-echo Deploying to Live Server
-echo ================================
-echo Server: %SERVER_IP%
-echo User: %SSH_USER%
+echo 🚀 Starting optimized deployment...
+echo Target: %SSH_USER%@%SERVER_IP%:%APP_PATH%
 echo.
 
-REM Check if SSH and SCP are available
-where scp >nul 2>nul
+REM === PRE-FLIGHT CHECKS ===
+where ssh >nul 2>nul || (echo ❌ Install OpenSSH Client & pause & exit /b 1)
+where powershell >nul 2>nul || (echo ❌ PowerShell required & pause & exit /b 1)
+
+REM === STEP 1: Create minimal archive ===
+echo 📦 Building deployment archive...
+pushd "%LOCAL_PATH%"
+
+REM Essential paths only (excludes dev/cache files)
+set "ESSENTIAL=app bootstrap config database public resources routes tests vendor composer.json composer.lock artisan .env.production docker-compose.yml .docker Dockerfile .dockerignore .gitignore"
+
+powershell -Command ^
+  "$inc = '%ESSENTIAL%'.Split(' ') | Where-Object {Test-Path $_}; ^
+   $exc = @('node_modules','.git','storage/framework/cache/*','storage/logs/*','bootstrap/cache/*','*.log','.env'); ^
+   Compress-Archive -Path $inc -DestinationPath '%ARCHIVE%' -Force -ErrorAction SilentlyContinue"
+
+if not exist "%ARCHIVE%" (echo ❌ Archive failed & popd & pause & exit /b 1)
+echo ✅ Created %ARCHIVE% (%~z0% bytes)
+popd
+
+REM === STEP 2: Upload & Extract ===
+echo 🔐 Connecting to server...
+ssh %SSH_USER%@%SERVER_IP% "mkdir -p %APP_PATH%" || (echo ❌ SSH failed & del "%ARCHIVE%" & pause & exit /b 1)
+
+echo ⬆️  Uploading...
+scp "%LOCAL_PATH%\%ARCHIVE%" %SSH_USER%@%SERVER_IP%:%APP_PATH%/ || (echo ❌ Upload failed & del "%ARCHIVE%" & pause & exit /b 1)
+
+echo 🔧 Deploying on server...
+ssh %SSH_USER%@%SERVER_IP% ^
+"cd %APP_PATH% && ^
+unzip -o %ARCHIVE% && ^
+rm %ARCHIVE% && ^
+[ -f .env.production ] && [ ! -f .env ] && cp .env.production .env && ^
+grep -q '^APP_KEY=base64:' .env || (echo '❌ APP_KEY missing' && exit 1) && ^
+docker-compose down --remove-orphans && ^
+docker-compose pull && ^
+docker-compose build --no-cache app worker scheduler && ^
+docker-compose up -d && ^
+sleep 8 && ^
+docker-compose exec -T app php artisan migrate --force && ^
+docker-compose exec -T app php artisan config:cache && ^
+docker-compose exec -T app php artisan route:cache && ^
+docker-compose exec -T app chown -R www-data:www-data storage bootstrap/cache && ^
+docker-compose ps && ^
+echo '✅ Deploy complete'"
+
 if errorlevel 1 (
-    echo ERROR: SCP not found. Please install OpenSSH Client or Git Bash.
+    echo ❌ Remote deploy failed
+    echo 💡 Debug: ssh %SSH_USER%@%SERVER_IP% 'cd %APP_PATH% && docker-compose logs app'
+    del "%ARCHIVE%"
     pause
     exit /b 1
 )
 
-REM Create remote directory
-echo Creating remote directories...
-ssh %SSH_USER%@%SERVER_IP% "mkdir -p %APP_PATH% && chown %SSH_USER%:%SSH_USER% %APP_PATH%"
-
-if errorlevel 1 (
-    echo ERROR: Failed to connect to server. Check SSH credentials and server IP.
-    pause
-    exit /b 1
-)
-
-REM Upload application files
+REM === CLEANUP ===
+del "%ARCHIVE%"
 echo.
-echo Uploading application files...
-scp -r "%LOCAL_APP_PATH%\*" %SSH_USER%@%SERVER_IP%:%APP_PATH%/
-
-if errorlevel 1 (
-    echo ERROR: Failed to upload files.
-    pause
-    exit /b 1
-)
-
-scp -r "%LOCAL_APP_PATH%\.docker" %SSH_USER%@%SERVER_IP%:%APP_PATH%/
-
-if errorlevel 1 (
-    echo ERROR: Failed to upload .docker.
-    pause
-    exit /b 1
-)
-
-scp "%LOCAL_APP_PATH%\.env.production" %SSH_USER%@%SERVER_IP%:%APP_PATH%/.env.production
-
-if errorlevel 1 (
-    echo ERROR: Failed to upload .env.production.
-    pause
-    exit /b 1
-)
-
-echo.
-echo ================================
-echo Deployment Files Uploaded!
-echo ================================
-echo.
-
-REM Remote commands
-echo Now executing setup on remote server...
-echo.
-
-ssh %SSH_USER%@%SERVER_IP% "cd %APP_PATH%; if [ ! -f .env ]; then if [ -f .env.production ]; then cp .env.production .env; else echo 'ERROR: .env is missing and .env.production was not found.'; exit 1; fi; fi; if ! grep -q '^APP_KEY=base64:' .env; then echo 'ERROR: APP_KEY is missing in .env. Refusing to generate a new key during deployment.'; exit 1; fi; sudo docker-compose up -d --build --remove-orphans; sleep 15; sudo docker-compose exec -T app php artisan migrate --force; sudo docker-compose exec -T app php artisan optimize:clear; sudo docker-compose exec -T app php artisan config:cache; sudo docker-compose exec -T app php artisan route:cache; sudo docker-compose exec -T app php artisan view:cache; sudo docker-compose exec -T app chown -R www-data:www-data storage bootstrap/cache; docker-compose ps"
-
-if errorlevel 1 (
-    echo ERROR: Remote setup failed. Check Docker installation on server.
-    pause
-    exit /b 1
-)
-
-echo.
-echo ================================
-echo SUCCESS!
-echo ================================
-echo Your application is now deployed!
-echo Visit: http://77.93.154.83
-echo.
+echo 🎉 SUCCESS! Visit: http://%SERVER_IP%
+echo 📋 Logs: ssh %SSH_USER%@%SERVER_IP% 'cd %APP_PATH% && docker-compose logs -f'
 pause

@@ -35,7 +35,7 @@ export default function AssetRequestModal({ show, onClose, departments, vendorCa
 
     const [positionSpecs, setPositionSpecs] = useState({});
     const [availablePositions, setAvailablePositions] = useState([]);
-    const categoryOptions = vendorCategories ?? assetCategories ?? [];
+    const categoryOptions = assetCategories && assetCategories.length > 0 ? assetCategories : vendorCategories ?? [];
 
     useEffect(() => {
         if (show) {

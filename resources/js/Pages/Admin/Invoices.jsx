@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Button, InlineNotification, Tag,
     Modal, TextInput, TextArea,
@@ -37,6 +37,22 @@ export default function Invoices({ invoices, uninvoicedPos, filters, flash }) {
         payment_reference: '',
         payment_method: 'EFT',
     });
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const targetPoId = params.get('po_id');
+
+        if (params.get('create') === '1' && uninvoicedPos.length > 0) {
+            setShowForm(true);
+            if (targetPoId) {
+                selectPo(targetPoId);
+            }
+            params.delete('create');
+            params.delete('po_id');
+            const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+    }, [uninvoicedPos.length]);
 
     function doSearch(q, s) {
         setSearch(q); setStatusFilter(s);

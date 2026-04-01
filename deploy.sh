@@ -45,11 +45,13 @@ docker-compose pull
 # 6. Build and start containers without tearing down named volumes
 echo "Building and starting containers..."
 
-echo "Removing stale app containers to avoid legacy docker-compose ContainerConfig failures..."
-STALE_APP_CONTAINERS=$(docker ps -aq --filter name=assetlinq_app)
-if [ -n "$STALE_APP_CONTAINERS" ]; then
-    docker rm -f $STALE_APP_CONTAINERS
-fi
+echo "Removing stale containers to avoid legacy docker-compose ContainerConfig failures..."
+for NAME in assetlinq_app simbisa_worker simbisa_scheduler; do
+    STALE=$(docker ps -aq --filter name="$NAME")
+    if [ -n "$STALE" ]; then
+        docker rm -f $STALE
+    fi
+done
 
 echo "Building application images..."
 docker-compose build app worker scheduler
@@ -67,14 +69,18 @@ sleep 10
 echo "Running migrations..."
 docker-compose exec -T app php artisan migrate --force
 
-# 10. Clear and cache configuration
+# 10. Create storage symlink for public disk
+echo "Linking storage..."
+docker-compose exec -T app php artisan storage:link || true
+
+# 11. Clear and cache configuration
 echo "Caching configuration..."
 docker-compose exec -T app php artisan optimize:clear
 docker-compose exec -T app php artisan config:cache
 docker-compose exec -T app php artisan route:cache
 docker-compose exec -T app php artisan view:cache
 
-# 11. Set permissions
+# 12. Set permissions
 echo "Setting permissions..."
 docker-compose exec -T app chown -R www-data:www-data /app/storage /app/bootstrap/cache
 

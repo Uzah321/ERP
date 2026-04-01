@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asset;
+use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -15,14 +16,16 @@ class AuditController extends Controller
             'recent_audits' => Asset::whereDate('last_audited_at', today())
                 ->with(['category', 'location'])
                 ->latest('last_audited_at')
-                ->get()
+                ->get(),
+            'locations' => Location::orderBy('name')->get()
         ]);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'barcode' => 'required|string'
+            'barcode' => 'required|string',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         $input = $request->barcode;
@@ -39,10 +42,12 @@ class AuditController extends Controller
             return redirect()->back()->withErrors(['barcode' => 'Cannot audit a disposed or archived asset.']);
         }
 
-        $asset->update([
-            'last_audited_at' => now(),
-            // Optionally flip condition to "Verified" or keep existing condition
-        ]);
+        $updateData = ['last_audited_at' => now()];
+        if ($request->location_id) {
+            $updateData['location_id'] = $request->location_id;
+        }
+
+        $asset->update($updateData);
 
         activity()
             ->performedOn($asset)

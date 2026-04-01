@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\Invoice;
 use App\Models\MaintenanceRecord;
 use App\Models\PurchaseOrder;
+use App\Support\ProcurementOverviewService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,9 +15,13 @@ use Inertia\Inertia;
 
 class ReportController extends Controller
 {
-    public function index()
+    public function index(ProcurementOverviewService $procurementOverviewService)
     {
-        return Inertia::render('Reports/Index');
+        return Inertia::render('Reports/Index', [
+            'procurement_metrics' => $procurementOverviewService->metrics(),
+            'recent_procurement_orders' => $procurementOverviewService->recentOrders(6),
+            'procurement_last_updated_at' => now()->toDateTimeString(),
+        ]);
     }
 
     public function generate(Request $request)

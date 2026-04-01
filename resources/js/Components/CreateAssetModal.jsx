@@ -22,7 +22,6 @@ export default function CreateAssetModal({ onClose, categories, complexes, initi
         description: '',
         depreciation_method: 'straight_line',
         annual_depreciation_rate: '25',
-        photo: null,
         redirect_to: redirectTo,
     });
 
@@ -71,6 +70,8 @@ export default function CreateAssetModal({ onClose, categories, complexes, initi
                         <Select id="store_id" labelText="Store / Shop"
                             value={data.store_id}
                             onChange={e => setData('store_id', e.target.value)}
+                            required
+                            helperText="Select the store so this asset is placed directly under that store."
                             invalid={!!errors.store_id} invalidText={errors.store_id}>
                             <SelectItem value="" text={selectedComplex ? '-- Select Store --' : 'Select a complex first'} />
                             {availableStores.map((store) => <SelectItem key={store.id} value={String(store.id)} text={store.name} />)}
@@ -124,19 +125,6 @@ export default function CreateAssetModal({ onClose, categories, complexes, initi
                             onChange={e => setData('annual_depreciation_rate', e.target.value)}
                             helperText="Defaults to 25% per year"
                             invalid={!!errors.annual_depreciation_rate} invalidText={errors.annual_depreciation_rate} />
-                    </Column>
-
-                    {/* Photo */}
-                    <Column sm={4} md={8} lg={16}>
-                        <FileUploader
-                            labelTitle="Asset Photo (optional)"
-                            labelDescription="JPEG, PNG, WebP — max 10MB"
-                            buttonLabel="Add photo"
-                            accept={['image/jpeg', 'image/png', 'image/jpg', 'image/webp']}
-                            onChange={e => setData('photo', e.target.files[0] || null)}
-                            invalid={!!errors.photo}
-                            invalidText={errors.photo}
-                        />
                     </Column>
                 </Grid>
             </ModalBody>
