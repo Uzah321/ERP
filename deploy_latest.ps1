@@ -89,6 +89,9 @@ Write-Host "      deploy_bundle.tar.gz ready ($sizeMB MB)"
 
 Write-Host ""
 Write-Host "[2/4] Uploading bundle to server ..."
+scp "deploy.sh" "${RemoteTarget}:${AppDir}/deploy.sh"
+if ($LASTEXITCODE -ne 0) { throw "SCP failed: deploy.sh" }
+
 scp $DeployArchive "${RemoteTarget}:${AppDir}/deploy_bundle.tar.gz"
 if ($LASTEXITCODE -ne 0) { throw "SCP failed: deploy bundle" }
 Write-Host "      Upload complete."
