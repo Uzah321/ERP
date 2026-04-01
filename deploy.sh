@@ -14,11 +14,17 @@ echo "================================"
 # 1. Navigate to application directory
 cd /var/www/simbisa
 
-# 2. Extract uploaded lean deployment archive when present
+# 2. Extract uploaded lean deployment archive through the app service.
+#    The project directory is bind-mounted into /app, so unpacking inside the
+#    container avoids host-level ownership issues on the live server.
 if [ -f "$DEPLOY_ARCHIVE" ]; then
-    echo "Extracting lean deployment archive..."
-    tar -xzf "$DEPLOY_ARCHIVE"
-    rm -f "$DEPLOY_ARCHIVE"
+    echo "Extracting lean deployment archive through app service..."
+
+    if [ -z "$(docker-compose ps -q app)" ]; then
+        docker-compose up -d app
+    fi
+
+    docker-compose exec -T -u root app sh -lc "cd /app && tar --overwrite --no-same-owner --no-same-permissions --warning=no-unknown-keyword -xzf $DEPLOY_ARCHIVE && rm -f $DEPLOY_ARCHIVE"
 fi
 
 # 3. Ensure production environment exists but never overwrite the live file
