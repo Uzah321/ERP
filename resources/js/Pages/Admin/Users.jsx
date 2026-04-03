@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import {
     Button, InlineNotification, Tag,
-    Modal, TextInput,
+    ComposedModal, Modal, ModalHeader, ModalBody, ModalFooter, TextInput,
     Select, SelectItem,
     Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
 } from '@carbon/react';
@@ -25,7 +25,7 @@ export default function Users({ auth, users, departments, flash }) {
 
     const handleCreate = (e) => {
         e.preventDefault();
-        createForm.post(route('users.store'), {
+        createForm.post(route('admin.users.store'), {
             onSuccess: () => { createForm.reset(); setShowCreate(false); },
         });
     };
@@ -41,7 +41,7 @@ export default function Users({ auth, users, departments, flash }) {
 
     const handleUpdate = (e, id) => {
         e.preventDefault();
-        editForm.put(route('users.update', id), {
+        editForm.put(route('admin.users.update', id), {
             onSuccess: () => setEditing(null),
         });
     };
@@ -52,13 +52,13 @@ export default function Users({ auth, users, departments, flash }) {
     };
 
     const confirmDelete = () => {
-        router.delete(route('users.destroy', confirmTarget));
+        router.delete(route('admin.users.destroy', confirmTarget));
         setConfirmOpen(false);
         setConfirmTarget(null);
     };
 
     const handleToggleActive = (id) => {
-        router.patch(route('users.toggle', id));
+        router.patch(route('admin.users.toggle', id));
     };
 
     const approvalPositionLabel = (pos) => {
@@ -93,16 +93,13 @@ export default function Users({ auth, users, departments, flash }) {
                 </div>
 
                 {/* Create form modal */}
-                <Modal
+                <ComposedModal
                     open={showCreate}
-                    modalHeading="Invite User"
-                    primaryButtonText={createForm.processing ? 'Sending…' : 'Send Invite'}
-                    secondaryButtonText="Cancel"
-                    onRequestClose={() => setShowCreate(false)}
-                    onRequestSubmit={handleCreate}
-                    primaryButtonDisabled={createForm.processing}
+                    onClose={() => setShowCreate(false)}
                 >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <ModalHeader title="Invite User" />
+                    <ModalBody>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '1rem' }}>
                         <TextInput
                             id="user-name"
                             labelText="Full Name"
@@ -159,7 +156,14 @@ export default function Users({ auth, users, departments, flash }) {
                             An invitation email will be sent to this address. The user will set their own password and then land on the dashboard assigned to their role.
                         </div>
                     </div>
-                </Modal>
+                    </ModalBody>
+                    <ModalFooter
+                        primaryButtonText={createForm.processing ? 'Sending…' : 'Send Invite'}
+                        secondaryButtonText="Cancel"
+                        onRequestSubmit={handleCreate}
+                        primaryButtonDisabled={createForm.processing}
+                    />
+                </ComposedModal>
 
                 <Table size="lg" useZebraStyles>
                     <TableHead>
@@ -224,16 +228,13 @@ export default function Users({ auth, users, departments, flash }) {
                 </Table>
 
                 {/* Edit user modal */}
-                <Modal
+                <ComposedModal
                     open={!!editing}
-                    modalHeading="Edit User"
-                    primaryButtonText={editForm.processing ? 'Saving…' : 'Save'}
-                    secondaryButtonText="Cancel"
-                    onRequestClose={() => setEditing(null)}
-                    onRequestSubmit={(e) => handleUpdate(e, editing)}
-                    primaryButtonDisabled={editForm.processing}
+                    onClose={() => setEditing(null)}
                 >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <ModalHeader title="Edit User" />
+                    <ModalBody>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '1rem' }}>
                         <TextInput
                             id="edit-name"
                             labelText="Full Name"
@@ -283,7 +284,14 @@ export default function Users({ auth, users, departments, flash }) {
                             <SelectItem value="finance_director" text="Finance Director" />
                         </Select>
                     </div>
-                </Modal>
+                    </ModalBody>
+                    <ModalFooter
+                        primaryButtonText={editForm.processing ? 'Saving…' : 'Save'}
+                        secondaryButtonText="Cancel"
+                        onRequestSubmit={(e) => handleUpdate(e, editing)}
+                        primaryButtonDisabled={editForm.processing}
+                    />
+                </ComposedModal>
 
                 {/* Delete confirmation */}
                 <Modal

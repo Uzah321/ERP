@@ -26,7 +26,6 @@ use App\Http\Controllers\CapexController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ExecutiveDashboardController;
 use App\Http\Controllers\ProcurementDashboardController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StoreManagementController;
@@ -72,18 +71,21 @@ Route::put('/assets/{asset}', [AssetController::class, 'update'])->middleware(['
 
 Route::middleware(['auth', 'two-factor'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
+    Route::post('/settings/assets', [SettingsController::class, 'updateAssets'])->name('settings.assets');
+    Route::post('/settings/system', [SettingsController::class, 'updateSystem'])->name('settings.system');
+    Route::post('/settings/backup', [SettingsController::class, 'updateBackup'])->name('settings.backup');
     Route::get('/operations/store-management', [StoreManagementController::class, 'index'])->name('store-management.index');
     Route::get('/operations/store-management/complexes/{complex}/stores', [StoreManagementController::class, 'stores'])->name('store-management.stores');
     Route::get('/operations/store-management/stores/{store}/assets', [StoreManagementController::class, 'assets'])->name('store-management.assets');
     Route::post('/asset-requests', [AssetRequestController::class, 'store'])->name('asset-requests.store');
 
     Route::middleware('role:executive')->group(function () {
-        Route::get('/executive/dashboard', [ExecutiveDashboardController::class, 'index'])->name('executive.dashboard');
-        Route::get('/executive/users', [UserManagementController::class, 'index'])->name('users.index');
-        Route::post('/executive/users', [UserManagementController::class, 'store'])->name('users.store');
-        Route::put('/executive/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
-        Route::delete('/executive/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
-        Route::patch('/executive/users/{user}/toggle', [UserManagementController::class, 'toggleActive'])->name('users.toggle');
+        Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+        Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
+        Route::put('/admin/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');
+        Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+        Route::patch('/admin/users/{user}/toggle', [UserManagementController::class, 'toggleActive'])->name('admin.users.toggle');
     });
 
     Route::middleware('role:admin,executive')->group(function () {
@@ -177,6 +179,8 @@ Route::middleware(['auth', 'two-factor'])->group(function () {
 
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
     Route::post('/audit', [AuditController::class, 'store'])->name('audit.store');
+    Route::post('/audit/bulk', [AuditController::class, 'bulkStore'])->name('audit.bulk');
+    Route::get('/audit/assets-by-store/{store}', [AuditController::class, 'assetsByStore'])->name('audit.assets-by-store');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/assets', [ReportController::class, 'generate'])->name('reports.assets');

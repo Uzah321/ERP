@@ -136,7 +136,7 @@ class User extends Authenticatable
     public function dashboardRouteName(): string
     {
         if ($this->isExecutive()) {
-            return 'executive.dashboard';
+            return 'admin.dashboard';
         }
 
         if ($this->isAdmin()) {

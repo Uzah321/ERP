@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import {
     Button, InlineNotification,
-    Modal, TextInput,
+    ComposedModal, Modal, ModalHeader, ModalBody, ModalFooter, TextInput,
     Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
 } from '@carbon/react';
 import { Add, Edit, TrashCan } from '@carbon/icons-react';
@@ -106,42 +106,50 @@ export default function Vendors({ auth, vendors, flash }) {
                 </Table>
 
                 {/* Create Modal */}
-                <Modal
+                <ComposedModal
                     open={showCreate}
-                    modalHeading="Add Vendor"
-                    primaryButtonText={createForm.processing ? 'Saving…' : 'Save'}
-                    secondaryButtonText="Cancel"
-                    onRequestClose={() => setShowCreate(false)}
-                    onRequestSubmit={handleCreate}
-                    primaryButtonDisabled={createForm.processing}
+                    onClose={() => setShowCreate(false)}
                 >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <ModalHeader title="Add Vendor" />
+                    <ModalBody>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '1rem' }}>
                         <TextInput id="v-name" labelText="Vendor Name" autoFocus value={createForm.data.name} onChange={e => createForm.setData('name', e.target.value)} required />
                         <TextInput id="v-category" labelText="Product Category" value={createForm.data.product_category} onChange={e => createForm.setData('product_category', e.target.value)} required />
                         <TextInput id="v-email" labelText="Contact Email" type="email" value={createForm.data.contact_email} onChange={e => createForm.setData('contact_email', e.target.value)} required />
                         <TextInput id="v-bu" labelText="Business Unit" value={createForm.data.business_unit} onChange={e => createForm.setData('business_unit', e.target.value)} />
                         <TextInput id="v-owner" labelText="Owner" value={createForm.data.owner} onChange={e => createForm.setData('owner', e.target.value)} />
                     </div>
-                </Modal>
+                    </ModalBody>
+                    <ModalFooter
+                        primaryButtonText={createForm.processing ? 'Saving…' : 'Save'}
+                        secondaryButtonText="Cancel"
+                        onRequestSubmit={handleCreate}
+                        primaryButtonDisabled={createForm.processing}
+                    />
+                </ComposedModal>
 
                 {/* Edit Modal */}
-                <Modal
+                <ComposedModal
                     open={!!editTarget}
-                    modalHeading="Edit Vendor"
-                    primaryButtonText={editForm.processing ? 'Saving…' : 'Save'}
-                    secondaryButtonText="Cancel"
-                    onRequestClose={() => setEditTarget(null)}
-                    onRequestSubmit={handleUpdate}
-                    primaryButtonDisabled={editForm.processing}
+                    onClose={() => setEditTarget(null)}
                 >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <ModalHeader title="Edit Vendor" />
+                    <ModalBody>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '1rem' }}>
                         <TextInput id="ve-name" labelText="Vendor Name" autoFocus value={editForm.data.name} onChange={e => editForm.setData('name', e.target.value)} required />
                         <TextInput id="ve-category" labelText="Product Category" value={editForm.data.product_category} onChange={e => editForm.setData('product_category', e.target.value)} required />
                         <TextInput id="ve-email" labelText="Contact Email" type="email" value={editForm.data.contact_email} onChange={e => editForm.setData('contact_email', e.target.value)} required />
                         <TextInput id="ve-bu" labelText="Business Unit" value={editForm.data.business_unit} onChange={e => editForm.setData('business_unit', e.target.value)} />
                         <TextInput id="ve-owner" labelText="Owner" value={editForm.data.owner} onChange={e => editForm.setData('owner', e.target.value)} />
                     </div>
-                </Modal>
+                    </ModalBody>
+                    <ModalFooter
+                        primaryButtonText={editForm.processing ? 'Saving…' : 'Save'}
+                        secondaryButtonText="Cancel"
+                        onRequestSubmit={handleUpdate}
+                        primaryButtonDisabled={editForm.processing}
+                    />
+                </ComposedModal>
 
                 {/* Delete confirmation */}
                 <Modal

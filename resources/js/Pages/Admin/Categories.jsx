@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import {
     Button, InlineNotification,
-    Modal, TextInput, TextArea,
+    ComposedModal, Modal, ModalHeader, ModalBody, ModalFooter, TextInput, TextArea,
     Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
     TableToolbar, TableToolbarContent,
 } from '@carbon/react';
@@ -99,35 +99,37 @@ export default function Categories({ auth, categories, flash }) {
             </div>
 
             {/* Create / Edit Modal */}
-            <Modal
-                open={!!modal}
-                modalHeading={modal === 'create' ? 'New Category' : `Edit Category`}
-                primaryButtonText={processing ? 'Saving…' : 'Save'}
-                secondaryButtonText="Cancel"
-                onRequestClose={closeModal}
-                onRequestSubmit={handleSubmit}
-                primaryButtonDisabled={processing}
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <TextInput
-                        id="cat-name"
-                        labelText="Category Name"
-                        autoFocus
-                        value={data.name}
-                        onChange={e => setData('name', e.target.value)}
-                        invalid={!!errors.name}
-                        invalidText={errors.name}
-                        required
-                    />
-                    <TextArea
-                        id="cat-description"
-                        labelText="Description"
-                        value={data.description}
-                        onChange={e => setData('description', e.target.value)}
-                        rows={3}
-                    />
-                </div>
-            </Modal>
+            <ComposedModal open={!!modal} onClose={closeModal}>
+                <ModalHeader title={modal === 'create' ? 'New Category' : 'Edit Category'} />
+                <ModalBody>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '1rem' }}>
+                        <TextInput
+                            id="cat-name"
+                            labelText="Category Name"
+                            value={data.name}
+                            onChange={e => setData('name', e.target.value)}
+                            invalid={!!errors.name}
+                            invalidText={errors.name}
+                            required
+                        />
+                        <TextArea
+                            id="cat-description"
+                            labelText="Description"
+                            value={data.description}
+                            onChange={e => setData('description', e.target.value)}
+                            invalid={!!errors.description}
+                            invalidText={errors.description}
+                            rows={3}
+                        />
+                    </div>
+                </ModalBody>
+                <ModalFooter
+                    primaryButtonText={processing ? 'Saving…' : 'Save'}
+                    secondaryButtonText="Cancel"
+                    onRequestSubmit={handleSubmit}
+                    primaryButtonDisabled={processing}
+                />
+            </ComposedModal>
 
             {/* Delete confirmation modal */}
             <Modal

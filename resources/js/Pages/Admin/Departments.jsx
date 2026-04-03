@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import {
     Button, InlineNotification, Tag,
-    Modal, TextInput,
+    ComposedModal, Modal, ModalHeader, ModalBody, ModalFooter, TextInput,
     Select, SelectItem,
     Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
 } from '@carbon/react';
@@ -119,16 +119,13 @@ export default function Departments({ auth, departments, users, flash }) {
             </div>
 
             {/* Create / Edit Modal */}
-            <Modal
+            <ComposedModal
                 open={!!modal}
-                modalHeading={isCreate ? 'Add New Department' : `Edit — ${modal?.name}`}
-                primaryButtonText={activeForm.processing ? 'Saving…' : 'Save Department'}
-                secondaryButtonText="Cancel"
-                onRequestClose={closeModal}
-                onRequestSubmit={handleSubmit}
-                primaryButtonDisabled={activeForm.processing}
+                onClose={closeModal}
             >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <ModalHeader title={isCreate ? 'Add New Department' : `Edit — ${modal?.name}`} />
+                <ModalBody>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '1rem' }}>
                     <TextInput
                         id="dept-name"
                         labelText="Department Name"
@@ -150,7 +147,14 @@ export default function Departments({ auth, departments, users, flash }) {
                         {users.map(u => <SelectItem key={u.id} value={u.id} text={u.name} />)}
                     </Select>
                 </div>
-            </Modal>
+                </ModalBody>
+                <ModalFooter
+                    primaryButtonText={activeForm.processing ? 'Saving…' : 'Save Department'}
+                    secondaryButtonText="Cancel"
+                    onRequestSubmit={handleSubmit}
+                    primaryButtonDisabled={activeForm.processing}
+                />
+            </ComposedModal>
 
             {/* Delete confirmation */}
             <Modal

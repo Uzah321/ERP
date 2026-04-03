@@ -1,20 +1,13 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useState, useRef, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Header,
     HeaderContainer,
-    HeaderGlobalAction,
     HeaderGlobalBar,
     HeaderMenuButton,
     HeaderName,
     Content,
-    OverflowMenu,
-    Modal,
 } from '@carbon/react';
-import {
-    Home,
-    Help,
-} from '@carbon/icons-react';
 import { safeRoute } from '@/utils/ziggy';
 const AppSideNav = lazy(() => import('@/Components/Layout/AppSideNav'));
 
@@ -34,7 +27,18 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
     const dashboardHref = safeRoute('dashboard') ?? '/dashboard';
     const settingsHref = safeRoute('settings.index') ?? '/settings';
 
-    const [activeFeatureModal, setActiveFeatureModal] = useState(null);
+    const [profileOpen, setProfileOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setProfileOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
         <>
@@ -58,53 +62,87 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
                             </HeaderName>
 
                             <HeaderGlobalBar>
-                                <HeaderGlobalAction
-                                    aria-label="Home"
-                                    tooltipAlignment="center"
-                                    onClick={() => setActiveFeatureModal('Home Hub')}
-                                >
-                                    <Home size={20} />
-                                </HeaderGlobalAction>
-                                <HeaderGlobalAction
-                                    aria-label="Help"
-                                    tooltipAlignment="center"
-                                    onClick={() => setActiveFeatureModal('Help & Documentation')}
-                                >
-                                    <Help size={20} />
-                                </HeaderGlobalAction>
-
-                                {/* User menu */}
-                                <OverflowMenu
-                                    renderIcon={() => (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 0.5rem' }}>
-                                            <div style={{
-                                                width: '1.75rem', height: '1.75rem', borderRadius: '50%',
-                                                background: 'var(--cds-interactive)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#fff', fontWeight: 700, fontSize: '0.7rem',
-                                            }}>
-                                                {(user?.name?.charAt(0) ?? 'G').toUpperCase()}
-                                            </div>
-                                            <span style={{ fontSize: '0.875rem', color: 'var(--cds-text-inverse)' }}>
+                                <div ref={dropdownRef} style={{ position: 'relative' }}>
+                                    <button
+                                        onClick={() => setProfileOpen((o) => !o)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            height: '3rem',
+                                            padding: '0 0.75rem',
+                                            color: 'var(--cds-text-inverse)',
+                                            background: 'none',
+                                            border: 'none',
+                                            borderLeft: '1px solid var(--cds-border-inverse)',
+                                            cursor: 'pointer',
+                                        }}
+                                        aria-label="Open profile menu"
+                                        aria-expanded={profileOpen}
+                                    >
+                                        <div style={{
+                                            width: '1.75rem',
+                                            height: '1.75rem',
+                                            borderRadius: '50%',
+                                            background: 'var(--cds-interactive)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#fff',
+                                            fontWeight: 700,
+                                            fontSize: '0.7rem',
+                                            flexShrink: 0,
+                                        }}>
+                                            {(user?.name?.charAt(0) ?? 'G').toUpperCase()}
+                                        </div>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: '0.875rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
                                                 {user?.name ?? 'Guest'}
-                                            </span>
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>
+                                                {user?.email ?? ''}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    {profileOpen && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '3rem',
+                                            right: 0,
+                                            minWidth: '200px',
+                                            background: 'var(--cds-layer-01)',
+                                            border: '1px solid var(--cds-border-subtle)',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                                            zIndex: 9999,
+                                        }}>
+                                            <div style={{
+                                                padding: '0.75rem 1rem',
+                                                borderBottom: '1px solid var(--cds-border-subtle)',
+                                            }}>
+                                                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cds-text-primary)' }}>
+                                                    {user?.name ?? 'Guest'}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginTop: '0.125rem' }}>
+                                                    {user?.email ?? ''}
+                                                </div>
+                                            </div>
+                                            <Link
+                                                href={settingsHref}
+                                                onClick={() => setProfileOpen(false)}
+                                                style={{
+                                                    display: 'block',
+                                                    padding: '0.75rem 1rem',
+                                                    color: 'var(--cds-text-primary)',
+                                                    textDecoration: 'none',
+                                                    fontSize: '0.875rem',
+                                                }}
+                                            >
+                                                Settings
+                                            </Link>
                                         </div>
                                     )}
-                                    menuOffset={{ top: 0, left: 0 }}
-                                    flipped
-                                    selectorPrimaryFocus=""
-                                    iconDescription="User menu"
-                                >
-                                    <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--cds-border-subtle-01)', fontSize: '0.75rem' }}>
-                                        <p style={{ color: 'var(--cds-text-secondary)', margin: 0 }}>Signed in as</p>
-                                        <p style={{ fontWeight: 600, color: 'var(--cds-text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {user?.email ?? ''}
-                                        </p>
-                                    </div>
-                                    <Link prefetch={['hover', 'click']} href={settingsHref} style={{ display: 'block', padding: '0.75rem 1rem', fontSize: '0.875rem', color: 'var(--cds-text-primary)', textDecoration: 'none' }}>
-                                        Settings
-                                    </Link>
-                                </OverflowMenu>
+                                </div>
                             </HeaderGlobalBar>
                         </Header>
 
@@ -134,21 +172,6 @@ export default function AuthenticatedLayout({ user: userProp, header, children }
                     </>
                 )}
             />
-
-            {/* Coming Soon Modal */}
-            <Modal
-                open={!!activeFeatureModal}
-                modalHeading="Module Under Construction"
-                primaryButtonText="Got it, thanks!"
-                onRequestClose={() => setActiveFeatureModal(null)}
-                onRequestSubmit={() => setActiveFeatureModal(null)}
-                size="sm"
-            >
-                <p style={{ marginBottom: '1rem' }}>
-                    The <strong>{activeFeatureModal}</strong> functionality is currently being built
-                    and will be available in a future update.
-                </p>
-            </Modal>
         </>
     );
 }

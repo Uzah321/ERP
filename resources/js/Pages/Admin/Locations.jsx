@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import {
     Button, InlineNotification,
-    Modal, TextInput, TextArea,
+    ComposedModal, Modal, ModalHeader, ModalBody, ModalFooter, TextInput, TextArea,
     Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
 } from '@carbon/react';
 import { Add, Edit, TrashCan } from '@carbon/icons-react';
@@ -98,35 +98,37 @@ export default function Locations({ auth, locations, flash }) {
             </div>
 
             {/* Create / Edit Modal */}
-            <Modal
-                open={!!modal}
-                modalHeading={modal === 'create' ? 'New Location' : 'Edit Location'}
-                primaryButtonText={processing ? 'Saving…' : 'Save'}
-                secondaryButtonText="Cancel"
-                onRequestClose={closeModal}
-                onRequestSubmit={handleSubmit}
-                primaryButtonDisabled={processing}
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <TextInput
-                        id="loc-name"
-                        labelText="Location Name"
-                        autoFocus
-                        value={data.name}
-                        onChange={e => setData('name', e.target.value)}
-                        invalid={!!errors.name}
-                        invalidText={errors.name}
-                        required
-                    />
-                    <TextArea
-                        id="loc-address"
-                        labelText="Address / Description"
-                        value={data.address}
-                        onChange={e => setData('address', e.target.value)}
-                        rows={3}
-                    />
-                </div>
-            </Modal>
+            <ComposedModal open={!!modal} onClose={closeModal}>
+                <ModalHeader title={modal === 'create' ? 'New Location' : 'Edit Location'} />
+                <ModalBody>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '1rem' }}>
+                        <TextInput
+                            id="loc-name"
+                            labelText="Location Name"
+                            value={data.name}
+                            onChange={e => setData('name', e.target.value)}
+                            invalid={!!errors.name}
+                            invalidText={errors.name}
+                            required
+                        />
+                        <TextArea
+                            id="loc-address"
+                            labelText="Address / Description"
+                            value={data.address}
+                            onChange={e => setData('address', e.target.value)}
+                            invalid={!!errors.address}
+                            invalidText={errors.address}
+                            rows={3}
+                        />
+                    </div>
+                </ModalBody>
+                <ModalFooter
+                    primaryButtonText={processing ? 'Saving…' : 'Save'}
+                    secondaryButtonText="Cancel"
+                    onRequestSubmit={handleSubmit}
+                    primaryButtonDisabled={processing}
+                />
+            </ComposedModal>
 
             {/* Delete confirmation modal */}
             <Modal

@@ -63,7 +63,6 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
     const softwareLicencesHref = safeRoute('admin.software-licences.index');
     const decommissionHref = safeRoute('decommission.log');
     const disposalHref = safeRoute('disposal.log');
-    const executiveDashboardHref = safeRoute('executive.dashboard');
     const adminDashboardHref = safeRoute('admin.dashboard');
     const activityLogHref = safeRoute('activity-log.index');
     const departmentRollupHref = safeRoute('department.rollup');
@@ -226,18 +225,10 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
                     defaultExpanded={isInSection('/executive/dashboard', '/admin/dashboard', '/activity-log', '/department-rollup', '/reports')}
                     isActive={isInSection('/executive/dashboard', '/admin/dashboard', '/activity-log', '/department-rollup', '/reports')}
                 >
-                    {isExecutive && executiveDashboardHref && (
-                        <SideNavInertiaItem
-                            href={executiveDashboardHref}
-                            isActive={currentUrl.includes('/executive/dashboard')}
-                        >
-                            Executive Summary
-                        </SideNavInertiaItem>
-                    )}
-                    {isAdmin && adminDashboardHref && (
+                    {isPrivileged && adminDashboardHref && (
                         <SideNavInertiaItem
                             href={adminDashboardHref}
-                            isActive={currentUrl.includes('/admin/dashboard')}
+                            isActive={currentUrl.includes('/admin/dashboard') || currentUrl.includes('/executive/dashboard')}
                         >
                             Admin Dashboard
                         </SideNavInertiaItem>
@@ -274,7 +265,31 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
                     defaultExpanded={isInSection('/settings', '/users', '/locations', '/vendors', '/position-specs', '/archive', '/two-factor')}
                     isActive={isInSection('/settings', '/users', '/locations', '/vendors', '/position-specs', '/archive', '/two-factor')}
                 >
-                    {settingsHref && <SideNavInertiaItem href={settingsHref} isActive={currentUrl.includes('/settings')}>Settings Hub</SideNavInertiaItem>}
+                    {settingsHref && (
+                        <SideNavInertiaItem href={`${settingsHref}#profile`} isActive={currentUrl.includes('/settings') && (currentUrl.includes('#profile') || !currentUrl.includes('#'))}>
+                            Profile Settings
+                        </SideNavInertiaItem>
+                    )}
+                    {settingsHref && (
+                        <SideNavInertiaItem href={`${settingsHref}#security`} isActive={currentUrl.includes('#security')}>
+                            Security Settings
+                        </SideNavInertiaItem>
+                    )}
+                    {isPrivileged && settingsHref && (
+                        <SideNavInertiaItem href={`${settingsHref}#assets`} isActive={currentUrl.includes('#assets')}>
+                            Asset Settings
+                        </SideNavInertiaItem>
+                    )}
+                    {isPrivileged && settingsHref && (
+                        <SideNavInertiaItem href={`${settingsHref}#system`} isActive={currentUrl.includes('#system')}>
+                            System Configuration
+                        </SideNavInertiaItem>
+                    )}
+                    {isPrivileged && settingsHref && (
+                        <SideNavInertiaItem href={`${settingsHref}#backup`} isActive={currentUrl.includes('#backup')}>
+                            Backup &amp; Data
+                        </SideNavInertiaItem>
+                    )}
                 </SideNavMenu>
             </SideNavItems>
 

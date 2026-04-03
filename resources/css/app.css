@@ -17,6 +17,15 @@ body, input, button, select, textarea {
     font-family: 'IBM Plex Sans', sans-serif;
 }
 
+/* Ensure Carbon TextArea elements are always interactive.
+   The .cds--text-area-wrapper--inner pseudo-elements sit in the same stacking
+   context and can intercept pointer events before they reach the textarea. */
+.cds--text-area {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}
+
 /* Guest layout responsive brand panel */
 @media (min-width: 1024px) {
     .brand-panel { display: flex !important; }
