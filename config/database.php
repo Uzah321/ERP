@@ -98,6 +98,21 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        'pgsql_live' => [
+            'driver' => 'pgsql',
+            'url' => env('LIVE_DB_URL'),
+            'host' => env('LIVE_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('LIVE_DB_PORT', env('DB_PORT', '5432')),
+            'database' => env('LIVE_DB_DATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('LIVE_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('LIVE_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => env('LIVE_DB_CHARSET', env('DB_CHARSET', 'utf8')),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => env('LIVE_DB_SEARCH_PATH', 'public'),
+            'sslmode' => env('LIVE_DB_SSLMODE', env('DB_SSLMODE', 'prefer')),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

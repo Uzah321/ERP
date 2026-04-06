@@ -6,13 +6,15 @@ param(
     [string]$Server = "77.93.154.83",
     [string]$User   = "administrator",
     [string]$AppDir = "/var/www/simbisa",
-    [bool]$SyncDatabase = $true,
+    [switch]$SyncDatabase,
+    [switch]$SkipOffsiteBackup,
     [string]$SyncTables = "departments,users,asset_requests,capex_forms,purchase_orders,goods_receipts,categories,locations,assets"
 )
 
 $ErrorActionPreference = "Stop"
 $RemoteTarget = "${User}@${Server}"
 $DeployArchive = "deploy_bundle.tar.gz"
+$OffsiteBackupDir = Join-Path $PSScriptRoot 'backups\offsite'
 $SshOptions = @(
     '-o', 'ServerAliveInterval=15',
     '-o', 'ServerAliveCountMax=6'
@@ -68,7 +70,7 @@ function Invoke-DatabaseSync {
     param([string]$Tables)
 
     Write-Host "      > Syncing local pgsql to live pgsql_live"
-    & php ".\sync_sqlite_to_pgsql.php" sync pgsql pgsql_live $Tables
+    & php ".\sync_sqlite_to_pgsql.php" sync pgsql pgsql_live $Tables --force-live-sync
     if ($LASTEXITCODE -ne 0) {
         throw "Database sync failed"
     }
@@ -85,6 +87,28 @@ function Invoke-LocalPhpLint {
             throw "PHP syntax validation failed: $($file.FullName)"
         }
     }
+}
+
+function New-OffsiteDatabaseBackup {
+    New-Item -ItemType Directory -Force -Path $OffsiteBackupDir | Out-Null
+
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $backupPath = Join-Path $OffsiteBackupDir "assets_erp_live_${timestamp}.sql"
+    $remoteCommand = "cd ${AppDir}; DB_NAME=`$(grep '^DB_DATABASE=' .env | cut -d= -f2-); docker-compose exec -T postgres pg_dump -U postgres `"`$DB_NAME`""
+
+    Write-Host "      > Creating off-server database backup $backupPath"
+    & ssh @SshOptions $RemoteTarget $remoteCommand > $backupPath
+    if ($LASTEXITCODE -ne 0) {
+        if (Test-Path $backupPath) { Remove-Item $backupPath -Force }
+        throw "Off-server backup failed"
+    }
+
+    $backupFile = Get-Item $backupPath
+    if ($backupFile.Length -lt 1024) {
+        throw "Off-server backup looks too small: $($backupFile.Length) bytes"
+    }
+
+    Write-Host "      Off-server backup ready ($([math]::Round($backupFile.Length / 1KB, 1)) KB)"
 }
 
 function Test-FrontendBuildArtifacts {
@@ -105,6 +129,12 @@ Write-Host ""
 Write-Host "[0/5] Validating PHP files ..."
 Invoke-LocalPhpLint
 Test-FrontendBuildArtifacts
+
+if (-not $SkipOffsiteBackup) {
+    Write-Host ""
+    Write-Host "[0.5/5] Creating off-server database backup ..."
+    New-OffsiteDatabaseBackup
+}
 
 Write-Host ""
 Write-Host "[1/4] Packaging deployment bundle ..."
@@ -164,6 +194,7 @@ Invoke-SSH "cd ${AppDir} && bash deploy.sh"
 Write-Host ""
 Write-Host "[4/5] Syncing deployment data ..."
 if ($SyncDatabase) {
+    Write-Warning "Live database sync is enabled. This can overwrite production data."
     Invoke-DatabaseSync $SyncTables
 } else {
     Write-Host "      Database sync skipped."
@@ -179,7 +210,11 @@ Write-Host ""
 Write-Host "========================================"
 Write-Host " Deployment complete!"
 Write-Host " http://$Server"
-if ($SyncDatabase) { Write-Host " Database sync completed" }
+if ($SyncDatabase) {
+    Write-Host " Database sync completed"
+} else {
+    Write-Host " Database sync skipped"
+}
 Write-Host " Login smoke checks passed"
 Write-Host "========================================"
 

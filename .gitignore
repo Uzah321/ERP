@@ -18,6 +18,10 @@
 /public/build.zip
 /public/hot
 /public/storage
+/backups/offsite/
+/deploy_bundle.tar.gz
+/build_fix.tar.gz
+/dashboard_flash_fix.tar.gz
 /storage/*.key
 /storage/pail
 /vendor
@@ -27,9 +31,12 @@ Thumbs.db
 env_upload_content.txt
 error_log.txt
 latest_errors.txt
+latest_errors2.txt
 raw_error_log.txt
 render.out
 out.txt
+recent_errors.txt
+server_logs.txt
 test_mail.php
 test_mail2.php
 test_mail4.php

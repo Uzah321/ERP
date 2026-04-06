@@ -18,6 +18,28 @@ config([
 ]);
 
 $mode = $argv[1] ?? 'report';
+$sourceConnectionName = $argv[2] ?? env('SYNC_SOURCE_CONNECTION', 'sqlite_sync');
+$targetConnectionName = $argv[3] ?? env('SYNC_TARGET_CONNECTION', 'pgsql_live');
+$tableFilter = array_values(array_filter(array_map(
+    static fn (string $value): string => trim($value),
+    explode(',', $argv[4] ?? env('SYNC_TABLES', ''))
+)));
+$options = array_slice($argv, 5);
+
+if (! array_key_exists($sourceConnectionName, config('database.connections'))) {
+    fwrite(STDERR, "Unknown source connection [$sourceConnectionName].".PHP_EOL);
+    exit(1);
+}
+
+if (! array_key_exists($targetConnectionName, config('database.connections'))) {
+    fwrite(STDERR, "Unknown target connection [$targetConnectionName].".PHP_EOL);
+    exit(1);
+}
+
+if ($sourceConnectionName === $targetConnectionName) {
+    fwrite(STDERR, "Source and target connections must be different.".PHP_EOL);
+    exit(1);
+}
 
 $skipTables = [
     'migrations',
@@ -52,15 +74,54 @@ $tablePriority = [
     'activity_log',
 ];
 
-$source = DB::connection('sqlite_sync');
-$target = DB::connection('pgsql');
+$isTruthy = static function (mixed $value): bool {
+    if (is_bool($value)) {
+        return $value;
+    }
 
-$sourceTables = array_map(
-    static fn ($row) => $row->name,
-    $source->select("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
-);
+    return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+};
+
+$forceLiveSync = in_array('--force-live-sync', $options, true)
+    || $isTruthy(env('ALLOW_DESTRUCTIVE_SYNC', false));
+
+$targetConfig = config("database.connections.$targetConnectionName", []);
+$targetHost = strtolower((string) ($targetConfig['host'] ?? ''));
+$looksLikeLiveTarget = preg_match('/(^|_)(live|prod|production)(_|$)/i', $targetConnectionName) === 1;
+$isRemoteTarget = $targetHost !== '' && ! in_array($targetHost, ['127.0.0.1', 'localhost', 'postgres'], true);
+
+if ($mode === 'sync' && ($looksLikeLiveTarget || $isRemoteTarget) && ! $forceLiveSync) {
+    fwrite(STDERR, "Refusing to sync into live/remote target [$targetConnectionName] without --force-live-sync.".PHP_EOL);
+    exit(1);
+}
+
+$source = DB::connection($sourceConnectionName);
+$target = DB::connection($targetConnectionName);
+
+$getSourceTableNames = static function () use ($source): array {
+    return match ($source->getDriverName()) {
+        'sqlite' => array_map(
+            static fn ($row) => $row->name,
+            $source->select("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+        ),
+        'pgsql' => array_map(
+            static fn ($row) => $row->table_name,
+            $source->select(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_type = 'BASE TABLE' ORDER BY table_name",
+                ['public']
+            )
+        ),
+        default => throw new RuntimeException('Unsupported source driver: '.$source->getDriverName()),
+    };
+};
+
+$sourceTables = $getSourceTableNames();
 
 $tables = array_values(array_filter($sourceTables, static fn ($table) => ! in_array($table, $skipTables, true)));
+
+if ($tableFilter !== []) {
+    $tables = array_values(array_filter($tables, static fn ($table) => in_array($table, $tableFilter, true)));
+}
 
 usort($tables, static function (string $left, string $right) use ($tablePriority): int {
     $leftIndex = array_search($left, $tablePriority, true);
@@ -81,21 +142,8 @@ usort($tables, static function (string $left, string $right) use ($tablePriority
     return $leftIndex <=> $rightIndex;
 });
 
-$getSourceColumns = static function (string $table) use ($source): array {
-    return array_map(
-        static fn ($row) => $row->name,
-        $source->select("PRAGMA table_info('$table')")
-    );
-};
-
-$getTargetColumns = static function (string $table) use ($target): array {
-    return array_map(
-        static fn ($row) => $row->column_name,
-        $target->select(
-            'SELECT column_name FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position',
-            ['public', $table]
-        )
-    );
+$getColumns = static function ($connection, string $table): array {
+    return $connection->getSchemaBuilder()->getColumnListing($table);
 };
 
 $quoteIdentifier = static fn (string $value): string => '"'.str_replace('"', '""', $value).'"';
@@ -105,8 +153,10 @@ if ($mode === 'report') {
 
     foreach ($tables as $table) {
         $report[$table] = [
-            'sqlite_count' => (int) $source->table($table)->count(),
-            'pgsql_table_exists' => ! empty($getTargetColumns($table)),
+            'source_connection' => $sourceConnectionName,
+            'source_count' => (int) $source->table($table)->count(),
+            'target_connection' => $targetConnectionName,
+            'target_table_exists' => ! empty($getColumns($target, $table)),
         ];
     }
 
@@ -120,12 +170,14 @@ if ($mode !== 'sync') {
 }
 
 $results = [];
+$preparedTables = [];
+$deferredUpdates = [];
 
 $target->unprepared('SET session_replication_role = replica;');
 
 try {
     foreach ($tables as $table) {
-        $targetColumns = $getTargetColumns($table);
+        $targetColumns = $getColumns($target, $table);
 
         if ($targetColumns === []) {
             $results[$table] = [
@@ -135,7 +187,7 @@ try {
             continue;
         }
 
-        $sourceColumns = $getSourceColumns($table);
+        $sourceColumns = $getColumns($source, $table);
         $columns = array_values(array_intersect($sourceColumns, $targetColumns));
 
         if ($columns === []) {
@@ -146,12 +198,41 @@ try {
             continue;
         }
 
-        $sourceRows = array_map(
+        $rows = array_map(
             static fn ($row) => array_intersect_key((array) $row, array_flip($columns)),
             $source->table($table)->get()->all()
         );
 
+        if ($table === 'departments' && in_array('manager_id', $columns, true)) {
+            foreach ($rows as &$row) {
+                if (array_key_exists('manager_id', $row) && $row['manager_id'] !== null) {
+                    $deferredUpdates[$table][] = [
+                        'id' => $row['id'],
+                        'manager_id' => $row['manager_id'],
+                    ];
+                    $row['manager_id'] = null;
+                }
+            }
+            unset($row);
+        }
+
+        $preparedTables[$table] = [
+            'columns' => $columns,
+            'rows' => $rows,
+        ];
+    }
+
+    foreach (array_reverse(array_keys($preparedTables)) as $table) {
         $target->statement('TRUNCATE TABLE '.$quoteIdentifier($table).' RESTART IDENTITY CASCADE');
+    }
+
+    foreach ($tables as $table) {
+        if (! array_key_exists($table, $preparedTables)) {
+            continue;
+        }
+
+        $columns = $preparedTables[$table]['columns'];
+        $sourceRows = $preparedTables[$table]['rows'];
 
         if ($sourceRows !== []) {
             foreach (array_chunk($sourceRows, 200) as $chunk) {
@@ -171,6 +252,14 @@ try {
             'status' => 'copied',
             'rows' => count($sourceRows),
         ];
+    }
+
+    foreach ($deferredUpdates as $table => $updates) {
+        foreach ($updates as $update) {
+            $target->table($table)
+                ->where('id', $update['id'])
+                ->update(['manager_id' => $update['manager_id']]);
+        }
     }
 } finally {
     $target->unprepared('SET session_replication_role = DEFAULT;');

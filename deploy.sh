@@ -6,6 +6,25 @@
 set -e
 
 DEPLOY_ARCHIVE="deploy_bundle.tar.gz"
+BACKUP_DIR="/var/backups/simbisa"
+
+backup_database_if_exists() {
+    DB_NAME=$(docker-compose exec -T app printenv DB_DATABASE | tr -d '[:space:]')
+
+    if [ -z "$DB_NAME" ]; then
+        echo "Skipping database backup because DB_DATABASE is empty."
+        return
+    fi
+
+    if docker-compose exec -T postgres psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1; then
+        mkdir -p "$BACKUP_DIR"
+        BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_predeploy_$(date +%Y%m%d_%H%M%S).sql"
+        echo "Creating pre-deploy database backup at $BACKUP_FILE ..."
+        docker-compose exec -T postgres pg_dump -U postgres "$DB_NAME" > "$BACKUP_FILE"
+    else
+        echo "Skipping pre-deploy backup because database '$DB_NAME' does not exist yet."
+    fi
+}
 
 ensure_runtime_paths() {
     docker-compose exec -T -u root app sh -lc "mkdir -p /app/storage/logs /app/storage/framework/cache/data /app/storage/framework/sessions /app/storage/framework/views /app/bootstrap/cache && chown -R www-data:www-data /app/storage /app/bootstrap/cache && chmod -R ug+rwX /app/storage /app/bootstrap/cache"
@@ -126,7 +145,7 @@ docker-compose pull
 echo "Building and starting containers..."
 
 echo "Removing stale containers to avoid legacy docker-compose ContainerConfig failures..."
-for NAME in assetlinq_app simbisa_worker simbisa_scheduler; do
+for NAME in assetlinq_app simbisa_worker simbisa_scheduler simbisa_postgres; do
     STALE=$(docker ps -aq --filter name="$NAME")
     if [ -n "$STALE" ]; then
         docker rm -f $STALE
@@ -144,6 +163,9 @@ docker-compose up -d --build --remove-orphans
 # 8. Wait for database to be ready
 echo "Waiting for database..."
 sleep 10
+
+echo "Backing up live database before migrations..."
+backup_database_if_exists
 
 # 9. Ensure the database exists (POSTGRES_DB only runs on first volume init)
 echo "Ensuring database exists..."
