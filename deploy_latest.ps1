@@ -5,17 +5,35 @@
 param(
     [string]$Server = "77.93.154.83",
     [string]$User   = "administrator",
-    [string]$AppDir = "/var/www/simbisa"
+    [string]$AppDir = "/var/www/simbisa",
+    [bool]$SyncDatabase = $true,
+    [string]$SyncTables = "departments,users,asset_requests,capex_forms,purchase_orders,goods_receipts,categories,locations,assets"
 )
 
 $ErrorActionPreference = "Stop"
 $RemoteTarget = "${User}@${Server}"
 $DeployArchive = "deploy_bundle.tar.gz"
+$SshOptions = @(
+    '-o', 'ServerAliveInterval=15',
+    '-o', 'ServerAliveCountMax=6'
+)
 
 function Invoke-SSH {
     param([string]$Cmd)
-    ssh $RemoteTarget $Cmd
+
+    & ssh @SshOptions $RemoteTarget $Cmd
     if ($LASTEXITCODE -ne 0) { throw "SSH command failed: $Cmd" }
+}
+
+function Invoke-SCP {
+    param(
+        [string]$Source,
+        [string]$Destination,
+        [string]$FailureMessage
+    )
+
+    & scp -O @SshOptions $Source $Destination
+    if ($LASTEXITCODE -ne 0) { throw $FailureMessage }
 }
 
 function Invoke-HealthCheck {
@@ -33,8 +51,47 @@ function Invoke-HealthCheck {
         throw "Health check failed for /login"
     }
 
-    if ($login.Content -notmatch 'name="email"' -or $login.Content -notmatch 'name="password"') {
-        throw "Login page rendered unexpectedly; email/password fields not found"
+    $loginMarkers = @(
+        '<div id="app" data-page="',
+        '&quot;component&quot;:&quot;Auth\/Login&quot;',
+        '&quot;url&quot;:&quot;\/login&quot;'
+    )
+
+    foreach ($marker in $loginMarkers) {
+        if ($login.Content -notmatch [regex]::Escape($marker)) {
+            throw "Login page rendered unexpectedly; missing marker: $marker"
+        }
+    }
+}
+
+function Invoke-DatabaseSync {
+    param([string]$Tables)
+
+    Write-Host "      > Syncing local pgsql to live pgsql_live"
+    & php ".\sync_sqlite_to_pgsql.php" sync pgsql pgsql_live $Tables
+    if ($LASTEXITCODE -ne 0) {
+        throw "Database sync failed"
+    }
+}
+
+function Invoke-LocalPhpLint {
+    Write-Host "      > Validating PHP syntax before packaging"
+
+    $phpFiles = Get-ChildItem -Path ".\app", ".\bootstrap", ".\config", ".\database", ".\routes" -Filter "*.php" -Recurse -File
+
+    foreach ($file in $phpFiles) {
+        & php -l $file.FullName | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "PHP syntax validation failed: $($file.FullName)"
+        }
+    }
+}
+
+function Test-FrontendBuildArtifacts {
+    $manifestPath = Join-Path $PSScriptRoot 'public\build\manifest.json'
+
+    if (-not (Test-Path $manifestPath)) {
+        throw "Frontend build artifact missing: public/build/manifest.json. Run npm run build before deploying."
     }
 }
 
@@ -45,6 +102,11 @@ Write-Host " AssetLinq - Deploy Latest Changes"
 Write-Host "========================================"
 
 Write-Host ""
+Write-Host "[0/5] Validating PHP files ..."
+Invoke-LocalPhpLint
+Test-FrontendBuildArtifacts
+
+Write-Host ""
 Write-Host "[1/4] Packaging deployment bundle ..."
 if (Test-Path $DeployArchive) { Remove-Item $DeployArchive -Force }
 
@@ -52,6 +114,7 @@ tar -czf $DeployArchive `
     --exclude=.git `
     --exclude=vendor `
     --exclude=node_modules `
+    --exclude=bootstrap/cache/*.php `
     --exclude=resources/js `
     --exclude=tests `
     --exclude=.env `
@@ -89,19 +152,25 @@ Write-Host "      deploy_bundle.tar.gz ready ($sizeMB MB)"
 
 Write-Host ""
 Write-Host "[2/4] Uploading bundle to server ..."
-scp "deploy.sh" "${RemoteTarget}:${AppDir}/deploy.sh"
-if ($LASTEXITCODE -ne 0) { throw "SCP failed: deploy.sh" }
+Invoke-SCP "deploy.sh" "${RemoteTarget}:${AppDir}/deploy.sh" "SCP failed: deploy.sh"
 
-scp $DeployArchive "${RemoteTarget}:${AppDir}/deploy_bundle.tar.gz"
-if ($LASTEXITCODE -ne 0) { throw "SCP failed: deploy bundle" }
+Invoke-SCP $DeployArchive "${RemoteTarget}:${AppDir}/deploy_bundle.tar.gz" "SCP failed: deploy bundle"
 Write-Host "      Upload complete."
 
 Write-Host ""
-Write-Host "[3/4] Running server deployment ..."
+Write-Host "[3/5] Running server deployment ..."
 Invoke-SSH "cd ${AppDir} && bash deploy.sh"
 
 Write-Host ""
-Write-Host "[4/4] Running post-deploy health checks ..."
+Write-Host "[4/5] Syncing deployment data ..."
+if ($SyncDatabase) {
+    Invoke-DatabaseSync $SyncTables
+} else {
+    Write-Host "      Database sync skipped."
+}
+
+Write-Host ""
+Write-Host "[5/5] Running post-deploy health checks ..."
 Invoke-HealthCheck "http://$Server"
 
 if (Test-Path $DeployArchive) { Remove-Item $DeployArchive -Force }
@@ -110,6 +179,7 @@ Write-Host ""
 Write-Host "========================================"
 Write-Host " Deployment complete!"
 Write-Host " http://$Server"
+if ($SyncDatabase) { Write-Host " Database sync completed" }
 Write-Host " Login smoke checks passed"
 Write-Host "========================================"
 
