@@ -6,7 +6,7 @@
 set -e
 
 DEPLOY_ARCHIVE="deploy_bundle.tar.gz"
-BACKUP_DIR="/var/backups/simbisa"
+BACKUP_DIR="/var/www/simbisa/backups/server"
 
 remove_stale_containers() {
     echo "Removing stale containers to avoid legacy docker-compose ContainerConfig failures..."
@@ -21,15 +21,27 @@ remove_stale_containers() {
 
 backup_database_if_exists() {
     DB_NAME=$(docker-compose exec -T app printenv DB_DATABASE | tr -d '[:space:]')
+    TARGET_BACKUP_DIR=""
 
     if [ -z "$DB_NAME" ]; then
         echo "Skipping database backup because DB_DATABASE is empty."
         return
     fi
 
+    for CANDIDATE_DIR in "$BACKUP_DIR" "/tmp/simbisa-backups"; do
+        if mkdir -p "$CANDIDATE_DIR" 2>/dev/null; then
+            TARGET_BACKUP_DIR="$CANDIDATE_DIR"
+            break
+        fi
+    done
+
+    if [ -z "$TARGET_BACKUP_DIR" ]; then
+        echo "Skipping pre-deploy backup because no writable backup directory is available."
+        return
+    fi
+
     if docker-compose exec -T postgres psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1; then
-        mkdir -p "$BACKUP_DIR"
-        BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_predeploy_$(date +%Y%m%d_%H%M%S).sql"
+        BACKUP_FILE="$TARGET_BACKUP_DIR/${DB_NAME}_predeploy_$(date +%Y%m%d_%H%M%S).sql"
         echo "Creating pre-deploy database backup at $BACKUP_FILE ..."
         docker-compose exec -T postgres pg_dump -U postgres "$DB_NAME" > "$BACKUP_FILE"
     else
