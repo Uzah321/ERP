@@ -57,6 +57,7 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
     const assetRequestsHref = safeRoute('asset-requests.index');
     const procurementDashboardHref = safeRoute('procurement.dashboard');
     const procurementPendingHref = safeRoute('procurement.pending');
+    const vendorsHref = safeRoute('admin.vendors.index');
     const storeManagementHref = safeRoute('store-management.index');
     const auditHref = safeRoute('audit.index');
     const maintenanceHref = safeRoute('maintenance.index');
@@ -140,8 +141,8 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
                     <SideNavMenu
                         renderIcon={ShoppingCart}
                         title="Procurement"
-                        defaultExpanded={isInSection('/procurement', '/capex', '/purchase-orders', '/goods-receipts', '/invoices', '/budget')}
-                        isActive={isInSection('/procurement', '/capex', '/purchase-orders', '/goods-receipts', '/invoices', '/budget')}
+                        defaultExpanded={isInSection('/procurement', '/capex', '/purchase-orders', '/goods-receipts', '/invoices', '/budget', '/admin/vendors')}
+                        isActive={isInSection('/procurement', '/capex', '/purchase-orders', '/goods-receipts', '/invoices', '/budget', '/admin/vendors')}
                     >
                         {procurementDashboardHref && (
                         <SideNavInertiaItem
@@ -157,6 +158,14 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
                             isActive={currentUrl.includes('/procurement/pending')}
                         >
                             Pending Queue
+                        </SideNavInertiaItem>
+                        )}
+                        {vendorsHref && (
+                        <SideNavInertiaItem
+                            href={vendorsHref}
+                            isActive={currentUrl.includes('/admin/vendors')}
+                        >
+                            Manage Vendors
                         </SideNavInertiaItem>
                         )}
                     </SideNavMenu>
@@ -262,8 +271,8 @@ const AppSideNav = memo(function AppSideNav({ isSideNavExpanded, user, currentUr
                 <SideNavMenu
                     renderIcon={Settings}
                     title="Settings"
-                    defaultExpanded={isInSection('/settings', '/users', '/locations', '/vendors', '/position-specs', '/archive', '/two-factor')}
-                    isActive={isInSection('/settings', '/users', '/locations', '/vendors', '/position-specs', '/archive', '/two-factor')}
+                    defaultExpanded={isInSection('/settings', '/users', '/locations', '/position-specs', '/archive', '/two-factor')}
+                    isActive={isInSection('/settings', '/users', '/locations', '/position-specs', '/archive', '/two-factor')}
                 >
                     {settingsHref && (
                         <SideNavInertiaItem href={`${settingsHref}#profile`} isActive={currentUrl.includes('/settings') && (currentUrl.includes('#profile') || !currentUrl.includes('#'))}>
