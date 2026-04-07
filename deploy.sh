@@ -8,6 +8,17 @@ set -e
 DEPLOY_ARCHIVE="deploy_bundle.tar.gz"
 BACKUP_DIR="/var/backups/simbisa"
 
+remove_stale_containers() {
+    echo "Removing stale containers to avoid legacy docker-compose ContainerConfig failures..."
+
+    for NAME in assetlinq_app simbisa_worker simbisa_scheduler simbisa_postgres; do
+        STALE=$(docker ps -aq --filter name="$NAME")
+        if [ -n "$STALE" ]; then
+            docker rm -f $STALE
+        fi
+    done
+}
+
 backup_database_if_exists() {
     DB_NAME=$(docker-compose exec -T app printenv DB_DATABASE | tr -d '[:space:]')
 
@@ -89,7 +100,8 @@ if [ -f "$DEPLOY_ARCHIVE" ]; then
     echo "Extracting lean deployment archive through app service..."
 
     if [ -z "$(docker-compose ps -q app)" ]; then
-        docker-compose up -d app
+        remove_stale_containers
+        docker-compose up -d --no-deps app
     fi
 
     docker-compose exec -T -u root app sh -lc "cd /app && tar --overwrite --no-same-owner --no-same-permissions --warning=no-unknown-keyword -xzf $DEPLOY_ARCHIVE && rm -f $DEPLOY_ARCHIVE"
@@ -144,13 +156,7 @@ docker-compose pull
 # 6. Build and start containers without tearing down named volumes
 echo "Building and starting containers..."
 
-echo "Removing stale containers to avoid legacy docker-compose ContainerConfig failures..."
-for NAME in assetlinq_app simbisa_worker simbisa_scheduler simbisa_postgres; do
-    STALE=$(docker ps -aq --filter name="$NAME")
-    if [ -n "$STALE" ]; then
-        docker rm -f $STALE
-    fi
-done
+remove_stale_containers
 
 echo "Building application images..."
 docker-compose build app worker scheduler
