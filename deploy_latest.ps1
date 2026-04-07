@@ -6,6 +6,7 @@ param(
     [string]$Server = "77.93.154.83",
     [string]$User   = "administrator",
     [string]$AppDir = "/var/www/simbisa",
+    [string]$SshKeyPath = "$HOME\.ssh\id_ed25519",
     [switch]$SyncDatabase,
     [switch]$SkipOffsiteBackup,
     [string]$SyncTables = "departments,users,asset_requests,capex_forms,purchase_orders,goods_receipts,categories,locations,assets"
@@ -16,6 +17,8 @@ $RemoteTarget = "${User}@${Server}"
 $DeployArchive = "deploy_bundle.tar.gz"
 $OffsiteBackupDir = Join-Path $PSScriptRoot 'backups\offsite'
 $SshOptions = @(
+    '-i', $SshKeyPath,
+    '-o', 'IdentitiesOnly=yes',
     '-o', 'ServerAliveInterval=15',
     '-o', 'ServerAliveCountMax=6'
 )
